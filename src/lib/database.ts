@@ -581,7 +581,13 @@ export function clearAllData(): void {
   db.exec("DELETE FROM recipes; DELETE FROM items;");
 }
 
-export function getStats(): { items: number; recipes: number } {
+export function getStats(): {
+  items: number;
+  recipes: number;
+  base_materials: number;
+  craftable: number;
+  categories: number;
+} {
   const db = getDb();
   const items = db.prepare("SELECT COUNT(*) as count FROM items").get() as {
     count: number;
@@ -589,5 +595,347 @@ export function getStats(): { items: number; recipes: number } {
   const recipes = db.prepare("SELECT COUNT(*) as count FROM recipes").get() as {
     count: number;
   };
-  return { items: items.count, recipes: recipes.count };
+  const baseMaterials = db
+    .prepare("SELECT COUNT(*) as count FROM items WHERE is_base_material = 1")
+    .get() as { count: number };
+  const craftable = db
+    .prepare("SELECT COUNT(*) as count FROM items WHERE is_base_material = 0")
+    .get() as { count: number };
+  const categories = db
+    .prepare("SELECT COUNT(DISTINCT category) as count FROM items")
+    .get() as { count: number };
+
+  return {
+    items: items.count,
+    recipes: recipes.count,
+    base_materials: baseMaterials.count,
+    craftable: craftable.count,
+    categories: categories.count,
+  };
+}
+
+// ========== CSV IMPORT FUNCTIONS ==========
+
+interface CsvItemRow {
+  name: string;
+  category: string;
+  is_base_material: boolean;
+  description: string;
+}
+
+interface CsvRecipeRow {
+  result: string;
+  ingredient: string;
+  quantity: number;
+}
+
+interface CsvParseResult<T> {
+  valid: T[];
+  invalid: Array<{ row: number; data: string[]; error: string }>;
+  duplicates: T[];
+}
+
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+
+  return result;
+}
+
+export function parseItemsCsv(csvContent: string): CsvParseResult<CsvItemRow> {
+  const lines = csvContent.split(/\r?\n/).filter((line) => line.trim());
+  const result: CsvParseResult<CsvItemRow> = {
+    valid: [],
+    invalid: [],
+    duplicates: [],
+  };
+
+  if (lines.length === 0) {
+    return result;
+  }
+
+  // Parse header
+  const header = parseCSVLine(lines[0]).map((h) => h.toLowerCase().trim());
+  const nameIdx = header.indexOf("name");
+  const categoryIdx = header.indexOf("category");
+  const baseIdx = header.findIndex(
+    (h) => h === "is_base_material" || h === "base" || h === "is_base"
+  );
+  const descIdx = header.findIndex(
+    (h) => h === "description" || h === "desc"
+  );
+
+  if (nameIdx === -1) {
+    result.invalid.push({
+      row: 0,
+      data: header,
+      error: 'Missing required column "name"',
+    });
+    return result;
+  }
+
+  // Parse data rows
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCSVLine(lines[i]);
+
+    if (fields.length === 0 || (fields.length === 1 && !fields[0])) {
+      continue; // Skip empty lines
+    }
+
+    const name = fields[nameIdx]?.trim() || "";
+    const category = (categoryIdx !== -1 ? fields[categoryIdx] : "misc")?.trim() || "misc";
+    const baseValue = baseIdx !== -1 ? fields[baseIdx]?.trim().toLowerCase() : "0";
+    const isBase =
+      baseValue === "1" ||
+      baseValue === "true" ||
+      baseValue === "yes";
+    const description =
+      descIdx !== -1 ? fields[descIdx]?.trim() || "" : "";
+
+    if (!name) {
+      result.invalid.push({
+        row: i,
+        data: fields,
+        error: "Missing name",
+      });
+      continue;
+    }
+
+    if (name.length > 100) {
+      result.invalid.push({
+        row: i,
+        data: fields,
+        error: "Name too long (max 100 chars)",
+      });
+      continue;
+    }
+
+    const item: CsvItemRow = {
+      name,
+      category,
+      is_base_material: isBase,
+      description,
+    };
+
+    // Check for duplicates in the CSV itself
+    if (result.valid.some((v) => v.name.toLowerCase() === name.toLowerCase())) {
+      result.duplicates.push(item);
+      continue;
+    }
+
+    // Check for existing item in database
+    const existing = getItemByName(name);
+    if (existing) {
+      result.duplicates.push(item);
+      continue;
+    }
+
+    result.valid.push(item);
+  }
+
+  return result;
+}
+
+export function parseRecipesCsv(
+  csvContent: string
+): CsvParseResult<CsvRecipeRow> {
+  const lines = csvContent.split(/\r?\n/).filter((line) => line.trim());
+  const result: CsvParseResult<CsvRecipeRow> = {
+    valid: [],
+    invalid: [],
+    duplicates: [],
+  };
+
+  if (lines.length === 0) {
+    return result;
+  }
+
+  // Parse header
+  const header = parseCSVLine(lines[0]).map((h) => h.toLowerCase().trim());
+  const resultIdx = header.findIndex(
+    (h) => h === "result" || h === "result_item" || h === "product"
+  );
+  const ingredientIdx = header.findIndex(
+    (h) => h === "ingredient" || h === "ingredient_item" || h === "material"
+  );
+  const quantityIdx = header.findIndex(
+    (h) => h === "quantity" || h === "qty" || h === "amount"
+  );
+
+  if (resultIdx === -1) {
+    result.invalid.push({
+      row: 0,
+      data: header,
+      error: 'Missing required column "result"',
+    });
+    return result;
+  }
+  if (ingredientIdx === -1) {
+    result.invalid.push({
+      row: 0,
+      data: header,
+      error: 'Missing required column "ingredient"',
+    });
+    return result;
+  }
+
+  // Parse data rows
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCSVLine(lines[i]);
+
+    if (fields.length === 0 || (fields.length === 1 && !fields[0])) {
+      continue;
+    }
+
+    const resultName = fields[resultIdx]?.trim() || "";
+    const ingredientName = fields[ingredientIdx]?.trim() || "";
+    const quantityStr =
+      quantityIdx !== -1 ? fields[quantityIdx]?.trim() : "1";
+    const quantity = parseFloat(quantityStr) || 1;
+
+    if (!resultName) {
+      result.invalid.push({
+        row: i,
+        data: fields,
+        error: "Missing result item name",
+      });
+      continue;
+    }
+
+    if (!ingredientName) {
+      result.invalid.push({
+        row: i,
+        data: fields,
+        error: "Missing ingredient name",
+      });
+      continue;
+    }
+
+    if (quantity <= 0 || quantity > 10000) {
+      result.invalid.push({
+        row: i,
+        data: fields,
+        error: "Invalid quantity (must be 0-10000)",
+      });
+      continue;
+    }
+
+    // Check if items exist
+    const resultItem = getItemByName(resultName);
+    const ingredientItem = getItemByName(ingredientName);
+
+    if (!resultItem) {
+      result.invalid.push({
+        row: i,
+        data: fields,
+        error: `Result item not found: ${resultName}`,
+      });
+      continue;
+    }
+
+    if (!ingredientItem) {
+      result.invalid.push({
+        row: i,
+        data: fields,
+        error: `Ingredient not found: ${ingredientName}`,
+      });
+      continue;
+    }
+
+    // Check if recipe already exists
+    const existingRecipes = getRecipe(resultItem.id);
+    if (
+      existingRecipes.some((r) => r.ingredient_item_id === ingredientItem.id)
+    ) {
+      result.duplicates.push({
+        result: resultName,
+        ingredient: ingredientName,
+        quantity,
+      });
+      continue;
+    }
+
+    result.valid.push({
+      result: resultName,
+      ingredient: ingredientName,
+      quantity,
+    });
+  }
+
+  return result;
+}
+
+export function importItemsFromCsv(items: CsvItemRow[]): {
+  added: number;
+  errors: string[];
+} {
+  const result = { added: 0, errors: [] as string[] };
+
+  for (const item of items) {
+    try {
+      addItem(item.name, item.category, item.is_base_material, item.description);
+      result.added++;
+    } catch (e) {
+      result.errors.push(`Failed to add ${item.name}: ${e}`);
+    }
+  }
+
+  return result;
+}
+
+export function importRecipesFromCsv(
+  recipes: CsvRecipeRow[]
+): { added: number; errors: string[] } {
+  const result = { added: 0, errors: [] as string[] };
+
+  for (const recipe of recipes) {
+    const resultItem = getItemByName(recipe.result);
+    const ingredientItem = getItemByName(recipe.ingredient);
+
+    if (!resultItem || !ingredientItem) {
+      result.errors.push(
+        `Items not found: ${recipe.result} or ${recipe.ingredient}`
+      );
+      continue;
+    }
+
+    try {
+      const id = addRecipeIngredient(
+        resultItem.id,
+        ingredientItem.id,
+        recipe.quantity
+      );
+      if (id === null) {
+        result.errors.push(
+          `Circular dependency: ${recipe.ingredient} -> ${recipe.result}`
+        );
+      } else {
+        result.added++;
+      }
+    } catch (e) {
+      result.errors.push(`Failed to add recipe: ${e}`);
+    }
+  }
+
+  return result;
 }
