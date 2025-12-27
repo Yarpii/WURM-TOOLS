@@ -147,6 +147,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 /**
+ * Fetch URL content using cURL with better error handling
+ */
+function fetchUrl(string $url): array {
+    // Try cURL first (more reliable)
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HTTPHEADER => [
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language: en-US,en;q=0.5',
+            ],
+        ]);
+
+        $html = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        $errno = curl_errno($ch);
+        curl_close($ch);
+
+        if ($errno !== 0) {
+            // Provide specific error messages for common issues
+            $errorMessages = [
+                6 => 'Could not resolve host (DNS error). Check your internet connection.',
+                7 => 'Could not connect to server. The website may be down.',
+                28 => 'Connection timed out. The server took too long to respond.',
+                35 => 'SSL/TLS connection error. Try again later.',
+                56 => 'Network proxy blocked the connection (403 Forbidden). External websites may be restricted in this environment.',
+                60 => 'SSL certificate verification failed.',
+            ];
+            $msg = $errorMessages[$errno] ?? "Connection error: $error (code: $errno)";
+            return ['success' => false, 'error' => $msg];
+        }
+
+        if ($httpCode >= 400) {
+            return ['success' => false, 'error' => "HTTP error: $httpCode"];
+        }
+
+        return ['success' => true, 'html' => $html];
+    }
+
+    // Fallback to file_get_contents
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 15,
+            'user_agent' => 'Mozilla/5.0 (compatible; WurmCalc/1.0)',
+            'follow_location' => true,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+
+    $html = @file_get_contents($url, false, $context);
+    if ($html === false) {
+        $err = error_get_last();
+        $msg = $err['message'] ?? 'Unknown error';
+
+        // Parse common errors for user-friendly messages
+        if (strpos($msg, 'getaddrinfo') !== false || strpos($msg, 'name resolution') !== false) {
+            $msg = 'Could not resolve host (DNS error). Check your internet connection.';
+        } elseif (strpos($msg, 'Connection refused') !== false) {
+            $msg = 'Connection refused. The website may be blocking requests.';
+        } elseif (strpos($msg, 'timed out') !== false) {
+            $msg = 'Connection timed out. Try again later.';
+        }
+
+        return ['success' => false, 'error' => $msg];
+    }
+
+    return ['success' => true, 'html' => $html];
+}
+
+/**
  * Scrape items from Wurmpedia
  */
 function scrapeWurmWiki(string $url, WurmCalculator $calc): array {
@@ -173,18 +256,12 @@ function scrapeWurmWiki(string $url, WurmCalculator $calc): array {
     }
 
     // Fetch the page
-    $context = stream_context_create([
-        'http' => [
-            'timeout' => 10,
-            'user_agent' => 'WurmCalc/1.0'
-        ]
-    ]);
-
-    $html = @file_get_contents($url, false, $context);
-    if ($html === false) {
-        $results['error'] = 'Could not fetch the wiki page';
+    $fetch = fetchUrl($url);
+    if (!$fetch['success']) {
+        $results['error'] = $fetch['error'];
         return $results;
     }
+    $html = $fetch['html'];
 
     // Parse for item name (usually in h1 or title)
     $itemName = '';
@@ -727,7 +804,7 @@ Hammer,Iron Lump,1</div>
                         <li>Copy the URL and paste it above</li>
                         <li>The scraper will try to extract the item name and recipe</li>
                     </ul>
-                    <p style="margin-top:10px;color:var(--warning)">Note: Recipe parsing is experimental and may not work for all pages.</p>
+                    <p style="margin-top:10px;color:var(--warning)">Note: Recipe parsing is experimental. If scraping fails due to network restrictions, use JSON or CSV import instead.</p>
                 </div>
             </div>
         </div>
