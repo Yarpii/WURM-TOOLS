@@ -187,7 +187,7 @@ class WurmCalculator {
         }
         return $items;
     }
-    
+
     /**
      * Format quantity for display (round to 2 decimals, remove trailing zeros)
      */
@@ -196,5 +196,255 @@ class WurmCalculator {
             return (string)(int)$qty;
         }
         return rtrim(rtrim(number_format($qty, 2), '0'), '.');
+    }
+
+    // ========== ADMIN FUNCTIONS ==========
+
+    /**
+     * Add a new item
+     */
+    public function addItem(string $name, string $category, bool $isBaseMaterial, string $description = ''): int {
+        $stmt = $this->pdo->prepare("INSERT INTO items (name, category, is_base_material, description) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$name, $category, $isBaseMaterial ? 1 : 0, $description]);
+        $id = (int)$this->pdo->lastInsertId();
+
+        // Update cache
+        $this->itemCache[$id] = [
+            'id' => $id,
+            'name' => $name,
+            'category' => $category,
+            'is_base_material' => $isBaseMaterial ? 1 : 0,
+            'description' => $description
+        ];
+
+        return $id;
+    }
+
+    /**
+     * Update an item
+     */
+    public function updateItem(int $id, string $name, string $category, bool $isBaseMaterial, string $description = ''): bool {
+        $stmt = $this->pdo->prepare("UPDATE items SET name = ?, category = ?, is_base_material = ?, description = ? WHERE id = ?");
+        $result = $stmt->execute([$name, $category, $isBaseMaterial ? 1 : 0, $description, $id]);
+
+        if ($result) {
+            $this->itemCache[$id] = [
+                'id' => $id,
+                'name' => $name,
+                'category' => $category,
+                'is_base_material' => $isBaseMaterial ? 1 : 0,
+                'description' => $description
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Delete an item and its recipes
+     */
+    public function deleteItem(int $id): bool {
+        // Delete recipes where this item is result or ingredient
+        $this->pdo->prepare("DELETE FROM recipes WHERE result_item_id = ? OR ingredient_item_id = ?")->execute([$id, $id]);
+
+        // Delete item
+        $stmt = $this->pdo->prepare("DELETE FROM items WHERE id = ?");
+        $result = $stmt->execute([$id]);
+
+        if ($result) {
+            unset($this->itemCache[$id]);
+            unset($this->recipeCache[$id]);
+            // Clean up recipes that used this item
+            foreach ($this->recipeCache as $resultId => &$ingredients) {
+                $ingredients = array_filter($ingredients, fn($r) => $r['ingredient_item_id'] != $id);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Add a recipe ingredient
+     */
+    public function addRecipeIngredient(int $resultItemId, int $ingredientItemId, float $quantity): ?int {
+        // Check for circular dependency
+        if ($this->wouldCreateCycle($resultItemId, $ingredientItemId)) {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare("INSERT INTO recipes (result_item_id, ingredient_item_id, quantity) VALUES (?, ?, ?)");
+        $stmt->execute([$resultItemId, $ingredientItemId, $quantity]);
+        $id = (int)$this->pdo->lastInsertId();
+
+        // Update cache
+        if (!isset($this->recipeCache[$resultItemId])) {
+            $this->recipeCache[$resultItemId] = [];
+        }
+        $this->recipeCache[$resultItemId][] = [
+            'id' => $id,
+            'result_item_id' => $resultItemId,
+            'ingredient_item_id' => $ingredientItemId,
+            'quantity' => $quantity
+        ];
+
+        return $id;
+    }
+
+    /**
+     * Update a recipe ingredient quantity
+     */
+    public function updateRecipeIngredient(int $recipeId, float $quantity): bool {
+        $stmt = $this->pdo->prepare("UPDATE recipes SET quantity = ? WHERE id = ?");
+        $result = $stmt->execute([$quantity, $recipeId]);
+
+        // Update cache
+        foreach ($this->recipeCache as &$recipes) {
+            foreach ($recipes as &$r) {
+                if ($r['id'] == $recipeId) {
+                    $r['quantity'] = $quantity;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Delete a recipe ingredient
+     */
+    public function deleteRecipeIngredient(int $recipeId): bool {
+        $stmt = $this->pdo->prepare("DELETE FROM recipes WHERE id = ?");
+        $result = $stmt->execute([$recipeId]);
+
+        // Update cache
+        foreach ($this->recipeCache as $resultId => &$recipes) {
+            $recipes = array_filter($recipes, fn($r) => $r['id'] != $recipeId);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get all recipes with item names
+     */
+    public function getAllRecipes(): array {
+        $recipes = [];
+        foreach ($this->recipeCache as $resultId => $ingredients) {
+            $resultItem = $this->getItem($resultId);
+            if (!$resultItem) continue;
+
+            foreach ($ingredients as $ing) {
+                $ingredientItem = $this->getItem($ing['ingredient_item_id']);
+                if (!$ingredientItem) continue;
+
+                $recipes[] = [
+                    'id' => $ing['id'],
+                    'result_item_id' => $resultId,
+                    'result_name' => $resultItem['name'],
+                    'ingredient_item_id' => $ing['ingredient_item_id'],
+                    'ingredient_name' => $ingredientItem['name'],
+                    'quantity' => $ing['quantity']
+                ];
+            }
+        }
+
+        usort($recipes, fn($a, $b) => strcmp($a['result_name'], $b['result_name']));
+        return $recipes;
+    }
+
+    /**
+     * Check if adding an ingredient would create a circular dependency
+     */
+    public function wouldCreateCycle(int $resultItemId, int $ingredientItemId): bool {
+        // If ingredient is same as result, it's circular
+        if ($resultItemId === $ingredientItemId) {
+            return true;
+        }
+
+        // Check if resultItem is reachable from ingredientItem's dependencies
+        return $this->canReach($ingredientItemId, $resultItemId, []);
+    }
+
+    /**
+     * Check if we can reach targetId starting from itemId
+     */
+    private function canReach(int $itemId, int $targetId, array $visited): bool {
+        if (in_array($itemId, $visited)) {
+            return false; // Already visited, avoid infinite loop
+        }
+
+        $visited[] = $itemId;
+        $recipe = $this->getRecipe($itemId);
+
+        foreach ($recipe as $ingredient) {
+            $ingId = $ingredient['ingredient_item_id'];
+            if ($ingId === $targetId) {
+                return true;
+            }
+            if ($this->canReach($ingId, $targetId, $visited)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // ========== REVERSE LOOKUP ==========
+
+    /**
+     * Find what items can be crafted using a given item as ingredient
+     */
+    public function findCraftableFrom(int $itemId): array {
+        $results = [];
+
+        foreach ($this->recipeCache as $resultId => $ingredients) {
+            foreach ($ingredients as $ing) {
+                if ($ing['ingredient_item_id'] === $itemId) {
+                    $resultItem = $this->getItem($resultId);
+                    if ($resultItem) {
+                        $results[] = [
+                            'item' => $resultItem,
+                            'quantity_needed' => $ing['quantity']
+                        ];
+                    }
+                    break;
+                }
+            }
+        }
+
+        usort($results, fn($a, $b) => strcmp($a['item']['name'], $b['item']['name']));
+        return $results;
+    }
+
+    /**
+     * Recursively find all items that eventually use this item
+     */
+    public function findAllCraftableFrom(int $itemId, array $visited = []): array {
+        if (in_array($itemId, $visited)) {
+            return [];
+        }
+        $visited[] = $itemId;
+
+        $direct = $this->findCraftableFrom($itemId);
+        $all = $direct;
+
+        foreach ($direct as $result) {
+            $indirect = $this->findAllCraftableFrom($result['item']['id'], $visited);
+            foreach ($indirect as $ind) {
+                // Avoid duplicates
+                $exists = false;
+                foreach ($all as $existing) {
+                    if ($existing['item']['id'] === $ind['item']['id']) {
+                        $exists = true;
+                        break;
+                    }
+                }
+                if (!$exists) {
+                    $all[] = $ind;
+                }
+            }
+        }
+
+        return $all;
     }
 }
