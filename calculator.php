@@ -389,6 +389,268 @@ class WurmCalculator {
         return false;
     }
 
+    // ========== DATA IMPORT/EXPORT ==========
+
+    /**
+     * Export all data to JSON format
+     */
+    public function exportToJson(): array {
+        $items = [];
+        foreach ($this->itemCache as $item) {
+            $items[] = [
+                'name' => $item['name'],
+                'category' => $item['category'],
+                'is_base_material' => (bool)$item['is_base_material'],
+                'description' => $item['description'] ?? ''
+            ];
+        }
+
+        $recipes = [];
+        foreach ($this->recipeCache as $resultId => $ingredients) {
+            $resultItem = $this->getItem($resultId);
+            if (!$resultItem) continue;
+
+            foreach ($ingredients as $ing) {
+                $ingredientItem = $this->getItem($ing['ingredient_item_id']);
+                if (!$ingredientItem) continue;
+
+                $recipes[] = [
+                    'result' => $resultItem['name'],
+                    'ingredient' => $ingredientItem['name'],
+                    'quantity' => $ing['quantity']
+                ];
+            }
+        }
+
+        return [
+            'version' => '1.0',
+            'exported_at' => date('Y-m-d H:i:s'),
+            'items' => $items,
+            'recipes' => $recipes
+        ];
+    }
+
+    /**
+     * Import data from JSON
+     * @param bool $replace If true, clear existing data first
+     * @return array Statistics about the import
+     */
+    public function importFromJson(array $data, bool $replace = false): array {
+        $stats = ['items_added' => 0, 'items_skipped' => 0, 'recipes_added' => 0, 'recipes_skipped' => 0, 'errors' => []];
+
+        if ($replace) {
+            $this->pdo->exec("DELETE FROM recipes");
+            $this->pdo->exec("DELETE FROM items");
+            $this->recipeCache = [];
+            $this->itemCache = [];
+        }
+
+        // Import items first
+        foreach ($data['items'] ?? [] as $item) {
+            if (empty($item['name'])) {
+                $stats['errors'][] = "Item missing name";
+                continue;
+            }
+
+            $existing = $this->getItemByName($item['name']);
+            if ($existing) {
+                $stats['items_skipped']++;
+                continue;
+            }
+
+            try {
+                $this->addItem(
+                    $item['name'],
+                    $item['category'] ?? 'misc',
+                    $item['is_base_material'] ?? false,
+                    $item['description'] ?? ''
+                );
+                $stats['items_added']++;
+            } catch (Exception $e) {
+                $stats['errors'][] = "Error adding item {$item['name']}: " . $e->getMessage();
+            }
+        }
+
+        // Import recipes
+        foreach ($data['recipes'] ?? [] as $recipe) {
+            if (empty($recipe['result']) || empty($recipe['ingredient'])) {
+                $stats['errors'][] = "Recipe missing result or ingredient";
+                continue;
+            }
+
+            $resultItem = $this->getItemByName($recipe['result']);
+            $ingredientItem = $this->getItemByName($recipe['ingredient']);
+
+            if (!$resultItem) {
+                $stats['errors'][] = "Recipe result not found: {$recipe['result']}";
+                continue;
+            }
+            if (!$ingredientItem) {
+                $stats['errors'][] = "Recipe ingredient not found: {$recipe['ingredient']}";
+                continue;
+            }
+
+            // Check if recipe already exists
+            $exists = false;
+            $existingRecipes = $this->getRecipe($resultItem['id']);
+            foreach ($existingRecipes as $er) {
+                if ($er['ingredient_item_id'] == $ingredientItem['id']) {
+                    $exists = true;
+                    break;
+                }
+            }
+
+            if ($exists) {
+                $stats['recipes_skipped']++;
+                continue;
+            }
+
+            $id = $this->addRecipeIngredient($resultItem['id'], $ingredientItem['id'], $recipe['quantity'] ?? 1);
+            if ($id === null) {
+                $stats['errors'][] = "Circular dependency: {$recipe['ingredient']} -> {$recipe['result']}";
+            } else {
+                $stats['recipes_added']++;
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Import items from CSV data
+     * @return array Preview or import results
+     */
+    public function importItemsCsv(array $rows, bool $preview = true): array {
+        $results = ['valid' => [], 'invalid' => [], 'duplicates' => []];
+
+        foreach ($rows as $i => $row) {
+            if (count($row) < 2) {
+                $results['invalid'][] = ['row' => $i + 1, 'data' => $row, 'error' => 'Not enough columns'];
+                continue;
+            }
+
+            $name = trim($row[0] ?? '');
+            $category = trim($row[1] ?? 'misc');
+            $isBase = isset($row[2]) && (strtolower(trim($row[2])) === 'true' || trim($row[2]) === '1');
+            $description = trim($row[3] ?? '');
+
+            if (empty($name)) {
+                $results['invalid'][] = ['row' => $i + 1, 'data' => $row, 'error' => 'Empty name'];
+                continue;
+            }
+
+            $existing = $this->getItemByName($name);
+            if ($existing) {
+                $results['duplicates'][] = ['row' => $i + 1, 'name' => $name];
+                continue;
+            }
+
+            $item = [
+                'row' => $i + 1,
+                'name' => $name,
+                'category' => $category,
+                'is_base_material' => $isBase,
+                'description' => $description
+            ];
+
+            if (!$preview) {
+                try {
+                    $this->addItem($name, $category, $isBase, $description);
+                    $item['imported'] = true;
+                } catch (Exception $e) {
+                    $item['error'] = $e->getMessage();
+                    $results['invalid'][] = $item;
+                    continue;
+                }
+            }
+
+            $results['valid'][] = $item;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Import recipes from CSV data
+     */
+    public function importRecipesCsv(array $rows, bool $preview = true): array {
+        $results = ['valid' => [], 'invalid' => [], 'duplicates' => []];
+
+        foreach ($rows as $i => $row) {
+            if (count($row) < 3) {
+                $results['invalid'][] = ['row' => $i + 1, 'data' => $row, 'error' => 'Not enough columns'];
+                continue;
+            }
+
+            $resultName = trim($row[0] ?? '');
+            $ingredientName = trim($row[1] ?? '');
+            $quantity = floatval($row[2] ?? 1);
+
+            if (empty($resultName) || empty($ingredientName)) {
+                $results['invalid'][] = ['row' => $i + 1, 'data' => $row, 'error' => 'Empty item name'];
+                continue;
+            }
+
+            $resultItem = $this->getItemByName($resultName);
+            $ingredientItem = $this->getItemByName($ingredientName);
+
+            if (!$resultItem) {
+                $results['invalid'][] = ['row' => $i + 1, 'data' => $row, 'error' => "Item not found: $resultName"];
+                continue;
+            }
+            if (!$ingredientItem) {
+                $results['invalid'][] = ['row' => $i + 1, 'data' => $row, 'error' => "Item not found: $ingredientName"];
+                continue;
+            }
+
+            // Check duplicate
+            $exists = false;
+            foreach ($this->getRecipe($resultItem['id']) as $er) {
+                if ($er['ingredient_item_id'] == $ingredientItem['id']) {
+                    $exists = true;
+                    break;
+                }
+            }
+
+            if ($exists) {
+                $results['duplicates'][] = ['row' => $i + 1, 'result' => $resultName, 'ingredient' => $ingredientName];
+                continue;
+            }
+
+            // Check circular
+            if ($this->wouldCreateCycle($resultItem['id'], $ingredientItem['id'])) {
+                $results['invalid'][] = ['row' => $i + 1, 'data' => $row, 'error' => 'Would create circular dependency'];
+                continue;
+            }
+
+            $recipe = [
+                'row' => $i + 1,
+                'result' => $resultName,
+                'ingredient' => $ingredientName,
+                'quantity' => $quantity
+            ];
+
+            if (!$preview) {
+                $id = $this->addRecipeIngredient($resultItem['id'], $ingredientItem['id'], $quantity);
+                $recipe['imported'] = $id !== null;
+            }
+
+            $results['valid'][] = $recipe;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Clear all data
+     */
+    public function clearAllData(): void {
+        $this->pdo->exec("DELETE FROM recipes");
+        $this->pdo->exec("DELETE FROM items");
+        $this->recipeCache = [];
+        $this->itemCache = [];
+    }
+
     // ========== REVERSE LOOKUP ==========
 
     /**

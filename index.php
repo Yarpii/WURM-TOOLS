@@ -582,7 +582,10 @@ ksort($itemsByCategory);
             <p>WurmCalc &mdash; A crafting calculator for <a href="https://www.wurmonline.com/" target="_blank">WURM Online</a></p>
         </footer>
 
-        <a href="admin.php" class="admin-link">Admin Panel</a>
+        <div class="bottom-links">
+            <a href="data.php" class="admin-link" style="right: 140px">Data</a>
+            <a href="admin.php" class="admin-link">Admin</a>
+        </div>
     </div>
 
     <script>

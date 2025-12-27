@@ -166,6 +166,8 @@ foreach ($recipes as $r) {
         h1 { color: var(--accent); }
         h1 span { color: var(--text); }
 
+        .nav-links { display: flex; gap: 10px; }
+
         .back-link {
             color: var(--accent);
             text-decoration: none;
@@ -332,7 +334,10 @@ foreach ($recipes as $r) {
     <div class="container">
         <header>
             <h1>Wurm<span>Calc</span> Admin</h1>
-            <a href="index.php" class="back-link">Back to Calculator</a>
+            <div class="nav-links">
+                <a href="index.php" class="back-link">Calculator</a>
+                <a href="data.php" class="back-link">Data</a>
+            </div>
         </header>
 
         <?php if ($message): ?>
