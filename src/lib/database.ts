@@ -9,7 +9,23 @@ import type {
   CraftableResult,
   ImportStats,
   CsvPreviewResult,
+  CraftingSettings,
+  AdvancedMaterialResult,
+  CraftingPrediction,
+  AdvancedCalculationResult,
+  SkillGrindStep,
 } from "./types";
+import {
+  calculateSuccessChance,
+  getSuccessCategory,
+  predictCraftingQuality,
+  calculateMaterialWaste,
+  calculateCraftingTime,
+  calculateToolWear,
+  predictSkillGain,
+  generateSkillPath,
+  getItemDifficulty,
+} from "./wurm-formulas";
 
 const DB_PATH = path.join(process.cwd(), "wurmcalc.sqlite");
 
@@ -938,4 +954,279 @@ export function importRecipesFromCsv(
   }
 
   return result;
+}
+
+// ========== ADVANCED CRAFTING CALCULATIONS ==========
+
+/**
+ * Default crafting settings for calculations
+ */
+export const DEFAULT_CRAFTING_SETTINGS: CraftingSettings = {
+  playerSkill: 50,
+  toolQL: 50,
+  materialQL: 50,
+  hasSleepBonus: false,
+  parentSkill: 0,
+  windOfAges: 0,
+  circleOfCunning: 0
+};
+
+/**
+ * Calculate advanced materials with failure rates and predictions
+ */
+export function calculateAdvancedMaterials(
+  itemId: number,
+  quantity: number,
+  settings: Partial<CraftingSettings> = {}
+): AdvancedCalculationResult | null {
+  const item = getItem(itemId);
+  if (!item) return null;
+
+  // Merge with defaults
+  const craftSettings: CraftingSettings = {
+    ...DEFAULT_CRAFTING_SETTINGS,
+    ...settings
+  };
+
+  // Get base materials (perfect success scenario)
+  const baseMaterials = getMaterialsList(itemId, quantity);
+  const tree = buildCraftingTree(itemId, quantity);
+
+  if (!tree) return null;
+
+  // Get item difficulty
+  const difficulty = item.difficulty || getItemDifficulty(item.name);
+
+  // Calculate success chance
+  const successChance = calculateSuccessChance({
+    skill: craftSettings.playerSkill,
+    difficulty,
+    toolQL: craftSettings.toolQL,
+    materialQL: craftSettings.materialQL,
+    parentSkillBonus: craftSettings.parentSkill
+  });
+
+  const successCategory = getSuccessCategory(successChance);
+
+  // Calculate quality prediction
+  const qualityPred = predictCraftingQuality(
+    craftSettings.playerSkill,
+    craftSettings.toolQL,
+    craftSettings.materialQL
+  );
+
+  // Calculate total base materials needed
+  const totalBaseMaterials = baseMaterials.reduce((sum, m) => sum + m.quantity, 0);
+
+  // Calculate material waste
+  const wasteResult = calculateMaterialWaste(quantity, totalBaseMaterials / quantity, successChance);
+
+  // Calculate expected materials for each base material
+  const expectedMaterials: AdvancedMaterialResult[] = baseMaterials.map(mat => {
+    const wasteForMat = calculateMaterialWaste(
+      quantity,
+      mat.quantity / quantity,
+      successChance
+    );
+
+    return {
+      ...mat,
+      expectedQuantity: wasteForMat.expectedQuantity,
+      expectedFormatted: formatQuantity(wasteForMat.expectedQuantity),
+      worstCaseQuantity: wasteForMat.worstCaseQuantity,
+      worstCaseFormatted: formatQuantity(wasteForMat.worstCaseQuantity)
+    };
+  });
+
+  // Calculate crafting time
+  const timeResult = calculateCraftingTime(
+    item.skill_type ? `create_${item.skill_type}` : "default_create",
+    Math.ceil(wasteResult.expectedAttempts),
+    craftSettings.playerSkill,
+    craftSettings.toolQL,
+    qualityPred.averageQL,
+    craftSettings.windOfAges
+  );
+
+  // Calculate tool wear
+  const toolWear = calculateToolWear(
+    Math.ceil(wasteResult.expectedAttempts),
+    craftSettings.toolQL,
+    difficulty,
+    craftSettings.circleOfCunning
+  );
+
+  // Calculate skill gain
+  const skillGain = predictSkillGain(
+    craftSettings.playerSkill,
+    difficulty,
+    timeResult.modifiedTimeSeconds,
+    Math.ceil(wasteResult.expectedAttempts),
+    craftSettings.hasSleepBonus
+  );
+
+  // Build prediction object
+  const prediction: CraftingPrediction = {
+    successChance,
+    successLabel: successCategory.label,
+    successColor: successCategory.color,
+    averageQL: qualityPred.averageQL,
+    minQL: qualityPred.minQL,
+    maxQL: qualityPred.maxQL,
+    timePerItem: timeResult.modifiedTimeSeconds,
+    totalTime: timeResult.totalTimeSeconds,
+    totalTimeFormatted: timeResult.totalTimeFormatted,
+    failureRate: wasteResult.failureRate,
+    wasteMultiplier: wasteResult.expectedQuantity / wasteResult.baseQuantity,
+    toolDamagePerAction: toolWear.damagePerAction,
+    repairsNeeded: toolWear.repairsNeeded,
+    skillGainPerAction: skillGain.gainPerAction,
+    totalSkillGain: skillGain.totalGain,
+    newSkillLevel: skillGain.newSkillLevel,
+    actionsToNextLevel: skillGain.actionsToNextLevel,
+    isOptimalDifficulty: skillGain.isOptimalDifficulty
+  };
+
+  return {
+    baseMaterials,
+    expectedMaterials,
+    tree,
+    prediction
+  };
+}
+
+/**
+ * Generate skill grinding path for an item
+ */
+export function getSkillGrindingPath(
+  itemId: number,
+  currentSkill: number,
+  targetSkill: number,
+  toolQL: number = 50
+): SkillGrindStep[] {
+  const item = getItem(itemId);
+  if (!item) return [];
+
+  const rawPath = generateSkillPath(currentSkill, targetSkill, toolQL);
+
+  // Get base materials for the item to estimate material usage
+  const baseMaterials = getMaterialsList(itemId, 1);
+  const totalMaterialsPerItem = baseMaterials.reduce((sum, m) => sum + m.quantity, 0);
+
+  return rawPath.map(step => {
+    // Calculate materials needed for this step
+    const wasteResult = calculateMaterialWaste(
+      step.actionsNeeded,
+      totalMaterialsPerItem,
+      step.successRate
+    );
+
+    // Estimate time for this step
+    const timeResult = calculateCraftingTime(
+      "default_create",
+      step.actionsNeeded,
+      (step.skillRange.from + step.skillRange.to) / 2,
+      toolQL
+    );
+
+    return {
+      skillFrom: step.skillRange.from,
+      skillTo: step.skillRange.to,
+      targetQL: step.targetQL,
+      actionsNeeded: step.actionsNeeded,
+      successRate: step.successRate,
+      description: step.description,
+      materialsNeeded: Math.ceil(wasteResult.expectedQuantity),
+      timeEstimate: timeResult.totalTimeFormatted
+    };
+  });
+}
+
+/**
+ * Find the optimal item to craft for skill training at current level
+ */
+export function findOptimalTrainingItem(
+  skill: number,
+  category?: string
+): { item: Item; difficulty: number; successChance: number }[] {
+  const allItems = getAllItems().filter(i => !i.is_base_material);
+
+  // Filter by category if specified
+  const candidates = category
+    ? allItems.filter(i => i.category === category)
+    : allItems;
+
+  // Calculate optimal difficulty range (skill - 10 to skill + 10 for 50% success)
+  const optimalMin = Math.max(0, skill - 10);
+  const optimalMax = skill + 10;
+
+  // Score and sort items
+  const scored = candidates.map(item => {
+    const difficulty = item.difficulty || getItemDifficulty(item.name);
+    const successChance = calculateSuccessChance({
+      skill,
+      difficulty,
+      toolQL: 50,
+      materialQL: 50
+    });
+
+    // Optimal is around 50% success
+    const distanceFromOptimal = Math.abs(successChance - 50);
+
+    return {
+      item,
+      difficulty,
+      successChance,
+      score: 100 - distanceFromOptimal
+    };
+  });
+
+  // Sort by score (closest to 50% success)
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored.slice(0, 10).map(({ item, difficulty, successChance }) => ({
+    item,
+    difficulty,
+    successChance
+  }));
+}
+
+/**
+ * Calculate batch crafting efficiency
+ * Helps determine optimal batch sizes based on inventory capacity
+ */
+export function calculateBatchEfficiency(
+  itemId: number,
+  batchSize: number,
+  inventorySlots: number,
+  settings: Partial<CraftingSettings> = {}
+): {
+  batchesNeeded: number;
+  materialsPerBatch: number;
+  totalTrips: number;
+  efficiencyScore: number;
+} {
+  const baseMaterials = getMaterialsList(itemId, batchSize);
+  const totalMaterialTypes = baseMaterials.length;
+  const totalMaterialQuantity = baseMaterials.reduce((sum, m) => sum + Math.ceil(m.quantity), 0);
+
+  // Calculate how many inventory slots materials take
+  // Assuming each material stack is one slot
+  const slotsNeededPerBatch = Math.min(inventorySlots, totalMaterialTypes + 1); // +1 for tool
+
+  // Calculate batches needed
+  const batchesNeeded = Math.ceil(inventorySlots / slotsNeededPerBatch);
+
+  // Calculate trips (assuming you need to bank materials)
+  const totalTrips = Math.ceil(totalMaterialQuantity / (inventorySlots * 100)); // 100 per stack
+
+  // Efficiency score (higher is better)
+  const efficiencyScore = Math.round((batchSize / totalTrips) * 10);
+
+  return {
+    batchesNeeded,
+    materialsPerBatch: Math.ceil(totalMaterialQuantity),
+    totalTrips,
+    efficiencyScore
+  };
 }

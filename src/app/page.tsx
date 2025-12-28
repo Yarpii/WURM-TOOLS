@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
 export default function Home() {
@@ -107,6 +108,26 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Top Navigation */}
+      <div className="flex justify-center gap-4 mb-6">
+        <Link
+          href="/calculator"
+          className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg transition-all shadow-lg hover:shadow-amber-500/20 flex items-center gap-2"
+        >
+          <span>&#9881;</span>
+          <span>Advanced Calculator</span>
+          <span className="text-xs bg-white/20 px-2 py-0.5 rounded">NEW</span>
+        </Link>
+        <Link
+          href="/skill-optimizer"
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg transition-all shadow-lg hover:shadow-purple-500/20 flex items-center gap-2"
+        >
+          <span>&#128200;</span>
+          <span>Skill Optimizer</span>
+          <span className="text-xs bg-white/20 px-2 py-0.5 rounded">NEW</span>
+        </Link>
+      </div>
+
       {/* Page Header */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center gap-3 mb-2">
