@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
@@ -14,10 +14,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   // Redirect if already logged in
-  if (user) {
-    router.push(user.role === "admin" ? "/admin" : "/");
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      router.push(user.role === "admin" ? "/admin" : "/");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +40,11 @@ export default function LoginPage() {
       router.push("/");
     }
   };
+
+  // Don't show form if already logged in
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
