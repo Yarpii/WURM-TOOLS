@@ -8,36 +8,58 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-dark-card border-b border-white/10 sticky top-0 z-50">
+    <header className="forge-header sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-18 py-3">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                />
-              </svg>
+          <Link href="/" className="flex items-center gap-3 group">
+            {/* Anvil Icon */}
+            <div className="relative">
+              <div className="w-12 h-12 flex items-center justify-center">
+                <svg
+                  className="w-10 h-10 text-accent group-hover:text-accent-hover transition-colors"
+                  viewBox="0 0 64 64"
+                  fill="currentColor"
+                >
+                  {/* Anvil shape */}
+                  <path d="M8 38 L12 28 L52 28 L56 38 L56 42 L8 42 Z" fill="currentColor" />
+                  <path d="M16 42 L16 52 L48 52 L48 42" fill="currentColor" />
+                  <path d="M20 52 L20 56 L44 56 L44 52" fill="currentColor" />
+                  {/* Horn */}
+                  <path d="M4 32 L12 28 L12 38 L8 38 L4 36 Z" fill="currentColor" />
+                  {/* Top flat */}
+                  <path d="M18 28 L18 24 L46 24 L46 28" fill="currentColor" opacity="0.8" />
+                  {/* Hammer sparks */}
+                  <circle cx="32" cy="18" r="2" fill="#c9a227" className="group-hover:animate-pulse" />
+                  <circle cx="26" cy="14" r="1.5" fill="#ff6a2a" opacity="0.8" />
+                  <circle cx="38" cy="14" r="1.5" fill="#ff6a2a" opacity="0.8" />
+                  <circle cx="30" cy="10" r="1" fill="#ffd700" opacity="0.6" />
+                  <circle cx="34" cy="12" r="1" fill="#ffd700" opacity="0.6" />
+                </svg>
+              </div>
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 bg-accent/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
+
+            {/* Brand Name */}
             <div>
-              <span className="text-xl font-bold">
-                <span className="text-accent">WURM</span>
-                <span className="text-white">Tools</span>
-              </span>
-              <p className="text-xs text-gray-500 hidden sm:block">
-                Crafting & Utilities
+              <h1 className="text-2xl font-bold tracking-wide">
+                <span className="text-accent">BLACK</span>
+                <span className="text-gold">FORGE</span>
+                <span className="text-gray-500 text-lg">.tools</span>
+              </h1>
+              <p className="text-xs text-gray-600 tracking-widest uppercase hidden sm:block">
+                Wurm Online Utilities
               </p>
             </div>
           </Link>
+
+          {/* Decorative divider */}
+          <div className="hidden lg:flex items-center mx-8 flex-1">
+            <div className="forge-divider flex-1" />
+            <span className="px-4 text-gold/30 text-sm">◆</span>
+            <div className="forge-divider flex-1" />
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
@@ -46,7 +68,7 @@ export default function Header() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
+            className="md:hidden p-2 text-gray-400 hover:text-accent transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -64,7 +86,7 @@ export default function Header() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/10">
+          <div className="md:hidden py-4 border-t border-gold/10">
             <Navigation mobile onItemClick={() => setMobileMenuOpen(false)} />
           </div>
         )}

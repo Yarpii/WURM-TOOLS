@@ -1,46 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-dark-bg: #0f0f0f;
-  --color-dark-card: #1a1a1a;
-  --color-dark-input: #252525;
-  --color-accent: #e67e22;
-  --color-accent-hover: #d35400;
-  --color-success: #27ae60;
-  --color-category-wood: #8b4513;
-  --color-category-ore: #708090;
-  --color-category-material: #9370db;
-  --color-category-metal: #b8860b;
-  --color-category-vehicle: #4682b4;
-  --color-category-building: #cd853f;
-  --color-category-tool: #20b2aa;
-  --color-category-misc: #696969;
+  /* Blackforge Color Palette - Forge & Fire Theme */
+  --color-dark-bg: #0a0a0a;
+  --color-dark-card: #141414;
+  --color-dark-input: #1a1a1a;
+
+  /* Fire & Metal accents */
+  --color-accent: #e85a1b;
+  --color-accent-hover: #ff6a2a;
+  --color-fire-glow: #ff4500;
+  --color-ember: #cd5c1c;
+  --color-molten: #ff8c00;
+  --color-gold: #c9a227;
+  --color-bronze: #b08d57;
+  --color-steel: #71797e;
+  --color-iron: #48494b;
+
+  /* Success/Status */
+  --color-success: #4a7c59;
+
+  /* Category colors - more muted, medieval palette */
+  --color-category-wood: #6b4423;
+  --color-category-ore: #5a5a5a;
+  --color-category-material: #7a6b5a;
+  --color-category-metal: #8b8b8b;
+  --color-category-vehicle: #4a6a7a;
+  --color-category-building: #8b5a2b;
+  --color-category-tool: #5a4a3a;
+  --color-category-misc: #5a5a5a;
+  --color-category-food: #7a6b2a;
+  --color-category-armor: #4a5a6a;
+  --color-category-weapon: #6a3a3a;
 }
 
+/* Base styles */
 body {
   background-color: var(--color-dark-bg);
-  color: #f3f4f6;
+  color: #d4c4a8;
   min-height: 100vh;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.6;
 }
 
-/* Custom scrollbar */
+/* Medieval heading font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Parchment-like background texture overlay */
+.bg-dark-card {
+  background-color: var(--color-dark-card);
+  background-image:
+    radial-gradient(ellipse at 20% 30%, rgba(232, 90, 27, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(201, 162, 39, 0.02) 0%, transparent 50%);
+  border: 1px solid rgba(201, 162, 39, 0.1);
+}
+
+/* Forge glow effect for cards on hover */
+.bg-dark-card:hover {
+  border-color: rgba(232, 90, 27, 0.2);
+  box-shadow: 0 0 20px rgba(232, 90, 27, 0.05);
+}
+
+/* Custom scrollbar - forge metal style */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
   background-color: var(--color-dark-bg);
+  border-left: 1px solid rgba(201, 162, 39, 0.1);
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-dark-input);
-  border-radius: 4px;
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #3a3a3a 100%);
+  border-radius: 2px;
+  border: 1px solid rgba(201, 162, 39, 0.2);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-accent);
+  background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 50%, #4a4a4a 100%);
+  border-color: var(--color-accent);
 }
 
 /* Category colors */
@@ -49,6 +95,7 @@ body {
   height: 0.5rem;
   border-radius: 9999px;
   display: inline-block;
+  box-shadow: 0 0 4px currentColor;
 }
 
 .category-wood { background-color: var(--color-category-wood); }
@@ -59,24 +106,172 @@ body {
 .category-building { background-color: var(--color-category-building); }
 .category-tool { background-color: var(--color-category-tool); }
 .category-misc { background-color: var(--color-category-misc); }
-.category-food { background-color: #ca8a04; }
-.category-armor { background-color: #60a5fa; }
-.category-weapon { background-color: #f87171; }
+.category-food { background-color: var(--color-category-food); }
+.category-armor { background-color: var(--color-category-armor); }
+.category-weapon { background-color: var(--color-category-weapon); }
 
-/* Dark card and input backgrounds */
+/* Dark backgrounds */
 .bg-dark-bg { background-color: var(--color-dark-bg); }
-.bg-dark-card { background-color: var(--color-dark-card); }
-.bg-dark-input { background-color: var(--color-dark-input); }
+.bg-dark-input {
+  background-color: var(--color-dark-input);
+  border: 1px solid rgba(201, 162, 39, 0.1);
+}
 
-/* Accent colors */
-.bg-accent { background-color: var(--color-accent); }
-.bg-accent-hover { background-color: var(--color-accent-hover); }
-.hover\:bg-accent:hover { background-color: var(--color-accent); }
-.hover\:bg-accent-hover:hover { background-color: var(--color-accent-hover); }
+/* Accent colors - fire/forge theme */
+.bg-accent {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-ember) 100%);
+}
+.bg-accent-hover {
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-molten) 100%);
+}
+.hover\:bg-accent:hover {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-ember) 100%);
+}
+.hover\:bg-accent-hover:hover {
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-molten) 100%);
+}
 .text-accent { color: var(--color-accent); }
 .border-accent { border-color: var(--color-accent); }
 .focus\:ring-accent:focus { --tw-ring-color: var(--color-accent); }
 
-/* Success color */
+/* Gold accent for special elements */
+.text-gold { color: var(--color-gold); }
+.border-gold { border-color: var(--color-gold); }
+
+/* Success color - forest green */
 .bg-success { background-color: var(--color-success); }
-.text-success { color: var(--color-success); }
+.text-success { color: #6b9b5a; }
+
+/* Decorative border styles */
+.forge-border {
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Glowing ember effect for buttons */
+.ember-glow {
+  box-shadow:
+    0 0 10px rgba(232, 90, 27, 0.3),
+    0 0 20px rgba(232, 90, 27, 0.1);
+}
+
+.ember-glow:hover {
+  box-shadow:
+    0 0 15px rgba(232, 90, 27, 0.5),
+    0 0 30px rgba(232, 90, 27, 0.2);
+}
+
+/* Input focus with fire glow */
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px rgba(232, 90, 27, 0.2), 0 0 10px rgba(232, 90, 27, 0.1);
+}
+
+/* Decorative corner ornaments */
+.ornament-corner {
+  position: relative;
+}
+
+.ornament-corner::before,
+.ornament-corner::after {
+  content: '◆';
+  position: absolute;
+  color: var(--color-gold);
+  opacity: 0.3;
+  font-size: 0.5rem;
+}
+
+.ornament-corner::before {
+  top: -2px;
+  left: -2px;
+}
+
+.ornament-corner::after {
+  bottom: -2px;
+  right: -2px;
+}
+
+/* Medieval divider line */
+.forge-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 162, 39, 0.3) 20%,
+    rgba(201, 162, 39, 0.5) 50%,
+    rgba(201, 162, 39, 0.3) 80%,
+    transparent 100%
+  );
+}
+
+/* Parchment text effect */
+.parchment-text {
+  color: #d4c4a8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Forge header gradient */
+.forge-header {
+  background: linear-gradient(
+    180deg,
+    rgba(20, 20, 20, 1) 0%,
+    rgba(20, 20, 20, 0.98) 50%,
+    rgba(20, 20, 20, 0.95) 100%
+  );
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Anvil/forge styled buttons */
+button, .btn {
+  font-family: 'Cinzel', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(232, 90, 27, 0.3);
+  color: #fff;
+}
+
+/* Animated fire effect for special elements */
+@keyframes fireGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(232, 90, 27, 0.4), 0 0 20px rgba(232, 90, 27, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 140, 0, 0.5), 0 0 30px rgba(232, 90, 27, 0.3);
+  }
+}
+
+.fire-animation {
+  animation: fireGlow 2s ease-in-out infinite;
+}
+
+/* Smoky text effect for headings */
+.smoky-text {
+  text-shadow:
+    0 0 10px rgba(0, 0, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Stamped/embossed effect */
+.stamped {
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.5),
+    -1px -1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+  accent-color: var(--color-accent);
+}
+
+/* Table/list item hover with ember trail */
+.hover\:bg-white\/10:hover {
+  background: linear-gradient(90deg, rgba(232, 90, 27, 0.1) 0%, rgba(255, 255, 255, 0.1) 100%);
+}

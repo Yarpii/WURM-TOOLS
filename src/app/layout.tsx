@@ -4,9 +4,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "WURMTools - WURM Online Utilities",
-  description: "A collection of utilities for WURM Online - Crafting calculator, material management, and more",
-  keywords: ["WURM Online", "crafting", "calculator", "materials", "recipes"],
+  title: "Blackforge.Tools - Wurm Online Utilities",
+  description: "Forged for Wurm Online adventurers - Crafting calculator, material management, recipe tools and more",
+  keywords: ["Wurm Online", "crafting", "calculator", "blacksmith", "forge", "materials", "recipes"],
 };
 
 export default function RootLayout({

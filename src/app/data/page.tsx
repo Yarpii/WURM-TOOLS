@@ -420,13 +420,19 @@ export default function DataPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
-          <span className="text-accent">Data</span> Management
-        </h1>
-        <p className="text-gray-400">
-          Import, export, and manage your calculator data
+      <div className="mb-8 text-center">
+        <div className="inline-flex items-center gap-3 mb-2">
+          <span className="text-gold/30">◆</span>
+          <h1 className="text-3xl font-bold tracking-wide">
+            <span className="text-accent">Forge</span>
+            <span className="text-gold"> Archives</span>
+          </h1>
+          <span className="text-gold/30">◆</span>
+        </div>
+        <p className="text-gray-500">
+          Import, export, and manage your crafting knowledge
         </p>
+        <div className="forge-divider mt-4 max-w-md mx-auto" />
       </div>
 
       {/* Message */}
