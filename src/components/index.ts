@@ -1,5 +1,12 @@
+// Theme
+export { ThemeProvider, useTheme } from "./ThemeProvider";
+
+// Auth
+export { AuthProvider, useAuth } from "./AuthProvider";
+
 // Layout
-export { default as MainLayout } from "./MainLayout";
+export { default as Header } from "./Header";
+export { default as Footer } from "./Footer";
 
 // Cards
 export { default as Card, StatCard, ProgressBar } from "./Card";

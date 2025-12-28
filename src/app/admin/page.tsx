@@ -194,21 +194,13 @@ function AdminContent() {
   const craftableItems = items.filter((i) => !i.is_base_material);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Page Header */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center gap-3 mb-2">
-          <span className="text-gold/30">◆</span>
-          <h1 className="text-3xl font-bold tracking-wide">
-            <span className="text-accent">Forge</span>
-            <span className="text-gold"> Master</span>
-          </h1>
-          <span className="text-gold/30">◆</span>
-        </div>
-        <p className="text-gray-500">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-text-primary mb-2">Admin Panel</h1>
+        <p className="text-text-secondary">
           Manage your items and recipe blueprints
         </p>
-        <div className="forge-divider mt-4 max-w-md mx-auto" />
       </div>
 
       {/* Message */}
@@ -230,7 +222,7 @@ function AdminContent() {
           className={`px-5 py-2.5 rounded-lg border-2 transition-all ${
             activeTab === "items"
               ? "border-accent text-white"
-              : "border-transparent bg-dark-input text-gray-400 hover:text-white"
+              : "border-transparent bg-bg-tertiary border border-border text-text-secondary hover:text-white"
           }`}
           onClick={() => setActiveTab("items")}
         >
@@ -240,7 +232,7 @@ function AdminContent() {
           className={`px-5 py-2.5 rounded-lg border-2 transition-all ${
             activeTab === "recipes"
               ? "border-accent text-white"
-              : "border-transparent bg-dark-input text-gray-400 hover:text-white"
+              : "border-transparent bg-bg-tertiary border border-border text-text-secondary hover:text-white"
           }`}
           onClick={() => setActiveTab("recipes")}
         >
@@ -252,13 +244,13 @@ function AdminContent() {
       {activeTab === "items" && (
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Item Form */}
-          <div className="bg-dark-card p-6 rounded-xl">
+          <div className="bg-bg-secondary border border-border p-6 rounded-xl">
             <h2 className="text-accent text-xl font-semibold mb-4">
               {editingItem ? "Edit Item" : "Add New Item"}
             </h2>
             <form onSubmit={handleItemSubmit} className="space-y-4">
               <div>
-                <label className="block text-gray-400 text-sm mb-2">
+                <label className="block text-text-secondary text-sm mb-2">
                   Name
                 </label>
                 <input
@@ -268,12 +260,12 @@ function AdminContent() {
                     setItemForm({ ...itemForm, name: e.target.value })
                   }
                   required
-                  className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-2">
+                <label className="block text-text-secondary text-sm mb-2">
                   Category
                 </label>
                 <input
@@ -284,7 +276,7 @@ function AdminContent() {
                   }
                   list="categories"
                   required
-                  className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <datalist id="categories">
                   {categories.map((cat) => (
@@ -294,7 +286,7 @@ function AdminContent() {
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-2">
+                <label className="block text-text-secondary text-sm mb-2">
                   Description (optional)
                 </label>
                 <textarea
@@ -303,7 +295,7 @@ function AdminContent() {
                     setItemForm({ ...itemForm, description: e.target.value })
                   }
                   rows={2}
-                  className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                  className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent resize-none"
                 />
               </div>
 
@@ -319,7 +311,7 @@ function AdminContent() {
                   }
                   className="rounded"
                 />
-                <span className="text-gray-400">Base material</span>
+                <span className="text-text-secondary">Base material</span>
               </label>
 
               <div className="flex gap-2">
@@ -333,7 +325,7 @@ function AdminContent() {
                   <button
                     type="button"
                     onClick={resetItemForm}
-                    className="px-4 py-3 bg-dark-input hover:bg-white/20 rounded-lg transition-colors"
+                    className="px-4 py-3 bg-bg-tertiary border border-border hover:bg-white/20 rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
@@ -343,7 +335,7 @@ function AdminContent() {
           </div>
 
           {/* Items List */}
-          <div className="lg:col-span-2 bg-dark-card p-6 rounded-xl">
+          <div className="lg:col-span-2 bg-bg-secondary border border-border p-6 rounded-xl">
             <h2 className="text-accent text-xl font-semibold mb-4">
               All Items
             </h2>
@@ -389,13 +381,13 @@ function AdminContent() {
       {activeTab === "recipes" && (
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recipe Form */}
-          <div className="bg-dark-card p-6 rounded-xl">
+          <div className="bg-bg-secondary border border-border p-6 rounded-xl">
             <h2 className="text-accent text-xl font-semibold mb-4">
               Add Recipe Ingredient
             </h2>
             <form onSubmit={handleRecipeSubmit} className="space-y-4">
               <div>
-                <label className="block text-gray-400 text-sm mb-2">
+                <label className="block text-text-secondary text-sm mb-2">
                   Result Item (what you craft)
                 </label>
                 <select
@@ -407,7 +399,7 @@ function AdminContent() {
                     })
                   }
                   required
-                  className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   <option value={0}>Select result item...</option>
                   {craftableItems.map((item) => (
@@ -419,7 +411,7 @@ function AdminContent() {
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-2">
+                <label className="block text-text-secondary text-sm mb-2">
                   Ingredient Item
                 </label>
                 <select
@@ -431,7 +423,7 @@ function AdminContent() {
                     })
                   }
                   required
-                  className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   <option value={0}>Select ingredient...</option>
                   {items.map((item) => (
@@ -443,7 +435,7 @@ function AdminContent() {
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-2">
+                <label className="block text-text-secondary text-sm mb-2">
                   Quantity Needed
                 </label>
                 <input
@@ -458,7 +450,7 @@ function AdminContent() {
                   min={0.01}
                   step={0.01}
                   required
-                  className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
 
@@ -471,7 +463,7 @@ function AdminContent() {
             </form>
 
             <div className="mt-6 p-4 bg-white/5 rounded-lg">
-              <p className="text-gray-400 text-sm">
+              <p className="text-text-secondary text-sm">
                 <strong className="text-accent">Tip:</strong> To create a new
                 recipe, first add the result item in the Items tab (as
                 non-base), then add ingredients here.
@@ -480,7 +472,7 @@ function AdminContent() {
           </div>
 
           {/* Recipes List */}
-          <div className="lg:col-span-2 bg-dark-card p-6 rounded-xl">
+          <div className="lg:col-span-2 bg-bg-secondary border border-border p-6 rounded-xl">
             <h2 className="text-accent text-xl font-semibold mb-4">
               All Recipes
             </h2>
@@ -492,7 +484,7 @@ function AdminContent() {
                 >
                   <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                     <span className="text-accent">{group.name}</span>
-                    <span className="text-gray-500 text-sm">
+                    <span className="text-text-muted text-sm">
                       ({group.ingredients.length} ingredients)
                     </span>
                   </h3>
@@ -502,7 +494,7 @@ function AdminContent() {
                         key={recipe.id}
                         className="flex items-center justify-between p-2 bg-white/5 rounded"
                       >
-                        <span className="text-gray-300">
+                        <span className="text-text-secondary">
                           {recipe.ingredient_name}
                         </span>
                         <div className="flex items-center gap-3">
@@ -517,7 +509,7 @@ function AdminContent() {
                             }
                             min={0.01}
                             step={0.01}
-                            className="w-20 px-2 py-1 bg-dark-input rounded text-white text-center"
+                            className="w-20 px-2 py-1 bg-bg-tertiary border border-border rounded text-white text-center"
                           />
                           <button
                             onClick={() => deleteRecipe(recipe.id)}
@@ -532,7 +524,7 @@ function AdminContent() {
                 </div>
               ))}
               {Object.keys(groupedRecipes).length === 0 && (
-                <div className="text-center text-gray-500 py-10">
+                <div className="text-center text-text-muted py-10">
                   No recipes yet. Add some ingredients above!
                 </div>
               )}

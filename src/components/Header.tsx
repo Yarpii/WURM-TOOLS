@@ -1,95 +1,90 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Navigation from "./Navigation";
+import { useTheme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
+
+const navItems = [
+  { href: "/", label: "Home" },
+  { href: "/crafting", label: "Crafting" },
+  { href: "/data", label: "Data" },
+  { href: "/admin", label: "Admin" },
+];
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, loading, logout } = useAuth();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await logout();
-    router.push("/");
-    router.refresh();
-  };
+  const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
 
   return (
-    <header className="forge-header sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-18 py-3">
+    <header className="sticky top-0 z-50 bg-bg-secondary border-b border-border">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            {/* Anvil Icon */}
-            <div className="relative">
-              <div className="w-12 h-12 flex items-center justify-center">
-                <svg
-                  className="w-10 h-10 text-accent group-hover:text-accent-hover transition-colors"
-                  viewBox="0 0 64 64"
-                  fill="currentColor"
-                >
-                  {/* Anvil shape */}
-                  <path d="M8 38 L12 28 L52 28 L56 38 L56 42 L8 42 Z" fill="currentColor" />
-                  <path d="M16 42 L16 52 L48 52 L48 42" fill="currentColor" />
-                  <path d="M20 52 L20 56 L44 56 L44 52" fill="currentColor" />
-                  {/* Horn */}
-                  <path d="M4 32 L12 28 L12 38 L8 38 L4 36 Z" fill="currentColor" />
-                  {/* Top flat */}
-                  <path d="M18 28 L18 24 L46 24 L46 28" fill="currentColor" opacity="0.8" />
-                  {/* Hammer sparks */}
-                  <circle cx="32" cy="18" r="2" fill="#c9a227" className="group-hover:animate-pulse" />
-                  <circle cx="26" cy="14" r="1.5" fill="#ff6a2a" opacity="0.8" />
-                  <circle cx="38" cy="14" r="1.5" fill="#ff6a2a" opacity="0.8" />
-                  <circle cx="30" cy="10" r="1" fill="#ffd700" opacity="0.6" />
-                  <circle cx="34" cy="12" r="1" fill="#ffd700" opacity="0.6" />
-                </svg>
-              </div>
-              {/* Subtle glow effect */}
-              <div className="absolute inset-0 bg-accent/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+              </svg>
             </div>
-
-            {/* Brand Name */}
-            <div>
-              <h1 className="text-2xl font-bold tracking-wide">
-                <span className="text-accent">BLACK</span>
-                <span className="text-gold">FORGE</span>
-                <span className="text-gray-500 text-lg">.tools</span>
-              </h1>
-              <p className="text-xs text-gray-600 tracking-widest uppercase hidden sm:block">
-                Wurm Online Utilities
-              </p>
-            </div>
+            <span className="text-lg font-semibold text-text-primary">
+              WURM<span className="text-accent">Tools</span>
+            </span>
           </Link>
 
-          {/* Decorative divider */}
-          <div className="hidden lg:flex items-center mx-8 flex-1">
-            <div className="forge-divider flex-1" />
-            <span className="px-4 text-gold/30 text-sm">◆</span>
-            <div className="forge-divider flex-1" />
-          </div>
-
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-4">
-            <Navigation />
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-accent text-white"
+                      : "text-text-secondary hover:text-text-primary hover:bg-bg-hover"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
 
-            {/* Auth Section */}
-            <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gold/20">
+          {/* Right side - Theme toggle & Auth */}
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Auth - Desktop */}
+            <div className="hidden md:flex items-center gap-2">
               {loading ? (
-                <div className="w-20 h-8 bg-dark-input rounded animate-pulse" />
+                <div className="w-20 h-8 bg-bg-tertiary rounded-lg animate-pulse" />
               ) : user ? (
                 <>
-                  <div className="text-right hidden lg:block">
-                    <p className="text-sm text-gray-400">{user.username}</p>
-                    {user.role === "admin" && (
-                      <p className="text-xs text-gold">Admin</p>
-                    )}
-                  </div>
+                  <span className="text-sm text-text-secondary">{user.username}</span>
                   <button
-                    onClick={handleLogout}
-                    className="px-3 py-1.5 text-sm text-gray-400 hover:text-accent transition-colors"
+                    onClick={() => logout()}
+                    className="px-3 py-1.5 text-sm text-text-muted hover:text-text-primary transition-colors"
                   >
                     Logout
                   </button>
@@ -98,81 +93,95 @@ export default function Header() {
                 <>
                   <Link
                     href="/login"
-                    className="px-3 py-1.5 text-sm text-gray-400 hover:text-gold transition-colors"
+                    className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
                   >
                     Login
                   </Link>
                   <Link
                     href="/register"
-                    className="px-4 py-1.5 text-sm bg-accent/20 text-accent hover:bg-accent/30 rounded transition-colors"
+                    className="px-4 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
                   >
-                    Join
+                    Sign Up
                   </Link>
                 </>
               )}
             </div>
-          </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-gray-400 hover:text-accent transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2 text-text-secondary hover:text-text-primary"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gold/10">
-            <Navigation mobile onItemClick={() => setMobileMenuOpen(false)} />
+          <div className="md:hidden py-4 border-t border-border">
+            <nav className="flex flex-col gap-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href ||
+                  (item.href !== "/" && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-accent text-white"
+                        : "text-text-secondary hover:bg-bg-hover"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
 
-            {/* Mobile Auth Section */}
-            <div className="mt-4 pt-4 border-t border-gold/10">
+            {/* Mobile Auth */}
+            <div className="mt-4 pt-4 border-t border-border">
               {loading ? (
-                <div className="w-full h-10 bg-dark-input rounded animate-pulse" />
+                <div className="h-10 bg-bg-tertiary rounded-lg animate-pulse" />
               ) : user ? (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-400">{user.username}</p>
-                    {user.role === "admin" && (
-                      <p className="text-xs text-gold">Admin</p>
-                    )}
-                  </div>
+                <div className="flex items-center justify-between px-4">
+                  <span className="text-text-secondary">{user.username}</span>
                   <button
                     onClick={() => {
-                      handleLogout();
+                      logout();
                       setMobileMenuOpen(false);
                     }}
-                    className="px-4 py-2 text-sm text-gray-400 hover:text-accent transition-colors"
+                    className="text-sm text-text-muted hover:text-text-primary"
                   >
                     Logout
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-3">
+                <div className="flex gap-2 px-4">
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 py-2 text-center text-gray-400 hover:text-gold transition-colors"
+                    className="flex-1 py-2 text-center text-sm text-text-secondary hover:text-text-primary"
                   >
                     Login
                   </Link>
                   <Link
                     href="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 py-2 text-center bg-accent/20 text-accent hover:bg-accent/30 rounded transition-colors"
+                    className="flex-1 py-2 text-center text-sm bg-accent text-white rounded-lg"
                   >
-                    Join
+                    Sign Up
                   </Link>
                 </div>
               )}

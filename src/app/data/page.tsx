@@ -419,21 +419,13 @@ function DataContent() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Page Header */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center gap-3 mb-2">
-          <span className="text-gold/30">◆</span>
-          <h1 className="text-3xl font-bold tracking-wide">
-            <span className="text-accent">Forge</span>
-            <span className="text-gold"> Archives</span>
-          </h1>
-          <span className="text-gold/30">◆</span>
-        </div>
-        <p className="text-gray-500">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-text-primary mb-2">Data Management</h1>
+        <p className="text-text-secondary">
           Import, export, and manage your crafting knowledge
         </p>
-        <div className="forge-divider mt-4 max-w-md mx-auto" />
       </div>
 
       {/* Message */}
@@ -453,38 +445,38 @@ function DataContent() {
 
       {/* Stats */}
       {stats && (
-        <div className="bg-dark-card p-6 rounded-xl mb-6">
-          <h2 className="text-accent text-xl font-semibold mb-4">
+        <div className="bg-bg-secondary p-6 rounded-xl border border-border mb-6">
+          <h2 className="text-text-primary text-xl font-semibold mb-4">
             Database Statistics
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center p-4 bg-white/5 rounded-lg">
-              <div className="text-3xl font-bold text-white">{stats.items}</div>
-              <div className="text-gray-400 text-sm">Total Items</div>
+            <div className="text-center p-4 bg-bg-tertiary rounded-lg border border-border">
+              <div className="text-3xl font-bold text-text-primary">{stats.items}</div>
+              <div className="text-text-muted text-sm">Total Items</div>
             </div>
-            <div className="text-center p-4 bg-white/5 rounded-lg">
+            <div className="text-center p-4 bg-bg-tertiary rounded-lg border border-border">
               <div className="text-3xl font-bold text-success">
                 {stats.base_materials}
               </div>
-              <div className="text-gray-400 text-sm">Base Materials</div>
+              <div className="text-text-muted text-sm">Base Materials</div>
             </div>
-            <div className="text-center p-4 bg-white/5 rounded-lg">
+            <div className="text-center p-4 bg-bg-tertiary rounded-lg border border-border">
               <div className="text-3xl font-bold text-accent">
                 {stats.craftable}
               </div>
-              <div className="text-gray-400 text-sm">Craftable</div>
+              <div className="text-text-muted text-sm">Craftable</div>
             </div>
-            <div className="text-center p-4 bg-white/5 rounded-lg">
-              <div className="text-3xl font-bold text-white">
+            <div className="text-center p-4 bg-bg-tertiary rounded-lg border border-border">
+              <div className="text-3xl font-bold text-text-primary">
                 {stats.recipes}
               </div>
-              <div className="text-gray-400 text-sm">Recipe Links</div>
+              <div className="text-text-muted text-sm">Recipe Links</div>
             </div>
-            <div className="text-center p-4 bg-white/5 rounded-lg">
-              <div className="text-3xl font-bold text-white">
+            <div className="text-center p-4 bg-bg-tertiary rounded-lg border border-border">
+              <div className="text-3xl font-bold text-text-primary">
                 {stats.categories}
               </div>
-              <div className="text-gray-400 text-sm">Categories</div>
+              <div className="text-text-muted text-sm">Categories</div>
             </div>
           </div>
         </div>
@@ -499,7 +491,7 @@ function DataContent() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === tab.key
                 ? "bg-accent text-white"
-                : "bg-dark-card text-gray-400 hover:text-white hover:bg-white/10"
+                : "bg-bg-secondary text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-border"
             }`}
           >
             {tab.icon}
@@ -509,12 +501,12 @@ function DataContent() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-dark-card p-6 rounded-xl">
+      <div className="bg-bg-secondary p-6 rounded-xl border border-border">
         {/* Export Tab */}
         {activeTab === "export" && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Export Data</h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-text-secondary mb-6">
               Download all items and recipes as a JSON file for backup or transfer.
             </p>
             <button
@@ -526,7 +518,7 @@ function DataContent() {
 
             <div className="mt-8 p-4 bg-white/5 rounded-lg">
               <h3 className="text-lg font-semibold mb-3">JSON Format Reference</h3>
-              <pre className="text-sm text-gray-300 overflow-x-auto">
+              <pre className="text-sm text-text-secondary overflow-x-auto">
 {`{
   "version": "1.0",
   "exported_at": "2024-01-01T12:00:00Z",
@@ -546,7 +538,7 @@ function DataContent() {
         {activeTab === "import" && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Import JSON</h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-text-secondary mb-6">
               Import items and recipes from a JSON backup file.
             </p>
 
@@ -556,7 +548,7 @@ function DataContent() {
                 type="file"
                 accept=".json"
                 onChange={handleJsonFileSelect}
-                className="w-full px-4 py-3 bg-dark-input rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-accent file:text-white file:cursor-pointer"
+                className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-accent file:text-white file:cursor-pointer"
               />
 
               {importPreview && (
@@ -565,11 +557,11 @@ function DataContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 bg-white/5 rounded">
                       <div className="text-2xl font-bold">{importPreview.items}</div>
-                      <div className="text-gray-400 text-sm">Items</div>
+                      <div className="text-text-secondary text-sm">Items</div>
                     </div>
                     <div className="text-center p-3 bg-white/5 rounded">
                       <div className="text-2xl font-bold">{importPreview.recipes}</div>
-                      <div className="text-gray-400 text-sm">Recipes</div>
+                      <div className="text-text-secondary text-sm">Recipes</div>
                     </div>
                   </div>
 
@@ -580,7 +572,7 @@ function DataContent() {
                       onChange={(e) => setReplaceData(e.target.checked)}
                       className="rounded"
                     />
-                    <span className="text-gray-400">
+                    <span className="text-text-secondary">
                       Replace existing data (clear before import)
                     </span>
                   </label>
@@ -601,7 +593,7 @@ function DataContent() {
         {activeTab === "csv" && (
           <div>
             <h2 className="text-xl font-semibold mb-4">CSV Import</h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-text-secondary mb-6">
               Bulk import items or recipes from a CSV file.
             </p>
 
@@ -643,7 +635,7 @@ function DataContent() {
                 type="file"
                 accept=".csv"
                 onChange={handleCsvFileSelect}
-                className="w-full px-4 py-3 bg-dark-input rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-accent file:text-white file:cursor-pointer"
+                className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-accent file:text-white file:cursor-pointer"
               />
 
               {/* CSV Format Help */}
@@ -652,13 +644,13 @@ function DataContent() {
                   {csvType === "items" ? "Items CSV Format" : "Recipes CSV Format"}
                 </h3>
                 {csvType === "items" ? (
-                  <pre className="text-sm text-gray-300">
+                  <pre className="text-sm text-text-secondary">
 {`name,category,is_base_material,description
 Iron Ore,ore,true,Mined from rock
 Plank,wood,false,Sawn from logs`}
                   </pre>
                 ) : (
-                  <pre className="text-sm text-gray-300">
+                  <pre className="text-sm text-text-secondary">
 {`result,ingredient,quantity
 Iron Lump,Iron Ore,1
 Plank,Log,1`}
@@ -674,19 +666,19 @@ Plank,Log,1`}
                       <div className="text-2xl font-bold text-success">
                         {csvPreview.valid.length}
                       </div>
-                      <div className="text-gray-400 text-sm">Valid</div>
+                      <div className="text-text-secondary text-sm">Valid</div>
                     </div>
                     <div className="text-center p-3 bg-yellow-500/20 rounded">
                       <div className="text-2xl font-bold text-yellow-400">
                         {csvPreview.duplicates.length}
                       </div>
-                      <div className="text-gray-400 text-sm">Duplicates</div>
+                      <div className="text-text-secondary text-sm">Duplicates</div>
                     </div>
                     <div className="text-center p-3 bg-red-500/20 rounded">
                       <div className="text-2xl font-bold text-red-400">
                         {csvPreview.invalid.length}
                       </div>
-                      <div className="text-gray-400 text-sm">Invalid</div>
+                      <div className="text-text-secondary text-sm">Invalid</div>
                     </div>
                   </div>
 
@@ -708,7 +700,7 @@ Plank,Log,1`}
                             ))}
                             {csvPreview.valid.length > 10 && (
                               <tr>
-                                <td className="py-1 text-gray-400">
+                                <td className="py-1 text-text-secondary">
                                   ... and {csvPreview.valid.length - 10} more
                                 </td>
                               </tr>
@@ -728,12 +720,12 @@ Plank,Log,1`}
                       <div className="max-h-40 overflow-auto text-sm">
                         {csvPreview.invalid.slice(0, 5).map((item, i) => (
                           <div key={i} className="py-1 border-b border-white/10">
-                            <span className="text-gray-400">Row {item.row}:</span>{" "}
+                            <span className="text-text-secondary">Row {item.row}:</span>{" "}
                             {item.error}
                           </div>
                         ))}
                         {csvPreview.invalid.length > 5 && (
-                          <div className="py-1 text-gray-400">
+                          <div className="py-1 text-text-secondary">
                             ... and {csvPreview.invalid.length - 5} more errors
                           </div>
                         )}
@@ -759,18 +751,18 @@ Plank,Log,1`}
         {activeTab === "scraper" && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Wurmpedia Scraper</h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-text-secondary mb-6">
               Scrape items and recipes from the official Wurm Online Wiki.
             </p>
 
             <div className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-gray-400 text-sm mb-2">Category</label>
+                  <label className="block text-text-secondary text-sm mb-2">Category</label>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full px-4 py-3 bg-dark-input rounded-lg text-white"
+                    className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white"
                   >
                     {wikiCategories.map((cat) => (
                       <option key={cat.key} value={cat.key}>
@@ -780,7 +772,7 @@ Plank,Log,1`}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-400 text-sm mb-2">
+                  <label className="block text-text-secondary text-sm mb-2">
                     Max Items to Scrape
                   </label>
                   <input
@@ -789,7 +781,7 @@ Plank,Log,1`}
                     max={50}
                     value={maxItems}
                     onChange={(e) => setMaxItems(parseInt(e.target.value) || 10)}
-                    className="w-full px-4 py-3 bg-dark-input rounded-lg text-white"
+                    className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-lg text-white"
                   />
                 </div>
               </div>
@@ -800,7 +792,7 @@ Plank,Log,1`}
                   disabled={isScraping || !selectedCategory}
                   className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                     isScraping || !selectedCategory
-                      ? "bg-gray-600 cursor-not-allowed text-gray-400"
+                      ? "bg-gray-600 cursor-not-allowed text-text-secondary"
                       : "bg-white/10 hover:bg-white/20 text-white"
                   }`}
                 >
@@ -811,7 +803,7 @@ Plank,Log,1`}
                   disabled={isScraping || !selectedCategory}
                   className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                     isScraping || !selectedCategory
-                      ? "bg-gray-600 cursor-not-allowed text-gray-400"
+                      ? "bg-gray-600 cursor-not-allowed text-text-secondary"
                       : "bg-accent hover:bg-accent-hover text-white"
                   }`}
                 >
@@ -825,25 +817,25 @@ Plank,Log,1`}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-3 bg-white/5 rounded">
                       <div className="text-2xl font-bold">{scrapePreview.items_found}</div>
-                      <div className="text-gray-400 text-sm">Found</div>
+                      <div className="text-text-secondary text-sm">Found</div>
                     </div>
                     <div className="text-center p-3 bg-success/20 rounded">
                       <div className="text-2xl font-bold text-success">
                         {scrapePreview.items_added}
                       </div>
-                      <div className="text-gray-400 text-sm">Items Added</div>
+                      <div className="text-text-secondary text-sm">Items Added</div>
                     </div>
                     <div className="text-center p-3 bg-accent/20 rounded">
                       <div className="text-2xl font-bold text-accent">
                         {scrapePreview.recipes_added}
                       </div>
-                      <div className="text-gray-400 text-sm">Recipes Added</div>
+                      <div className="text-text-secondary text-sm">Recipes Added</div>
                     </div>
                     <div className="text-center p-3 bg-yellow-500/20 rounded">
                       <div className="text-2xl font-bold text-yellow-400">
                         {scrapePreview.items_skipped}
                       </div>
-                      <div className="text-gray-400 text-sm">Skipped</div>
+                      <div className="text-text-secondary text-sm">Skipped</div>
                     </div>
                   </div>
 
@@ -858,11 +850,11 @@ Plank,Log,1`}
                             className="p-3 bg-white/5 rounded border-l-4 border-accent"
                           >
                             <div className="font-semibold">{item.name}</div>
-                            <div className="text-sm text-gray-400">
+                            <div className="text-sm text-text-secondary">
                               {item.category} | {item.isBaseMaterial ? "Base Material" : "Craftable"}
                             </div>
                             {item.ingredients.length > 0 && (
-                              <div className="text-sm mt-1 text-gray-300">
+                              <div className="text-sm mt-1 text-text-secondary">
                                 Ingredients: {item.ingredients.map(i => `${i.quantity}x ${i.name}`).join(", ")}
                               </div>
                             )}
@@ -890,7 +882,7 @@ Plank,Log,1`}
 
               <div className="p-4 bg-yellow-500/10 rounded-lg text-sm">
                 <p className="text-yellow-300 font-semibold mb-1">Note</p>
-                <p className="text-gray-300">
+                <p className="text-text-secondary">
                   The scraper parses wiki pages which may have varying formats.
                   Recipe detection works best on pages with standard creation sections.
                   Review scraped data before importing.
@@ -902,14 +894,14 @@ Plank,Log,1`}
       </div>
 
       {/* Danger Zone */}
-      <div className="bg-dark-card p-6 rounded-xl mt-6 border border-red-500/30">
+      <div className="bg-bg-secondary border border-border p-6 rounded-xl mt-6 border border-red-500/30">
         <h2 className="text-red-400 text-xl font-semibold mb-4 flex items-center gap-2">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           Danger Zone
         </h2>
-        <p className="text-gray-400 mb-4">
+        <p className="text-text-secondary mb-4">
           Permanently delete all data from the database. This action cannot be undone!
         </p>
         <button

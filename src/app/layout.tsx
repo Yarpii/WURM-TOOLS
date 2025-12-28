@@ -3,11 +3,12 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Blackforge.Tools - Wurm Online Utilities",
-  description: "Forged for Wurm Online adventurers - Crafting calculator, material management, recipe tools and more",
-  keywords: ["Wurm Online", "crafting", "calculator", "blacksmith", "forge", "materials", "recipes"],
+  title: "WURMTools - Crafting Calculator for Wurm Online",
+  description: "Calculate crafting materials, optimize skill training, and manage recipes for Wurm Online",
+  keywords: ["Wurm Online", "crafting", "calculator", "skills", "materials", "recipes"],
 };
 
 export default function RootLayout({
@@ -16,15 +17,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="antialiased min-h-screen flex flex-col">
-        <AuthProvider>
-          <Header />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-        </AuthProvider>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className="antialiased min-h-screen flex flex-col bg-bg-primary text-text-primary">
+        <ThemeProvider>
+          <AuthProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
