@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Item } from "@/lib/types";
+import AdminGuard from "@/components/AdminGuard";
 
 interface Recipe {
   id: number;
@@ -12,7 +13,7 @@ interface Recipe {
   quantity: number;
 }
 
-export default function AdminPage() {
+function AdminContent() {
   const [items, setItems] = useState<Item[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -540,5 +541,13 @@ export default function AdminPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <AdminGuard>
+      <AdminContent />
+    </AdminGuard>
   );
 }

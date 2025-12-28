@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import AdminGuard from "@/components/AdminGuard";
 
 interface Stats {
   items: number;
@@ -56,7 +57,7 @@ interface CsvPreviewResult<T> {
 
 type TabType = "export" | "import" | "csv" | "scraper";
 
-export default function DataPage() {
+function DataContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("export");
   const [message, setMessage] = useState<{
@@ -919,5 +920,13 @@ Plank,Log,1`}
         </button>
       </div>
     </div>
+  );
+}
+
+export default function DataPage() {
+  return (
+    <AdminGuard>
+      <DataContent />
+    </AdminGuard>
   );
 }

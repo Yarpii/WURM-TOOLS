@@ -2,10 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Navigation from "./Navigation";
+import { useAuth } from "./AuthProvider";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <header className="forge-header sticky top-0 z-50">
@@ -62,8 +72,45 @@ export default function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-4">
             <Navigation />
+
+            {/* Auth Section */}
+            <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gold/20">
+              {loading ? (
+                <div className="w-20 h-8 bg-dark-input rounded animate-pulse" />
+              ) : user ? (
+                <>
+                  <div className="text-right hidden lg:block">
+                    <p className="text-sm text-gray-400">{user.username}</p>
+                    {user.role === "admin" && (
+                      <p className="text-xs text-gold">Admin</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-1.5 text-sm text-gray-400 hover:text-accent transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-3 py-1.5 text-sm text-gray-400 hover:text-gold transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-4 py-1.5 text-sm bg-accent/20 text-accent hover:bg-accent/30 rounded transition-colors"
+                  >
+                    Join
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -88,6 +135,48 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gold/10">
             <Navigation mobile onItemClick={() => setMobileMenuOpen(false)} />
+
+            {/* Mobile Auth Section */}
+            <div className="mt-4 pt-4 border-t border-gold/10">
+              {loading ? (
+                <div className="w-full h-10 bg-dark-input rounded animate-pulse" />
+              ) : user ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400">{user.username}</p>
+                    {user.role === "admin" && (
+                      <p className="text-xs text-gold">Admin</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="px-4 py-2 text-sm text-gray-400 hover:text-accent transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 py-2 text-center text-gray-400 hover:text-gold transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 py-2 text-center bg-accent/20 text-accent hover:bg-accent/30 rounded transition-colors"
+                  >
+                    Join
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
