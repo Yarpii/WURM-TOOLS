@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 
 interface Stats {
   items: number;
@@ -419,16 +418,16 @@ export default function DataPage() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-5xl">
-      <header className="text-center mb-8">
-        <h1 className="text-4xl font-bold">
-          <span className="text-accent">Data</span>
-          <span>Management</span>
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">
+          <span className="text-accent">Data</span> Management
         </h1>
-        <p className="text-gray-400 mt-2">
+        <p className="text-gray-400">
           Import, export, and manage your calculator data
         </p>
-      </header>
+      </div>
 
       {/* Message */}
       {message && (
@@ -912,22 +911,6 @@ Plank,Log,1`}
         >
           Clear All Data
         </button>
-      </div>
-
-      {/* Navigation */}
-      <div className="fixed bottom-5 right-5 flex gap-3">
-        <Link
-          href="/"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Calculator
-        </Link>
-        <Link
-          href="/admin"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Admin
-        </Link>
       </div>
     </div>
   );

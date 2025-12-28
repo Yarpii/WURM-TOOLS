@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "WurmCalc - WURM Online Crafting Calculator",
-  description: "Calculate total base materials for any craftable item in WURM Online",
+  title: "WURMTools - WURM Online Utilities",
+  description: "A collection of utilities for WURM Online - Crafting calculator, material management, and more",
+  keywords: ["WURM Online", "crafting", "calculator", "materials", "recipes"],
 };
 
 export default function RootLayout({
@@ -13,7 +16,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
+      </body>
     </html>
   );
 }
