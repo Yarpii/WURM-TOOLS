@@ -37,3 +37,4 @@ yarn-error.log*
 *.swp
 *.swo
 wurmcalc.sqlite*
+next-env.d.ts
