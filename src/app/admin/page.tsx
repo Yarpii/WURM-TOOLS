@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import type { Item } from "@/lib/types";
+import AdminGuard from "@/components/AdminGuard";
 
 interface Recipe {
   id: number;
@@ -13,7 +13,7 @@ interface Recipe {
   quantity: number;
 }
 
-export default function AdminPage() {
+function AdminContent() {
   const [items, setItems] = useState<Item[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -194,16 +194,22 @@ export default function AdminPage() {
   const craftableItems = items.filter((i) => !i.is_base_material);
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
-      <header className="text-center mb-8">
-        <h1 className="text-4xl font-bold">
-          <span className="text-accent">Admin</span>
-          <span>Panel</span>
-        </h1>
-        <p className="text-gray-400 mt-2">
-          Manage items and recipes
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Page Header */}
+      <div className="mb-8 text-center">
+        <div className="inline-flex items-center gap-3 mb-2">
+          <span className="text-gold/30">◆</span>
+          <h1 className="text-3xl font-bold tracking-wide">
+            <span className="text-accent">Forge</span>
+            <span className="text-gold"> Master</span>
+          </h1>
+          <span className="text-gold/30">◆</span>
+        </div>
+        <p className="text-gray-500">
+          Manage your items and recipe blueprints
         </p>
-      </header>
+        <div className="forge-divider mt-4 max-w-md mx-auto" />
+      </div>
 
       {/* Message */}
       {message && (
@@ -534,22 +540,14 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-
-      {/* Navigation */}
-      <div className="fixed bottom-5 right-5 flex gap-3">
-        <Link
-          href="/"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Calculator
-        </Link>
-        <Link
-          href="/data"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Data
-        </Link>
-      </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <AdminGuard>
+      <AdminContent />
+    </AdminGuard>
   );
 }

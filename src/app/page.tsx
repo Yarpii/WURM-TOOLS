@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
 export default function Home() {
@@ -107,16 +106,22 @@ export default function Home() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
-      <header className="text-center mb-8">
-        <h1 className="text-4xl font-bold">
-          <span className="text-accent">Wurm</span>
-          <span>Calc</span>
-        </h1>
-        <p className="text-gray-400 mt-2">
-          Calculate total base materials for any craftable item
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Page Header */}
+      <div className="mb-8 text-center">
+        <div className="inline-flex items-center gap-3 mb-2">
+          <span className="text-gold/30">◆</span>
+          <h1 className="text-3xl font-bold tracking-wide">
+            <span className="text-accent">Crafting</span>
+            <span className="text-gold"> Calculator</span>
+          </h1>
+          <span className="text-gold/30">◆</span>
+        </div>
+        <p className="text-gray-500">
+          Calculate the raw materials needed to forge any item
         </p>
-      </header>
+        <div className="forge-divider mt-4 max-w-md mx-auto" />
+      </div>
 
       {/* Mode Switcher */}
       <div className="flex gap-3 mb-4">
@@ -367,35 +372,6 @@ export default function Home() {
           )}
         </div>
       )}
-
-      {/* Footer & Links */}
-      <footer className="text-center mt-10 text-gray-500">
-        <p>
-          WurmCalc &mdash; A crafting calculator for{" "}
-          <a
-            href="https://www.wurmonline.com/"
-            target="_blank"
-            className="text-accent hover:underline"
-          >
-            WURM Online
-          </a>
-        </p>
-      </footer>
-
-      <div className="fixed bottom-5 right-5 flex gap-3">
-        <Link
-          href="/data"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Data
-        </Link>
-        <Link
-          href="/admin"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Admin
-        </Link>
-      </div>
     </div>
   );
 }

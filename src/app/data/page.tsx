@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import AdminGuard from "@/components/AdminGuard";
 
 interface Stats {
   items: number;
@@ -57,7 +57,7 @@ interface CsvPreviewResult<T> {
 
 type TabType = "export" | "import" | "csv" | "scraper";
 
-export default function DataPage() {
+function DataContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("export");
   const [message, setMessage] = useState<{
@@ -419,16 +419,22 @@ export default function DataPage() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-5xl">
-      <header className="text-center mb-8">
-        <h1 className="text-4xl font-bold">
-          <span className="text-accent">Data</span>
-          <span>Management</span>
-        </h1>
-        <p className="text-gray-400 mt-2">
-          Import, export, and manage your calculator data
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {/* Page Header */}
+      <div className="mb-8 text-center">
+        <div className="inline-flex items-center gap-3 mb-2">
+          <span className="text-gold/30">◆</span>
+          <h1 className="text-3xl font-bold tracking-wide">
+            <span className="text-accent">Forge</span>
+            <span className="text-gold"> Archives</span>
+          </h1>
+          <span className="text-gold/30">◆</span>
+        </div>
+        <p className="text-gray-500">
+          Import, export, and manage your crafting knowledge
         </p>
-      </header>
+        <div className="forge-divider mt-4 max-w-md mx-auto" />
+      </div>
 
       {/* Message */}
       {message && (
@@ -913,22 +919,14 @@ Plank,Log,1`}
           Clear All Data
         </button>
       </div>
-
-      {/* Navigation */}
-      <div className="fixed bottom-5 right-5 flex gap-3">
-        <Link
-          href="/"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Calculator
-        </Link>
-        <Link
-          href="/admin"
-          className="px-5 py-2.5 bg-dark-card text-gray-400 hover:bg-accent hover:text-white rounded-lg transition-colors"
-        >
-          Admin
-        </Link>
-      </div>
     </div>
+  );
+}
+
+export default function DataPage() {
+  return (
+    <AdminGuard>
+      <DataContent />
+    </AdminGuard>
   );
 }
