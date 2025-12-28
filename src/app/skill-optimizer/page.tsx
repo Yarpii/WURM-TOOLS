@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { MainLayout, Card, StatCard, Slider, Select, Button, ProgressBar } from "@/components";
 
 interface SkillMetrics {
   effectiveSkill: number;
@@ -41,6 +42,14 @@ interface OptimizerResult {
   };
 }
 
+interface ComparisonMethod {
+  method: string;
+  multiplier: number;
+  estimatedActions: number;
+  estimatedHours: number;
+  recommendation: string;
+}
+
 export default function SkillOptimizer() {
   const [currentSkill, setCurrentSkill] = useState(50);
   const [targetSkill, setTargetSkill] = useState(70);
@@ -50,11 +59,9 @@ export default function SkillOptimizer() {
 
   const [result, setResult] = useState<OptimizerResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [comparisonResult, setComparisonResult] = useState<{ comparison: ComparisonMethod[] } | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
 
-  // Training comparison
-  const [comparisonResult, setComparisonResult] = useState<any>(null);
-
-  // Fetch categories on mount
   useEffect(() => {
     fetch("/api/items?categories=true")
       .then((r) => r.json())
@@ -65,7 +72,6 @@ export default function SkillOptimizer() {
       });
   }, []);
 
-  // Fetch optimization data
   const optimize = async () => {
     setLoading(true);
     try {
@@ -74,43 +80,31 @@ export default function SkillOptimizer() {
         targetSkill: targetSkill.toString(),
         toolQL: toolQL.toString(),
       });
-      if (category) {
-        params.set("category", category);
-      }
+      if (category) params.set("category", category);
 
       const response = await fetch(`/api/skill-optimizer?${params}`);
       const data = await response.json();
-
-      if (!data.error) {
-        setResult(data);
-      }
-    } catch (error) {
-      console.error("Optimization failed:", error);
+      if (!data.error) setResult(data);
     } finally {
       setLoading(false);
     }
   };
 
-  // Compare training methods
   const compareTrainingMethods = async () => {
     try {
       const response = await fetch("/api/skill-optimizer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "compare-methods",
-          currentSkill,
-          targetSkill,
-        }),
+        body: JSON.stringify({ action: "compare-methods", currentSkill, targetSkill }),
       });
       const data = await response.json();
       setComparisonResult(data);
+      setShowComparison(true);
     } catch (error) {
       console.error("Comparison failed:", error);
     }
   };
 
-  // Calculate on skill change
   useEffect(() => {
     if (currentSkill < targetSkill) {
       const timer = setTimeout(optimize, 300);
@@ -118,338 +112,255 @@ export default function SkillOptimizer() {
     }
   }, [currentSkill, targetSkill, toolQL, category]);
 
+  const categoryOptions = [
+    { value: "", label: "All Categories" },
+    ...categories.map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) })),
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800/50 border-b border-amber-900/30">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <span className="text-2xl">&#128200;</span>
+    <MainLayout
+      title="Skill Optimizer"
+      subtitle="Maximize your training efficiency with smart recommendations"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Settings Panel */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* Training Settings */}
+          <Card title="Training Settings" icon="🎯">
+            <div className="space-y-5">
               <div>
-                <h1 className="text-xl font-bold text-amber-500">Skill Optimizer</h1>
-                <p className="text-xs text-gray-400">Maximize your training efficiency</p>
-              </div>
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/" className="text-gray-400 hover:text-amber-500 transition-colors text-sm">
-                Basic Calculator
-              </Link>
-              <Link href="/calculator" className="text-gray-400 hover:text-amber-500 transition-colors text-sm">
-                Advanced Calculator
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Settings Panel */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-              <h2 className="text-lg font-semibold text-amber-500 mb-4">Training Settings</h2>
-
-              {/* Current Skill */}
-              <div className="mb-6">
-                <label className="block text-sm text-gray-400 mb-2">
-                  Current Skill: <span className="text-amber-500 text-lg">{currentSkill}</span>
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">Current Skill</span>
+                  <span className="text-accent font-bold text-lg">{currentSkill}</span>
+                </div>
                 <input
-                  type="range"
-                  min="1"
-                  max="99"
-                  value={currentSkill}
+                  type="range" min="1" max="99" value={currentSkill}
                   onChange={(e) => setCurrentSkill(parseInt(e.target.value))}
-                  className="w-full accent-amber-500"
+                  className="w-full h-2 bg-dark-input rounded-lg appearance-none cursor-pointer accent-accent"
                 />
               </div>
 
-              {/* Target Skill */}
-              <div className="mb-6">
-                <label className="block text-sm text-gray-400 mb-2">
-                  Target Skill: <span className="text-green-500 text-lg">{targetSkill}</span>
-                </label>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">Target Skill</span>
+                  <span className="text-emerald-400 font-bold text-lg">{targetSkill}</span>
+                </div>
                 <input
-                  type="range"
-                  min={currentSkill + 1}
-                  max="100"
-                  value={targetSkill}
+                  type="range" min={currentSkill + 1} max="100" value={targetSkill}
                   onChange={(e) => setTargetSkill(parseInt(e.target.value))}
-                  className="w-full accent-green-500"
+                  className="w-full h-2 bg-dark-input rounded-lg appearance-none cursor-pointer accent-emerald-500"
                 />
               </div>
 
-              {/* Tool QL */}
-              <div className="mb-6">
-                <label className="block text-sm text-gray-400 mb-2">
-                  Tool QL: <span className="text-amber-500">{toolQL}</span>
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={toolQL}
-                  onChange={(e) => setToolQL(parseInt(e.target.value))}
-                  className="w-full accent-amber-500"
-                />
-              </div>
+              <Slider label="Tool QL" value={toolQL} onChange={setToolQL} min={1} max={100} color="info" />
 
-              {/* Category Filter */}
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-2">Category Filter</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-amber-500 focus:outline-none"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Category Filter"
+                options={categoryOptions}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
 
-              {/* Compare Button */}
-              <button
-                onClick={compareTrainingMethods}
-                className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-              >
-                Compare Training Methods
-              </button>
+              <Button onClick={compareTrainingMethods} variant="secondary" fullWidth>
+                📊 Compare Training Methods
+              </Button>
             </div>
+          </Card>
 
-            {/* Skill Metrics */}
-            {result && (
-              <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                <h2 className="text-lg font-semibold text-amber-500 mb-4">Your Skill Metrics</h2>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Effective Skill</span>
-                    <span className="text-white text-lg font-semibold">
-                      {result.metrics.effectiveSkill}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Max Creation QL</span>
-                    <span className="text-blue-400 text-lg font-semibold">
-                      {result.metrics.maxCreationQL}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Sweet Spot QL</span>
-                    <span className="text-green-400 text-lg font-semibold">
-                      {result.metrics.sweetSpotRange.min} - {result.metrics.sweetSpotRange.max}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-green-900/30 rounded-lg border border-green-700/50">
-                    <p className="text-green-300 text-sm">
-                      <strong>Tip:</strong> Improve items in the QL range{" "}
-                      {result.metrics.sweetSpotRange.min}-{result.metrics.sweetSpotRange.max} for
-                      double skill gain!
-                    </p>
-                  </div>
+          {/* Skill Metrics */}
+          {result && (
+            <Card title="Your Skill Metrics" icon="📈">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-dark-input rounded-lg">
+                  <span className="text-gray-400">Effective Skill</span>
+                  <span className="text-white font-semibold">{result.metrics.effectiveSkill}</span>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Results Panel */}
-          <div className="lg:col-span-2 space-y-6">
-            {loading && (
-              <div className="bg-gray-800/50 rounded-lg p-8 border border-gray-700 text-center">
-                <div className="animate-spin text-4xl mb-4">&#128200;</div>
-                <p className="text-gray-400">Optimizing...</p>
-              </div>
-            )}
-
-            {!loading && result && (
-              <>
-                {/* Summary */}
-                <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                  <h2 className="text-lg font-semibold text-amber-500 mb-4">
-                    Training Plan: {currentSkill} → {targetSkill}
-                  </h2>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-amber-400 mb-1">
-                        {result.summary.totalActions.toLocaleString()}
-                      </div>
-                      <div className="text-sm text-gray-400">Total Actions</div>
-                    </div>
-
-                    <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-purple-400 mb-1">
-                        {result.summary.totalTime}
-                      </div>
-                      <div className="text-sm text-gray-400">Estimated Time</div>
-                    </div>
-
-                    <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-green-400 mb-1">
-                        +{result.summary.skillGain}
-                      </div>
-                      <div className="text-sm text-gray-400">Skill Gain</div>
-                    </div>
-                  </div>
+                <div className="flex justify-between items-center p-3 bg-dark-input rounded-lg">
+                  <span className="text-gray-400">Max Creation QL</span>
+                  <span className="text-blue-400 font-semibold">{result.metrics.maxCreationQL}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-dark-input rounded-lg">
+                  <span className="text-gray-400">Sweet Spot QL</span>
+                  <span className="text-emerald-400 font-semibold">
+                    {result.metrics.sweetSpotRange.min} - {result.metrics.sweetSpotRange.max}
+                  </span>
                 </div>
 
-                {/* Optimal Items */}
-                <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                  <h2 className="text-lg font-semibold text-amber-500 mb-4">
-                    Best Items to Craft
-                  </h2>
+                <div className="p-3 bg-emerald-900/20 rounded-lg border border-emerald-700/30">
+                  <p className="text-emerald-300 text-sm">
+                    <strong>Tip:</strong> Improve items in QL range {result.metrics.sweetSpotRange.min}-{result.metrics.sweetSpotRange.max} for double skill gain!
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
 
-                  <div className="space-y-2">
-                    {result.optimalItems.slice(0, 5).map((item, index) => (
+        {/* Results Panel */}
+        <div className="lg:col-span-2 space-y-4">
+          {loading && (
+            <Card>
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin text-4xl">📈</div>
+              </div>
+            </Card>
+          )}
+
+          {!loading && result && (
+            <>
+              {/* Summary */}
+              <Card title={`Training Plan: ${currentSkill} → ${targetSkill}`} icon="🎯">
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                  <StatCard
+                    label="Total Actions"
+                    value={result.summary.totalActions.toLocaleString()}
+                    icon="⚒"
+                    color="accent"
+                  />
+                  <StatCard
+                    label="Est. Time"
+                    value={result.summary.totalTime}
+                    icon="⏱"
+                    color="info"
+                  />
+                  <StatCard
+                    label="Skill Gain"
+                    value={`+${result.summary.skillGain}`}
+                    icon="📈"
+                    color="success"
+                  />
+                </div>
+
+                {/* Progress visualization */}
+                <div className="mt-4 pt-4 border-t border-gold/10">
+                  <ProgressBar
+                    value={currentSkill}
+                    max={100}
+                    label={`Current: ${currentSkill} → Target: ${targetSkill}`}
+                    color="bg-gradient-to-r from-accent to-emerald-500"
+                    size="lg"
+                  />
+                </div>
+              </Card>
+
+              {/* Optimal Items */}
+              <Card title="Best Items to Craft" icon="⭐">
+                <div className="space-y-2">
+                  {result.optimalItems.slice(0, 5).map((item, index) => (
+                    <Link
+                      key={item.id}
+                      href={`/calculator?item=${item.id}`}
+                      className={`
+                        flex items-center justify-between rounded-lg p-3 sm:p-4 transition-all
+                        ${item.isInSweetSpot
+                          ? "bg-emerald-900/20 border border-emerald-700/30 hover:border-emerald-600/50"
+                          : "bg-dark-input border border-gold/5 hover:border-gold/20"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                        <span className="text-2xl font-bold text-gray-600">#{index + 1}</span>
+                        <div className="min-w-0">
+                          <span className="text-white font-semibold block truncate">{item.name}</span>
+                          <span className="text-xs text-gray-500 capitalize">{item.category}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 sm:gap-6 flex-shrink-0 ml-2">
+                        <div className="text-center hidden sm:block">
+                          <div className="text-lg font-semibold text-accent">{item.difficulty}</div>
+                          <div className="text-xs text-gray-500">Difficulty</div>
+                        </div>
+                        <div className="text-center">
+                          <div className={`text-lg font-semibold ${
+                            item.successChance >= 45 && item.successChance <= 55 ? "text-emerald-400" : "text-amber-400"
+                          }`}>
+                            {item.successChance}%
+                          </div>
+                          <div className="text-xs text-gray-500">Success</div>
+                        </div>
+                        {item.isInSweetSpot && (
+                          <span className="px-2 py-1 bg-emerald-600 text-white text-xs rounded font-bold">2×</span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Skill Path */}
+              <Card title="Progression Path" icon="🛤">
+                <div className="space-y-3">
+                  {result.skillPath.map((step, index) => (
+                    <div key={index} className="relative">
+                      {/* Progress indicator */}
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gold/10 rounded">
+                        <div
+                          className="absolute top-0 w-full bg-accent rounded"
+                          style={{ height: `${((step.to - currentSkill) / (targetSkill - currentSkill)) * 100}%` }}
+                        />
+                      </div>
+
+                      <div className="ml-4 bg-dark-input rounded-lg p-3 sm:p-4 border border-gold/5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                          <span className="text-white font-semibold">Level {step.from} → {step.to}</span>
+                          <span className="text-accent text-sm">{step.actionsNeeded.toLocaleString()} actions</span>
+                        </div>
+                        <p className="text-sm text-gray-400">{step.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Training Comparison */}
+              {showComparison && comparisonResult?.comparison && (
+                <Card title="Training Methods Comparison" icon="📊">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {comparisonResult.comparison.map((method, index) => (
                       <div
-                        key={item.id}
-                        className={`flex items-center justify-between rounded-lg p-4 ${
-                          item.isInSweetSpot
-                            ? "bg-green-900/30 border border-green-700/50"
-                            : "bg-gray-700/30"
+                        key={index}
+                        className={`rounded-lg p-4 ${
+                          method.recommendation === "Recommended"
+                            ? "bg-purple-900/20 border border-purple-700/30"
+                            : "bg-dark-input border border-gold/5"
                         }`}
                       >
-                        <div className="flex items-center gap-4">
-                          <span className="text-2xl font-bold text-gray-600">#{index + 1}</span>
+                        <div className="font-semibold text-white mb-2">{method.method}</div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
                           <div>
-                            <Link
-                              href={`/calculator?item=${item.id}`}
-                              className="text-white hover:text-amber-500 transition-colors font-semibold"
-                            >
-                              {item.name}
-                            </Link>
-                            <div className="text-xs text-gray-500">{item.category}</div>
+                            <span className="text-gray-500">Actions:</span>{" "}
+                            <span className="text-accent">{method.estimatedActions.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Time:</span>{" "}
+                            <span className="text-purple-400">{method.estimatedHours}h</span>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-6">
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-amber-400">
-                              {item.difficulty}
-                            </div>
-                            <div className="text-xs text-gray-500">Difficulty</div>
+                        {method.multiplier > 1 && (
+                          <div className="mt-2 text-xs text-emerald-400">
+                            {method.multiplier}× faster than base
                           </div>
-
-                          <div className="text-center">
-                            <div
-                              className={`text-lg font-semibold ${
-                                item.successChance >= 45 && item.successChance <= 55
-                                  ? "text-green-400"
-                                  : "text-yellow-400"
-                              }`}
-                            >
-                              {item.successChance}%
-                            </div>
-                            <div className="text-xs text-gray-500">Success</div>
-                          </div>
-
-                          {item.isInSweetSpot && (
-                            <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">
-                              2x Gain
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                </div>
+                </Card>
+              )}
+            </>
+          )}
 
-                {/* Skill Path */}
-                <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                  <h2 className="text-lg font-semibold text-amber-500 mb-4">
-                    Progression Path
-                  </h2>
-
-                  <div className="space-y-3">
-                    {result.skillPath.map((step, index) => (
-                      <div key={index} className="relative">
-                        {/* Progress Bar */}
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-700 rounded">
-                          <div
-                            className="absolute top-0 w-full bg-amber-500 rounded"
-                            style={{
-                              height: `${((step.to - currentSkill) / (targetSkill - currentSkill)) * 100}%`,
-                            }}
-                          />
-                        </div>
-
-                        <div className="ml-4 bg-gray-700/30 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-white font-semibold">
-                              Level {step.from} → {step.to}
-                            </span>
-                            <span className="text-amber-400">{step.actionsNeeded} actions</span>
-                          </div>
-                          <p className="text-sm text-gray-400">{step.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Training Comparison */}
-                {comparisonResult && (
-                  <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                    <h2 className="text-lg font-semibold text-purple-400 mb-4">
-                      Training Methods Comparison
-                    </h2>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {comparisonResult.comparison?.map((method: any, index: number) => (
-                        <div
-                          key={index}
-                          className={`rounded-lg p-4 ${
-                            method.recommendation === "Recommended"
-                              ? "bg-purple-900/30 border border-purple-700/50"
-                              : "bg-gray-700/30"
-                          }`}
-                        >
-                          <div className="font-semibold text-white mb-2">{method.method}</div>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <span className="text-gray-500">Actions:</span>{" "}
-                              <span className="text-amber-400">
-                                {method.estimatedActions.toLocaleString()}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Time:</span>{" "}
-                              <span className="text-purple-400">{method.estimatedHours}h</span>
-                            </div>
-                          </div>
-                          {method.multiplier > 1 && (
-                            <div className="mt-2 text-xs text-green-400">
-                              {method.multiplier}x faster than base
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {!loading && !result && (
-              <div className="bg-gray-800/50 rounded-lg p-12 border border-gray-700 text-center">
-                <div className="text-6xl mb-4 opacity-20">&#128200;</div>
-                <h3 className="text-xl text-gray-400 mb-2">Ready to Optimize</h3>
-                <p className="text-gray-500">
-                  Adjust your skill levels to see optimal training recommendations
-                </p>
+          {!loading && !result && (
+            <Card>
+              <div className="text-center py-12 sm:py-16">
+                <div className="text-6xl sm:text-7xl mb-4 opacity-20">📈</div>
+                <h3 className="text-lg sm:text-xl text-gray-400 mb-2">Ready to Optimize</h3>
+                <p className="text-gray-500 text-sm">Adjust skill levels to see training recommendations</p>
               </div>
-            )}
-          </div>
+            </Card>
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   );
 }
