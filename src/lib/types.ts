@@ -185,3 +185,42 @@ export interface CreateOrderInput {
   notes?: string;
   expires_days?: number;
 }
+
+// ========== MERCHANT TYPES ==========
+
+export type MerchantCategory =
+  | "tools"
+  | "weapons"
+  | "armor"
+  | "materials"
+  | "food"
+  | "animals"
+  | "vehicles"
+  | "furniture"
+  | "misc";
+
+export interface Merchant {
+  id: number;
+  user_id: number;
+  username: string;
+  name: string;
+  description?: string;
+  location: string;
+  server: string;
+  coordinates?: string;
+  category: MerchantCategory;
+  stock_list: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateMerchantInput {
+  name: string;
+  description?: string;
+  location: string;
+  server: string;
+  coordinates?: string;
+  category: MerchantCategory;
+  stock_list: string;
+}
