@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { MainLayout, Card, StatCard, ToggleButtonGroup } from "@/components";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
+type Mode = "calculate" | "reverse";
+
 export default function Home() {
-  const [mode, setMode] = useState<"calculate" | "reverse">("calculate");
+  const [mode, setMode] = useState<Mode>("calculate");
   const [items, setItems] = useState<Item[]>([]);
   const [query, setQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -17,12 +20,25 @@ export default function Home() {
     { id: number; name: string; category: string; formatted: string }[]
   >([]);
   const [includeIndirect, setIncludeIndirect] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/items")
       .then((r) => r.json())
       .then(setItems);
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const filteredItems = items.filter((item) => {
@@ -42,20 +58,21 @@ export default function Home() {
 
   const doAction = async (item: Item = selectedItem!) => {
     if (!item) return;
+    setIsLoading(true);
 
-    if (mode === "calculate") {
-      const res = await fetch(
-        `/api/calculate?item=${item.id}&qty=${quantity}`
-      );
-      const data = await res.json();
-      setMaterials(data.materials || []);
-      setTree(data.tree || null);
-    } else {
-      const res = await fetch(
-        `/api/reverse?item=${item.id}&all=${includeIndirect ? "1" : "0"}`
-      );
-      const data = await res.json();
-      setCraftable(data);
+    try {
+      if (mode === "calculate") {
+        const res = await fetch(`/api/calculate?item=${item.id}&qty=${quantity}`);
+        const data = await res.json();
+        setMaterials(data.materials || []);
+        setTree(data.tree || null);
+      } else {
+        const res = await fetch(`/api/reverse?item=${item.id}&all=${includeIndirect ? "1" : "0"}`);
+        const data = await res.json();
+        setCraftable(data);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,6 +81,12 @@ export default function Home() {
       doAction();
     }
   }, [includeIndirect]);
+
+  useEffect(() => {
+    if (selectedItem && mode === "calculate") {
+      doAction();
+    }
+  }, [quantity]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showDropdown || filteredItems.length === 0) return;
@@ -85,293 +108,285 @@ export default function Home() {
   };
 
   const renderTree = (node: CraftingNode): React.ReactNode => (
-    <div key={`${node.id}-${node.depth}`}>
+    <div key={`${node.id}-${node.depth}`} className="relative">
       <div
-        className={`flex items-center gap-2 py-2 ${
-          node.is_base ? "text-success" : ""
+        className={`flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-white/5 transition-colors ${
+          node.is_base ? "text-emerald-400" : "text-gray-300"
         }`}
       >
         <span className={`category-dot category-${node.category}`} />
-        <span>{node.name}</span>
-        <span className="text-gray-500 text-sm">
-          &times;{node.quantity % 1 === 0 ? node.quantity : node.quantity.toFixed(2)}
+        <span className="font-medium">{node.name}</span>
+        <span className="text-gray-500 text-sm ml-auto">
+          ×{node.quantity % 1 === 0 ? node.quantity : node.quantity.toFixed(2)}
         </span>
       </div>
       {node.children.length > 0 && (
-        <div className="pl-5 border-l-2 border-white/10 ml-2">
+        <div className="pl-4 sm:pl-6 border-l-2 border-gold/10 ml-3">
           {node.children.map(renderTree)}
         </div>
       )}
     </div>
   );
 
+  // Group materials by category
+  const materialsByCategory = materials.reduce((acc, mat) => {
+    if (!acc[mat.category]) acc[mat.category] = [];
+    acc[mat.category].push(mat);
+    return acc;
+  }, {} as Record<string, MaterialResult[]>);
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Page Header */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center gap-3 mb-2">
-          <span className="text-gold/30">◆</span>
-          <h1 className="text-3xl font-bold tracking-wide">
-            <span className="text-accent">Crafting</span>
-            <span className="text-gold"> Calculator</span>
-          </h1>
-          <span className="text-gold/30">◆</span>
-        </div>
-        <p className="text-gray-500">
-          Calculate the raw materials needed to forge any item
-        </p>
-        <div className="forge-divider mt-4 max-w-md mx-auto" />
-      </div>
-
-      {/* Mode Switcher */}
-      <div className="flex gap-3 mb-4">
-        <button
-          className={`px-5 py-2.5 rounded-lg border-2 transition-all ${
-            mode === "calculate"
-              ? "border-accent text-white"
-              : "border-transparent bg-dark-input text-gray-400 hover:text-white"
-          }`}
-          onClick={() => {
-            setMode("calculate");
-            setQuery("");
-            setSelectedItem(null);
-          }}
-        >
-          Calculate Materials
-        </button>
-        <button
-          className={`px-5 py-2.5 rounded-lg border-2 transition-all ${
-            mode === "reverse"
-              ? "border-accent text-white"
-              : "border-transparent bg-dark-input text-gray-400 hover:text-white"
-          }`}
-          onClick={() => {
-            setMode("reverse");
-            setQuery("");
-            setSelectedItem(null);
-          }}
-        >
-          Reverse Lookup
-        </button>
-      </div>
-
-      {/* Search Form */}
-      <div className="bg-dark-card p-6 rounded-xl mb-6 flex gap-4 flex-wrap items-end">
-        <div className="flex-1 min-w-[200px] relative">
-          <label className="block text-gray-400 text-sm mb-2">
-            Search Item
-          </label>
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setShowDropdown(true);
-              setSelectedIndex(-1);
-            }}
-            onFocus={() => setShowDropdown(true)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type to search..."
-            className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-          {showDropdown && query && filteredItems.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-dark-card rounded-b-lg shadow-xl z-50 max-h-72 overflow-y-auto">
-              {filteredItems.slice(0, 10).map((item, i) => (
-                <div
-                  key={item.id}
-                  className={`px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/10 ${
-                    i === selectedIndex ? "bg-white/10" : ""
-                  }`}
-                  onClick={() => handleSelect(item)}
-                >
-                  <span className={`category-dot category-${item.category}`} />
-                  <span>{item.name}</span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded ${
-                      item.is_base_material
-                        ? "bg-success"
-                        : "bg-accent"
-                    }`}
-                  >
-                    {item.is_base_material ? "Base" : "Crafted"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {mode === "calculate" && (
-          <div>
-            <label className="block text-gray-400 text-sm mb-2">
-              Quantity
-            </label>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              min={1}
-              max={1000}
-              className="w-28 px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </div>
-        )}
-
-        <button
-          onClick={() => doAction()}
-          className="px-8 py-3 bg-accent hover:bg-accent-hover rounded-lg font-medium transition-colors"
-        >
-          {mode === "calculate" ? "Calculate" : "Find Uses"}
-        </button>
-      </div>
-
-      {/* Results */}
-      {mode === "calculate" ? (
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Materials List */}
-          <div className="bg-dark-card p-6 rounded-xl">
-            <h2 className="text-accent text-xl font-semibold mb-4 flex items-center gap-2">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                />
-              </svg>
-              Total Base Materials
-            </h2>
-            {materials.length > 0 ? (
-              <ul className="space-y-2">
-                {materials.map((mat) => (
-                  <li
-                    key={mat.id}
-                    className="flex justify-between items-center p-3 bg-white/5 rounded-lg hover:bg-white/10"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={`category-dot category-${mat.category}`}
-                      />
-                      {mat.name}
-                    </span>
-                    <span className="text-success font-bold">
-                      &times;{mat.formatted}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-center text-gray-500 py-10">
-                Select an item to see required materials
-              </div>
-            )}
-          </div>
-
-          {/* Crafting Tree */}
-          <div className="bg-dark-card p-6 rounded-xl">
-            <h2 className="text-accent text-xl font-semibold mb-4 flex items-center gap-2">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-              Crafting Tree
-            </h2>
-            {tree ? (
-              renderTree(tree)
-            ) : (
-              <div className="text-center text-gray-500 py-10">
-                Crafting breakdown will appear here
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* Reverse Lookup Results */
-        <div className="bg-dark-card p-6 rounded-xl">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-accent text-xl font-semibold flex items-center gap-2">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-              {selectedItem
-                ? `Uses for: ${selectedItem.name}`
-                : "What can I make?"}
-            </h2>
-            <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeIndirect}
-                onChange={(e) => setIncludeIndirect(e.target.checked)}
-                className="rounded"
+    <MainLayout
+      title="Crafting Calculator"
+      subtitle="Calculate the raw materials needed to forge any item"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Left Column - Search & Controls */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* Mode Toggle */}
+          <Card>
+            <div className="flex justify-center">
+              <ToggleButtonGroup
+                options={[
+                  { value: "calculate", label: "Calculate", icon: "⚒" },
+                  { value: "reverse", label: "Reverse", icon: "🔄" },
+                ]}
+                value={mode}
+                onChange={(v) => {
+                  setMode(v);
+                  setQuery("");
+                  setSelectedItem(null);
+                  setMaterials([]);
+                  setTree(null);
+                  setCraftable([]);
+                }}
               />
-              Include indirect uses
-            </label>
-          </div>
-          {craftable.length > 0 ? (
-            <div className="grid gap-2">
-              {craftable.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex justify-between items-center p-3 bg-white/5 rounded-lg hover:bg-white/10 cursor-pointer"
-                  onClick={() => {
-                    setMode("calculate");
-                    const found = items.find((i) => i.id === item.id);
-                    if (found) {
-                      setSelectedItem(found);
-                      setQuery(found.name);
-                      fetch(`/api/calculate?item=${found.id}&qty=${quantity}`)
-                        .then((r) => r.json())
-                        .then((data) => {
-                          setMaterials(data.materials || []);
-                          setTree(data.tree || null);
-                        });
-                    }
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className={`category-dot category-${item.category}`} />
-                    {item.name}
-                  </span>
-                  <span className="text-gray-400 text-sm">
-                    needs &times;{item.formatted}
-                  </span>
+            </div>
+          </Card>
+
+          {/* Search */}
+          <Card title="Search Item" icon="🔍">
+            <div className="relative" ref={dropdownRef}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowDropdown(true);
+                  setSelectedIndex(-1);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                onKeyDown={handleKeyDown}
+                placeholder={mode === "calculate" ? "Search craftable items..." : "Search any item..."}
+                className="w-full px-4 py-3 bg-dark-input rounded-lg text-white border border-gold/10 focus:border-accent focus:outline-none placeholder-gray-500"
+              />
+
+              {/* Dropdown */}
+              {showDropdown && query && filteredItems.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-dark-card rounded-lg border border-gold/20 shadow-xl z-50 max-h-60 overflow-y-auto">
+                  {filteredItems.slice(0, 10).map((item, index) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSelect(item)}
+                      className={`
+                        w-full px-4 py-2.5 text-left flex items-center gap-3
+                        transition-colors border-b border-gold/5 last:border-0
+                        ${index === selectedIndex ? "bg-accent/20 text-accent" : "hover:bg-white/5 text-gray-300"}
+                      `}
+                    >
+                      <span className={`category-dot category-${item.category}`} />
+                      <span className="flex-1 truncate">{item.name}</span>
+                      <span className="text-xs text-gray-500 capitalize hidden sm:inline">{item.category}</span>
+                    </button>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          ) : (
-            <div className="text-center text-gray-500 py-10">
-              {selectedItem
-                ? "This item is not used in any recipes"
-                : "Select an item to see what you can craft with it"}
-            </div>
+
+            {/* Quantity (only in calculate mode) */}
+            {mode === "calculate" && (
+              <div className="mt-4">
+                <label className="block text-sm text-gray-400 mb-2">Quantity</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-10 h-10 rounded-lg bg-dark-input border border-gold/10 text-gray-400 hover:text-white hover:border-accent transition-colors"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="flex-1 px-4 py-2 bg-dark-input rounded-lg text-white text-center border border-gold/10 focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => setQuantity(Math.min(1000, quantity + 1))}
+                    className="w-10 h-10 rounded-lg bg-dark-input border border-gold/10 text-gray-400 hover:text-white hover:border-accent transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Include Indirect (only in reverse mode) */}
+            {mode === "reverse" && (
+              <label className="flex items-center gap-3 mt-4 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={includeIndirect}
+                  onChange={(e) => setIncludeIndirect(e.target.checked)}
+                  className="w-5 h-5 rounded border-gold/20 bg-dark-input accent-accent"
+                />
+                <span className="text-sm text-gray-400 group-hover:text-white transition-colors">
+                  Include indirect uses
+                </span>
+              </label>
+            )}
+          </Card>
+
+          {/* Quick Stats */}
+          {selectedItem && mode === "calculate" && materials.length > 0 && (
+            <Card title="Summary" icon="📊">
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard
+                  label="Materials"
+                  value={materials.length}
+                  icon="📦"
+                  color="info"
+                />
+                <StatCard
+                  label="Total Items"
+                  value={materials.reduce((sum, m) => sum + m.quantity, 0).toFixed(0)}
+                  icon="⚒"
+                  color="accent"
+                />
+              </div>
+            </Card>
           )}
         </div>
-      )}
-    </div>
+
+        {/* Right Column - Results */}
+        <div className="lg:col-span-2 space-y-4">
+          {isLoading && (
+            <Card>
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin text-4xl">⚒</div>
+              </div>
+            </Card>
+          )}
+
+          {!isLoading && !selectedItem && (
+            <Card>
+              <div className="text-center py-12 sm:py-16">
+                <div className="text-6xl sm:text-7xl mb-4 opacity-20">⚔</div>
+                <h3 className="text-lg sm:text-xl text-gray-400 mb-2">Select an Item</h3>
+                <p className="text-gray-500 text-sm max-w-md mx-auto">
+                  {mode === "calculate"
+                    ? "Choose an item to calculate its material requirements"
+                    : "Choose a material to see what can be crafted from it"}
+                </p>
+              </div>
+            </Card>
+          )}
+
+          {/* Calculate Mode Results */}
+          {!isLoading && mode === "calculate" && selectedItem && materials.length > 0 && (
+            <>
+              {/* Materials by Category */}
+              <Card
+                title={`Materials for ${quantity}× ${selectedItem.name}`}
+                icon="📦"
+              >
+                <div className="space-y-4">
+                  {Object.entries(materialsByCategory).map(([category, mats]) => (
+                    <div key={category}>
+                      <h4 className="text-xs uppercase text-gray-500 mb-2 flex items-center gap-2">
+                        <span className={`category-dot category-${category}`} />
+                        {category}
+                      </h4>
+                      <div className="grid gap-2">
+                        {mats.map((mat) => (
+                          <div
+                            key={mat.id}
+                            className="flex items-center justify-between bg-dark-input rounded-lg px-3 sm:px-4 py-2.5 border border-gold/5 hover:border-gold/10 transition-colors"
+                          >
+                            <span className="text-gray-300 truncate mr-2">{mat.name}</span>
+                            <span className="text-accent font-mono font-semibold whitespace-nowrap">
+                              ×{mat.formatted}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Crafting Tree */}
+              {tree && (
+                <Card title="Crafting Tree" icon="🌳">
+                  <div className="max-h-80 sm:max-h-96 overflow-y-auto -mx-2 px-2">
+                    {renderTree(tree)}
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+
+          {/* Reverse Mode Results */}
+          {!isLoading && mode === "reverse" && selectedItem && (
+            <Card
+              title={`Items using ${selectedItem.name}`}
+              icon="🔄"
+            >
+              {craftable.length > 0 ? (
+                <div className="grid gap-2">
+                  {craftable.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setMode("calculate");
+                        const foundItem = items.find((i) => i.id === item.id);
+                        if (foundItem) {
+                          handleSelect(foundItem);
+                        }
+                      }}
+                      className="flex items-center justify-between bg-dark-input rounded-lg px-3 sm:px-4 py-3 border border-gold/5 hover:border-accent/50 hover:bg-accent/5 transition-all text-left group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className={`category-dot category-${item.category} flex-shrink-0`} />
+                        <span className="text-gray-300 group-hover:text-white transition-colors truncate">
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2">
+                        <span className="text-sm text-gray-500 hidden sm:inline">
+                          needs ×{item.formatted}
+                        </span>
+                        <span className="text-gray-500 sm:hidden text-xs">
+                          ×{item.formatted}
+                        </span>
+                        <span className="text-gray-600 group-hover:text-accent transition-colors">
+                          →
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No items use this material
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
+      </div>
+    </MainLayout>
   );
 }
