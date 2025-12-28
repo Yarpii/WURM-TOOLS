@@ -149,3 +149,78 @@ export interface AdvancedCalculationResult {
   // Skill grinding path (optional)
   skillPath?: SkillGrindStep[];
 }
+
+// ========== MARKET/TRADING TYPES ==========
+
+export type OrderType = "buy" | "sell" | "trade";
+export type OrderStatus = "active" | "completed" | "cancelled" | "expired";
+
+export interface MarketOrder {
+  id: number;
+  user_id: number;
+  username: string;
+  order_type: OrderType;
+  item_name: string;
+  quantity: number;
+  quality?: number;
+  price?: number;
+  currency?: string;
+  trade_for?: string;
+  location?: string;
+  notes?: string;
+  status: OrderStatus;
+  created_at: string;
+  expires_at?: string;
+}
+
+export interface CreateOrderInput {
+  order_type: OrderType;
+  item_name: string;
+  quantity: number;
+  quality?: number;
+  price?: number;
+  currency?: string;
+  trade_for?: string;
+  location?: string;
+  notes?: string;
+  expires_days?: number;
+}
+
+// ========== MERCHANT TYPES ==========
+
+export type MerchantCategory =
+  | "tools"
+  | "weapons"
+  | "armor"
+  | "materials"
+  | "food"
+  | "animals"
+  | "vehicles"
+  | "furniture"
+  | "misc";
+
+export interface Merchant {
+  id: number;
+  user_id: number;
+  username: string;
+  name: string;
+  description?: string;
+  location: string;
+  server: string;
+  coordinates?: string;
+  category: MerchantCategory;
+  stock_list: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateMerchantInput {
+  name: string;
+  description?: string;
+  location: string;
+  server: string;
+  coordinates?: string;
+  category: MerchantCategory;
+  stock_list: string;
+}

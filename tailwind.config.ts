@@ -9,29 +9,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        dark: {
-          bg: "#1a1a2e",
-          card: "#16213e",
-          input: "#0f3460",
+        bg: {
+          primary: "var(--bg-primary)",
+          secondary: "var(--bg-secondary)",
+          tertiary: "var(--bg-tertiary)",
+          hover: "var(--bg-hover)",
+        },
+        text: {
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
+        },
+        border: {
+          DEFAULT: "var(--border-color)",
+          hover: "var(--border-hover)",
         },
         accent: {
-          DEFAULT: "#e94560",
-          hover: "#ff6b6b",
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+          muted: "var(--accent-muted)",
         },
-        success: "#4ecca3",
-        warning: "#ffc107",
-        danger: "#dc3545",
-        info: "#17a2b8",
-        category: {
-          wood: "#c4a35a",
-          ore: "#7a8b99",
-          material: "#9b8b7a",
-          metal: "#a8a8a8",
-          vehicle: "#6a8caf",
-          building: "#b87333",
-          tool: "#8b7355",
-          misc: "#888888",
-        },
+        success: "var(--success)",
+        warning: "var(--warning)",
+        danger: "var(--danger)",
+        info: "var(--info)",
       },
     },
   },

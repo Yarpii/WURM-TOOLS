@@ -44,14 +44,20 @@ function initAuthTables(db: Database.Database): void {
       CREATE INDEX idx_sessions_user ON sessions(user_id);
       CREATE INDEX idx_sessions_expires ON sessions(expires_at);
     `);
+  }
 
-    // Create default admin user (password: admin123)
+  // Ensure admin user exists (create if not present)
+  const adminExists = db
+    .prepare("SELECT id FROM users WHERE username = 'admin'")
+    .get();
+
+  if (!adminExists) {
     const salt = crypto.randomBytes(16).toString("hex");
     const hash = hashPassword("admin123", salt);
 
     db.prepare(
       "INSERT INTO users (username, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?)"
-    ).run("admin", "admin@blackforge.tools", hash, salt, "admin");
+    ).run("admin", "admin@wurmtools.com", hash, salt, "admin");
   }
 }
 

@@ -7,7 +7,6 @@ interface CardProps {
   title?: string;
   icon?: string;
   className?: string;
-  glow?: boolean;
   noPadding?: boolean;
 }
 
@@ -16,22 +15,20 @@ export default function Card({
   title,
   icon,
   className = "",
-  glow = false,
   noPadding = false,
 }: CardProps) {
   return (
     <div
       className={`
-        bg-dark-card rounded-xl border border-gold/10
-        transition-all duration-300 hover:border-gold/20
-        ${glow ? "ember-glow" : ""}
+        bg-bg-secondary rounded-xl border border-border
+        transition-colors hover:border-border-hover
         ${className}
       `}
     >
       {title && (
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gold/10 flex items-center gap-2">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border flex items-center gap-2">
           {icon && <span className="text-lg">{icon}</span>}
-          <h2 className="font-semibold text-gold text-sm sm:text-base">{title}</h2>
+          <h2 className="font-semibold text-text-primary text-sm sm:text-base">{title}</h2>
         </div>
       )}
       <div className={noPadding ? "" : "p-4 sm:p-6"}>
@@ -41,7 +38,6 @@ export default function Card({
   );
 }
 
-// Stat Card component for displaying metrics
 interface StatCardProps {
   label: string;
   value: string | number;
@@ -58,28 +54,27 @@ export function StatCard({
   icon,
 }: StatCardProps) {
   const colorClasses = {
-    default: "text-white",
+    default: "text-text-primary",
     accent: "text-accent",
-    success: "text-emerald-400",
-    warning: "text-amber-400",
-    info: "text-blue-400",
+    success: "text-success",
+    warning: "text-warning",
+    info: "text-info",
   };
 
   return (
-    <div className="bg-dark-input rounded-lg p-3 sm:p-4 text-center border border-gold/5 hover:border-gold/10 transition-colors">
+    <div className="bg-bg-tertiary rounded-lg p-3 sm:p-4 text-center border border-border">
       {icon && <div className="text-2xl mb-1 opacity-60">{icon}</div>}
       <div className={`text-xl sm:text-2xl font-bold ${colorClasses[color]} mb-1`}>
         {value}
       </div>
-      <div className="text-xs sm:text-sm text-gray-400">{label}</div>
+      <div className="text-xs sm:text-sm text-text-muted">{label}</div>
       {subValue && (
-        <div className="text-xs text-gray-500 mt-1">{subValue}</div>
+        <div className="text-xs text-text-muted mt-1">{subValue}</div>
       )}
     </div>
   );
 }
 
-// Progress bar component
 interface ProgressBarProps {
   value: number;
   max?: number;
@@ -107,12 +102,12 @@ export function ProgressBar({
   return (
     <div className="w-full">
       {(showLabel || label) && (
-        <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <div className="flex justify-between text-xs text-text-muted mb-1">
           <span>{label}</span>
           {showLabel && <span>{Math.round(percentage)}%</span>}
         </div>
       )}
-      <div className={`w-full bg-dark-input rounded-full ${sizeClasses[size]} overflow-hidden`}>
+      <div className={`w-full bg-bg-tertiary rounded-full ${sizeClasses[size]} overflow-hidden`}>
         <div
           className={`${color} ${sizeClasses[size]} rounded-full transition-all duration-500`}
           style={{ width: `${percentage}%` }}

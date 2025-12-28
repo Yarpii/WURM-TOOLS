@@ -23,27 +23,27 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseClasses = `
-    inline-flex items-center justify-center gap-2 font-semibold
-    rounded-lg transition-all duration-200 uppercase tracking-wide
+    inline-flex items-center justify-center gap-2 font-medium
+    rounded-lg transition-all duration-200
     disabled:opacity-50 disabled:cursor-not-allowed
   `;
 
   const variantClasses = {
     primary: `
-      bg-gradient-to-r from-accent to-ember text-white
-      hover:from-accent-hover hover:to-molten hover:shadow-lg hover:shadow-accent/20
+      bg-accent text-white
+      hover:bg-accent-hover
       active:scale-[0.98]
     `,
     secondary: `
-      bg-dark-input text-gray-300 border border-gold/20
-      hover:border-gold/40 hover:text-white hover:bg-dark-card
+      bg-bg-tertiary text-text-primary border border-border
+      hover:border-border-hover hover:bg-bg-hover
     `,
     ghost: `
-      text-gray-400 hover:text-white hover:bg-white/5
+      text-text-secondary hover:text-text-primary hover:bg-bg-hover
     `,
     danger: `
-      bg-red-600/20 text-red-400 border border-red-500/30
-      hover:bg-red-600/30 hover:border-red-500/50
+      bg-danger/10 text-danger border border-danger/30
+      hover:bg-danger/20 hover:border-danger/50
     `,
   };
 
@@ -67,30 +67,15 @@ export default function Button({
     >
       {isLoading ? (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-            fill="none"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          />
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-      ) : (
-        icon
-      )}
+      ) : icon}
       {children}
     </button>
   );
 }
 
-// Link styled as button
 interface LinkButtonProps {
   href: string;
   children: ReactNode;
@@ -98,7 +83,6 @@ interface LinkButtonProps {
   size?: "sm" | "md" | "lg";
   icon?: ReactNode;
   className?: string;
-  isNew?: boolean;
 }
 
 export function LinkButton({
@@ -108,26 +92,16 @@ export function LinkButton({
   size = "md",
   icon,
   className = "",
-  isNew,
 }: LinkButtonProps) {
   const baseClasses = `
-    inline-flex items-center justify-center gap-2 font-semibold
-    rounded-lg transition-all duration-200 uppercase tracking-wide
-    relative
+    inline-flex items-center justify-center gap-2 font-medium
+    rounded-lg transition-all duration-200
   `;
 
   const variantClasses = {
-    primary: `
-      bg-gradient-to-r from-accent to-ember text-white
-      hover:from-accent-hover hover:to-molten hover:shadow-lg hover:shadow-accent/20
-    `,
-    secondary: `
-      bg-dark-input text-gray-300 border border-gold/20
-      hover:border-gold/40 hover:text-white hover:bg-dark-card
-    `,
-    ghost: `
-      text-gray-400 hover:text-white hover:bg-white/5
-    `,
+    primary: `bg-accent text-white hover:bg-accent-hover`,
+    secondary: `bg-bg-tertiary text-text-primary border border-border hover:border-border-hover`,
+    ghost: `text-text-secondary hover:text-text-primary hover:bg-bg-hover`,
   };
 
   const sizeClasses = {
@@ -139,25 +113,14 @@ export function LinkButton({
   return (
     <Link
       href={href}
-      className={`
-        ${baseClasses}
-        ${variantClasses[variant]}
-        ${sizeClasses[size]}
-        ${className}
-      `}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
     >
       {icon}
       {children}
-      {isNew && (
-        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] bg-accent text-white rounded-full font-bold">
-          NEW
-        </span>
-      )}
     </Link>
   );
 }
 
-// Button Group
 interface ButtonGroupProps {
   children: ReactNode;
   className?: string;
@@ -171,7 +134,6 @@ export function ButtonGroup({ children, className = "" }: ButtonGroupProps) {
   );
 }
 
-// Toggle Button Group (like tabs)
 interface ToggleButtonGroupProps<T extends string> {
   options: { value: T; label: string; icon?: string }[];
   value: T;
@@ -191,7 +153,7 @@ export function ToggleButtonGroup<T extends string>({
   };
 
   return (
-    <div className="inline-flex bg-dark-input rounded-lg p-1 border border-gold/10">
+    <div className="inline-flex bg-bg-tertiary rounded-lg p-1 border border-border">
       {options.map((option) => (
         <button
           key={option.value}
@@ -200,8 +162,8 @@ export function ToggleButtonGroup<T extends string>({
             ${sizeClasses[size]} rounded-md transition-all duration-200
             flex items-center gap-1.5 font-medium
             ${value === option.value
-              ? "bg-accent text-white shadow-sm"
-              : "text-gray-400 hover:text-white"
+              ? "bg-accent text-white"
+              : "text-text-secondary hover:text-text-primary"
             }
           `}
         >

@@ -21,10 +21,10 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
         <div className="inline-flex items-center gap-3 mb-4">
           <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400">Verifying credentials...</span>
+          <span className="text-text-muted">Verifying credentials...</span>
         </div>
       </div>
     );
@@ -32,21 +32,20 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <div className="max-w-md mx-auto bg-dark-card p-8 rounded-xl">
-          <div className="text-6xl mb-4 text-accent">🔒</div>
-          <h2 className="text-2xl font-bold mb-2">
-            <span className="text-accent">Authentication</span>
-            <span className="text-gold"> Required</span>
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+        <div className="max-w-md mx-auto bg-bg-secondary p-8 rounded-xl border border-border">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-2xl font-bold mb-2 text-text-primary">
+            Authentication Required
           </h2>
-          <p className="text-gray-500 mb-6">
+          <p className="text-text-muted mb-6">
             You must be logged in to access this area.
           </p>
           <Link
             href="/login"
-            className="inline-block px-6 py-3 bg-accent hover:bg-accent-hover rounded-lg font-medium transition-colors"
+            className="inline-block px-6 py-3 bg-accent hover:bg-accent-hover text-white rounded-lg font-medium transition-colors"
           >
-            Enter The Forge
+            Login
           </Link>
         </div>
       </div>
@@ -55,24 +54,23 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   if (user.role !== "admin") {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <div className="max-w-md mx-auto bg-dark-card p-8 rounded-xl border border-red-500/30">
-          <div className="text-6xl mb-4">⚔️</div>
-          <h2 className="text-2xl font-bold mb-2">
-            <span className="text-accent">Access</span>
-            <span className="text-gold"> Denied</span>
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+        <div className="max-w-md mx-auto bg-bg-secondary p-8 rounded-xl border border-danger/30">
+          <div className="text-6xl mb-4">🚫</div>
+          <h2 className="text-2xl font-bold mb-2 text-text-primary">
+            Access Denied
           </h2>
-          <p className="text-gray-500 mb-4">
-            Only Forge Masters may enter this chamber.
+          <p className="text-text-muted mb-4">
+            This area is restricted to administrators only.
           </p>
-          <p className="text-gray-600 text-sm mb-6">
-            You are logged in as <span className="text-accent">{user.username}</span> (role: {user.role})
+          <p className="text-text-muted text-sm mb-6">
+            Logged in as <span className="text-accent">{user.username}</span> (role: {user.role})
           </p>
           <Link
             href="/"
-            className="inline-block px-6 py-3 bg-dark-input hover:bg-white/10 rounded-lg font-medium transition-colors"
+            className="inline-block px-6 py-3 bg-bg-tertiary hover:bg-bg-hover text-text-primary rounded-lg font-medium transition-colors"
           >
-            Return to Calculator
+            Return Home
           </Link>
         </div>
       </div>

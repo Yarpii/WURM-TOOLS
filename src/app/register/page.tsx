@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { refresh, user } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,11 +15,17 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Validate passwords match
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -40,43 +48,40 @@ export default function RegisterPage() {
         return;
       }
 
-      // Redirect to home after successful registration
+      // Refresh auth context to pick up the new session
+      await refresh();
+
+      // Redirect to home
       router.push("/");
-      router.refresh();
     } catch (err) {
       setError("Connection error: " + String(err));
       setLoading(false);
     }
   };
 
+  // Don't show form if already logged in
+  if (user) {
+    return null;
+  }
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-2">
-            <span className="text-gold/30">◆</span>
-            <h1 className="text-3xl font-bold tracking-wide">
-              <span className="text-accent">Join</span>
-              <span className="text-gold"> The Guild</span>
-            </h1>
-            <span className="text-gold/30">◆</span>
-          </div>
-          <p className="text-gray-500">Create your Blackforge account</p>
-          <div className="forge-divider mt-4 max-w-xs mx-auto" />
+          <h1 className="text-3xl font-bold text-text-primary mb-2">Create Account</h1>
+          <p className="text-text-secondary">Sign up to get started</p>
         </div>
 
-        {/* Register Form */}
-        <div className="bg-dark-card p-8 rounded-xl">
+        <div className="bg-bg-secondary p-8 rounded-xl border border-border">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+              <div className="p-4 bg-danger/10 border border-danger/30 rounded-lg text-danger text-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-gray-400 text-sm mb-2 uppercase tracking-wide">
+              <label className="block text-text-secondary text-sm mb-2">
                 Username
               </label>
               <input
@@ -86,14 +91,14 @@ export default function RegisterPage() {
                 required
                 minLength={3}
                 autoComplete="username"
-                className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
                 placeholder="Choose a username"
               />
-              <p className="text-gray-600 text-xs mt-1">At least 3 characters</p>
+              <p className="text-text-muted text-xs mt-1">At least 3 characters</p>
             </div>
 
             <div>
-              <label className="block text-gray-400 text-sm mb-2 uppercase tracking-wide">
+              <label className="block text-text-secondary text-sm mb-2">
                 Email
               </label>
               <input
@@ -102,13 +107,13 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
                 placeholder="your@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-gray-400 text-sm mb-2 uppercase tracking-wide">
+              <label className="block text-text-secondary text-sm mb-2">
                 Password
               </label>
               <input
@@ -118,14 +123,14 @@ export default function RegisterPage() {
                 required
                 minLength={6}
                 autoComplete="new-password"
-                className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
                 placeholder="Choose a password"
               />
-              <p className="text-gray-600 text-xs mt-1">At least 6 characters</p>
+              <p className="text-text-muted text-xs mt-1">At least 6 characters</p>
             </div>
 
             <div>
-              <label className="block text-gray-400 text-sm mb-2 uppercase tracking-wide">
+              <label className="block text-text-secondary text-sm mb-2">
                 Confirm Password
               </label>
               <input
@@ -134,7 +139,7 @@ export default function RegisterPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 autoComplete="new-password"
-                className="w-full px-4 py-3 bg-dark-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
                 placeholder="Confirm your password"
               />
             </div>
@@ -144,19 +149,19 @@ export default function RegisterPage() {
               disabled={loading}
               className={`w-full py-3 rounded-lg font-medium transition-all ${
                 loading
-                  ? "bg-gray-600 cursor-not-allowed text-gray-400"
-                  : "bg-accent hover:bg-accent-hover text-white ember-glow"
+                  ? "bg-bg-tertiary cursor-not-allowed text-text-muted"
+                  : "bg-accent hover:bg-accent-hover text-white"
               }`}
             >
-              {loading ? "Creating Account..." : "Forge Your Account"}
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-500 text-sm">
-              Already a member?{" "}
-              <Link href="/login" className="text-accent hover:text-gold transition-colors">
-                Enter The Forge
+            <p className="text-text-muted text-sm">
+              Already have an account?{" "}
+              <Link href="/login" className="text-accent hover:text-accent-hover transition-colors">
+                Sign in
               </Link>
             </p>
           </div>
