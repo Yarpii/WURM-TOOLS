@@ -12,7 +12,6 @@ const navItems = [
   { href: "/market", label: "Market" },
   { href: "/merchants", label: "Merchants" },
   { href: "/data", label: "Data" },
-  { href: "/admin", label: "Admin" },
 ];
 
 export default function Header() {
@@ -20,6 +19,11 @@ export default function Header() {
   const { user, loading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
+
+  // Build nav items - add Admin only for admin users
+  const visibleNavItems = user?.role === "admin"
+    ? [...navItems, { href: "/admin", label: "Admin" }]
+    : navItems;
 
   return (
     <header className="sticky top-0 z-50 bg-bg-secondary border-b border-border">
@@ -39,7 +43,7 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href));
               return (
@@ -132,7 +136,7 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <nav className="flex flex-col gap-1">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const isActive = pathname === item.href ||
                   (item.href !== "/" && pathname.startsWith(item.href));
                 return (
