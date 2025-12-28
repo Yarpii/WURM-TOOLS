@@ -1,0 +1,100 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { getAllAlliances, createAlliance, getUserAlliance } from "@/lib/database";
+
+// GET /api/alliances - Get list of public alliances
+export async function GET(request: NextRequest) {
+  try {
+    const sessionId = request.cookies.get("session")?.value;
+    const session = sessionId ? getSession(sessionId) : null;
+    const isAdmin = session?.user?.role === "admin";
+
+    const alliances = getAllAlliances(isAdmin);
+
+    return NextResponse.json({ alliances });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch alliances: " + String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/alliances - Create a new alliance
+export async function POST(request: NextRequest) {
+  try {
+    const sessionId = request.cookies.get("session")?.value;
+
+    if (!sessionId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const session = getSession(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: "Session expired" }, { status: 401 });
+    }
+
+    // Check if user is already in an alliance
+    const existingAlliance = getUserAlliance(session.user.id);
+    if (existingAlliance) {
+      return NextResponse.json(
+        { error: "You are already in an alliance. Leave your current alliance first." },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const { name, description, tag, is_public, max_members } = body;
+
+    // Validate input
+    if (!name || name.length < 3 || name.length > 50) {
+      return NextResponse.json(
+        { error: "Alliance name must be between 3 and 50 characters" },
+        { status: 400 }
+      );
+    }
+    if (description && description.length > 500) {
+      return NextResponse.json(
+        { error: "Description must be 500 characters or less" },
+        { status: 400 }
+      );
+    }
+    if (tag && (tag.length < 2 || tag.length > 5)) {
+      return NextResponse.json(
+        { error: "Tag must be between 2 and 5 characters" },
+        { status: 400 }
+      );
+    }
+    if (max_members && (max_members < 5 || max_members > 100)) {
+      return NextResponse.json(
+        { error: "Max members must be between 5 and 100" },
+        { status: 400 }
+      );
+    }
+
+    const allianceId = createAlliance(session.user.id, {
+      name,
+      description,
+      tag,
+      is_public,
+      max_members,
+    });
+
+    return NextResponse.json({
+      success: true,
+      alliance_id: allianceId,
+    });
+  } catch (error) {
+    const errorMessage = String(error);
+    if (errorMessage.includes("UNIQUE constraint failed")) {
+      return NextResponse.json(
+        { error: "An alliance with this name already exists" },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Failed to create alliance: " + errorMessage },
+      { status: 500 }
+    );
+  }
+}

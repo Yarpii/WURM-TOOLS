@@ -21,6 +21,13 @@ import type {
   Merchant,
   CreateMerchantInput,
   MerchantCategory,
+  Alliance,
+  AllianceMember,
+  AllianceInvite,
+  AllianceRole,
+  InviteStatus,
+  CreateAllianceInput,
+  UpdateAllianceInput,
 } from "./types";
 import {
   calculateSuccessChance,
@@ -143,6 +150,63 @@ function initDatabase(db: Database.Database): void {
       CREATE INDEX idx_merchants_active ON merchants(is_active);
       CREATE INDEX idx_merchants_category ON merchants(category);
       CREATE INDEX idx_merchants_server ON merchants(server);
+    `);
+  }
+
+  // Initialize alliances table if it doesn't exist
+  const alliancesTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='alliances'"
+    )
+    .get();
+
+  if (!alliancesTableExists) {
+    db.exec(`
+      CREATE TABLE alliances (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        tag TEXT,
+        leader_id INTEGER NOT NULL,
+        is_public INTEGER DEFAULT 1,
+        max_members INTEGER DEFAULT 50,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (leader_id) REFERENCES users(id)
+      );
+
+      CREATE TABLE alliance_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        alliance_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('leader', 'officer', 'member')),
+        joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+        invited_by INTEGER,
+        FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (invited_by) REFERENCES users(id),
+        UNIQUE(alliance_id, user_id)
+      );
+
+      CREATE TABLE alliance_invites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        alliance_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        invited_by INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'declined', 'expired')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        expires_at TEXT,
+        FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (invited_by) REFERENCES users(id)
+      );
+
+      CREATE INDEX idx_alliances_leader ON alliances(leader_id);
+      CREATE INDEX idx_alliance_members_alliance ON alliance_members(alliance_id);
+      CREATE INDEX idx_alliance_members_user ON alliance_members(user_id);
+      CREATE INDEX idx_alliance_invites_alliance ON alliance_invites(alliance_id);
+      CREATE INDEX idx_alliance_invites_user ON alliance_invites(user_id);
+      CREATE INDEX idx_alliance_invites_status ON alliance_invites(status);
     `);
   }
 }
@@ -1838,4 +1902,554 @@ export function getServers(): string[] {
     .prepare("SELECT DISTINCT server FROM merchants WHERE is_active = 1 ORDER BY server")
     .all() as { server: string }[];
   return rows.map((r) => r.server);
+}
+
+// ========== ALLIANCE FUNCTIONS ==========
+
+interface AllianceRow {
+  id: number;
+  name: string;
+  description: string | null;
+  tag: string | null;
+  leader_id: number;
+  is_public: number;
+  max_members: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AllianceWithLeader extends AllianceRow {
+  leader_username: string;
+  member_count: number;
+}
+
+function mapAllianceRow(row: AllianceWithLeader): Alliance {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description || undefined,
+    tag: row.tag || undefined,
+    leader_id: row.leader_id,
+    leader_username: row.leader_username,
+    is_public: Boolean(row.is_public),
+    max_members: row.max_members,
+    member_count: row.member_count,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export function getAllAlliances(includePrivate: boolean = false): Alliance[] {
+  let query = `
+    SELECT a.*, u.username as leader_username,
+           (SELECT COUNT(*) FROM alliance_members WHERE alliance_id = a.id) as member_count
+    FROM alliances a
+    JOIN users u ON a.leader_id = u.id
+  `;
+
+  if (!includePrivate) {
+    query += " WHERE a.is_public = 1";
+  }
+
+  query += " ORDER BY a.name ASC";
+
+  const rows = getDb().prepare(query).all() as AllianceWithLeader[];
+  return rows.map(mapAllianceRow);
+}
+
+export function getAllianceById(id: number): Alliance | null {
+  const row = getDb()
+    .prepare(`
+      SELECT a.*, u.username as leader_username,
+             (SELECT COUNT(*) FROM alliance_members WHERE alliance_id = a.id) as member_count
+      FROM alliances a
+      JOIN users u ON a.leader_id = u.id
+      WHERE a.id = ?
+    `)
+    .get(id) as AllianceWithLeader | undefined;
+
+  return row ? mapAllianceRow(row) : null;
+}
+
+export function getUserAlliance(userId: number): Alliance | null {
+  const row = getDb()
+    .prepare(`
+      SELECT a.*, u.username as leader_username,
+             (SELECT COUNT(*) FROM alliance_members WHERE alliance_id = a.id) as member_count
+      FROM alliances a
+      JOIN users u ON a.leader_id = u.id
+      JOIN alliance_members am ON am.alliance_id = a.id
+      WHERE am.user_id = ?
+    `)
+    .get(userId) as AllianceWithLeader | undefined;
+
+  return row ? mapAllianceRow(row) : null;
+}
+
+export function createAlliance(userId: number, input: CreateAllianceInput): number {
+  const db = getDb();
+
+  // Check if user is already in an alliance
+  const existingMembership = db
+    .prepare("SELECT id FROM alliance_members WHERE user_id = ?")
+    .get(userId);
+
+  if (existingMembership) {
+    throw new Error("User is already in an alliance");
+  }
+
+  // Create alliance
+  const result = db
+    .prepare(`
+      INSERT INTO alliances (name, description, tag, leader_id, is_public, max_members)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    .run(
+      input.name,
+      input.description || null,
+      input.tag || null,
+      userId,
+      input.is_public !== false ? 1 : 0,
+      input.max_members || 50
+    );
+
+  const allianceId = result.lastInsertRowid as number;
+
+  // Add creator as leader
+  db.prepare(`
+    INSERT INTO alliance_members (alliance_id, user_id, role)
+    VALUES (?, ?, 'leader')
+  `).run(allianceId, userId);
+
+  return allianceId;
+}
+
+export function updateAlliance(
+  allianceId: number,
+  userId: number,
+  input: UpdateAllianceInput,
+  isAdmin: boolean = false
+): boolean {
+  const alliance = getAllianceById(allianceId);
+  if (!alliance) return false;
+
+  // Check permissions
+  if (!isAdmin) {
+    const member = getAllianceMember(allianceId, userId);
+    if (!member || (member.role !== "leader" && member.role !== "officer")) {
+      return false;
+    }
+  }
+
+  const fields: string[] = ["updated_at = datetime('now')"];
+  const values: (string | number | null)[] = [];
+
+  if (input.name !== undefined) {
+    fields.push("name = ?");
+    values.push(input.name);
+  }
+  if (input.description !== undefined) {
+    fields.push("description = ?");
+    values.push(input.description || null);
+  }
+  if (input.tag !== undefined) {
+    fields.push("tag = ?");
+    values.push(input.tag || null);
+  }
+  if (input.is_public !== undefined) {
+    fields.push("is_public = ?");
+    values.push(input.is_public ? 1 : 0);
+  }
+  if (input.max_members !== undefined) {
+    fields.push("max_members = ?");
+    values.push(input.max_members);
+  }
+
+  values.push(allianceId);
+  const result = getDb()
+    .prepare(`UPDATE alliances SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return result.changes > 0;
+}
+
+export function deleteAlliance(allianceId: number, userId: number, isAdmin: boolean = false): boolean {
+  const alliance = getAllianceById(allianceId);
+  if (!alliance) return false;
+
+  // Only leader or admin can delete
+  if (!isAdmin && alliance.leader_id !== userId) {
+    return false;
+  }
+
+  const result = getDb().prepare("DELETE FROM alliances WHERE id = ?").run(allianceId);
+  return result.changes > 0;
+}
+
+// ========== ALLIANCE MEMBERS ==========
+
+interface AllianceMemberRow {
+  id: number;
+  alliance_id: number;
+  user_id: number;
+  role: string;
+  joined_at: string;
+  invited_by: number | null;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  invited_by_username: string | null;
+}
+
+function mapMemberRow(row: AllianceMemberRow): AllianceMember {
+  return {
+    id: row.id,
+    alliance_id: row.alliance_id,
+    user_id: row.user_id,
+    username: row.username,
+    display_name: row.display_name || undefined,
+    avatar_url: row.avatar_url || undefined,
+    role: row.role as AllianceRole,
+    joined_at: row.joined_at,
+    invited_by: row.invited_by || undefined,
+    invited_by_username: row.invited_by_username || undefined,
+  };
+}
+
+export function getAllianceMembers(allianceId: number): AllianceMember[] {
+  const rows = getDb()
+    .prepare(`
+      SELECT am.*, u.username, u.display_name, u.avatar_url,
+             iu.username as invited_by_username
+      FROM alliance_members am
+      JOIN users u ON am.user_id = u.id
+      LEFT JOIN users iu ON am.invited_by = iu.id
+      WHERE am.alliance_id = ?
+      ORDER BY
+        CASE am.role
+          WHEN 'leader' THEN 1
+          WHEN 'officer' THEN 2
+          ELSE 3
+        END,
+        am.joined_at ASC
+    `)
+    .all(allianceId) as AllianceMemberRow[];
+
+  return rows.map(mapMemberRow);
+}
+
+export function getAllianceMember(allianceId: number, userId: number): AllianceMember | null {
+  const row = getDb()
+    .prepare(`
+      SELECT am.*, u.username, u.display_name, u.avatar_url,
+             iu.username as invited_by_username
+      FROM alliance_members am
+      JOIN users u ON am.user_id = u.id
+      LEFT JOIN users iu ON am.invited_by = iu.id
+      WHERE am.alliance_id = ? AND am.user_id = ?
+    `)
+    .get(allianceId, userId) as AllianceMemberRow | undefined;
+
+  return row ? mapMemberRow(row) : null;
+}
+
+export function updateMemberRole(
+  allianceId: number,
+  targetUserId: number,
+  newRole: AllianceRole,
+  actingUserId: number,
+  isAdmin: boolean = false
+): boolean {
+  const alliance = getAllianceById(allianceId);
+  if (!alliance) return false;
+
+  // Check permissions
+  if (!isAdmin) {
+    const actingMember = getAllianceMember(allianceId, actingUserId);
+    if (!actingMember || actingMember.role !== "leader") {
+      return false;
+    }
+  }
+
+  // Can't change leader's role (must transfer leadership)
+  if (targetUserId === alliance.leader_id && newRole !== "leader") {
+    return false;
+  }
+
+  const result = getDb()
+    .prepare("UPDATE alliance_members SET role = ? WHERE alliance_id = ? AND user_id = ?")
+    .run(newRole, allianceId, targetUserId);
+
+  return result.changes > 0;
+}
+
+export function transferLeadership(
+  allianceId: number,
+  currentLeaderId: number,
+  newLeaderId: number
+): boolean {
+  const db = getDb();
+  const alliance = getAllianceById(allianceId);
+  if (!alliance || alliance.leader_id !== currentLeaderId) return false;
+
+  // Check new leader is a member
+  const newLeaderMember = getAllianceMember(allianceId, newLeaderId);
+  if (!newLeaderMember) return false;
+
+  // Update in transaction
+  const transfer = db.transaction(() => {
+    // Demote current leader to officer
+    db.prepare("UPDATE alliance_members SET role = 'officer' WHERE alliance_id = ? AND user_id = ?")
+      .run(allianceId, currentLeaderId);
+
+    // Promote new leader
+    db.prepare("UPDATE alliance_members SET role = 'leader' WHERE alliance_id = ? AND user_id = ?")
+      .run(allianceId, newLeaderId);
+
+    // Update alliance leader_id
+    db.prepare("UPDATE alliances SET leader_id = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(newLeaderId, allianceId);
+  });
+
+  transfer();
+  return true;
+}
+
+export function removeMember(
+  allianceId: number,
+  targetUserId: number,
+  actingUserId: number,
+  isAdmin: boolean = false
+): boolean {
+  const alliance = getAllianceById(allianceId);
+  if (!alliance) return false;
+
+  // Leader can't be removed (must transfer or delete alliance)
+  if (targetUserId === alliance.leader_id) return false;
+
+  // Check permissions (self-leave, officer/leader kick, or admin)
+  if (!isAdmin && actingUserId !== targetUserId) {
+    const actingMember = getAllianceMember(allianceId, actingUserId);
+    if (!actingMember || actingMember.role === "member") {
+      return false;
+    }
+  }
+
+  const result = getDb()
+    .prepare("DELETE FROM alliance_members WHERE alliance_id = ? AND user_id = ?")
+    .run(allianceId, targetUserId);
+
+  return result.changes > 0;
+}
+
+// ========== ALLIANCE INVITES ==========
+
+interface AllianceInviteRow {
+  id: number;
+  alliance_id: number;
+  user_id: number;
+  invited_by: number;
+  status: string;
+  created_at: string;
+  expires_at: string | null;
+  alliance_name: string;
+  username: string;
+  invited_by_username: string;
+}
+
+function mapInviteRow(row: AllianceInviteRow): AllianceInvite {
+  return {
+    id: row.id,
+    alliance_id: row.alliance_id,
+    alliance_name: row.alliance_name,
+    user_id: row.user_id,
+    username: row.username,
+    invited_by: row.invited_by,
+    invited_by_username: row.invited_by_username,
+    status: row.status as InviteStatus,
+    created_at: row.created_at,
+    expires_at: row.expires_at || undefined,
+  };
+}
+
+export function getUserInvites(userId: number): AllianceInvite[] {
+  // Expire old invites first
+  getDb()
+    .prepare(`
+      UPDATE alliance_invites
+      SET status = 'expired'
+      WHERE status = 'pending' AND expires_at IS NOT NULL AND expires_at < datetime('now')
+    `)
+    .run();
+
+  const rows = getDb()
+    .prepare(`
+      SELECT ai.*, a.name as alliance_name, u.username, iu.username as invited_by_username
+      FROM alliance_invites ai
+      JOIN alliances a ON ai.alliance_id = a.id
+      JOIN users u ON ai.user_id = u.id
+      JOIN users iu ON ai.invited_by = iu.id
+      WHERE ai.user_id = ? AND ai.status = 'pending'
+      ORDER BY ai.created_at DESC
+    `)
+    .all(userId) as AllianceInviteRow[];
+
+  return rows.map(mapInviteRow);
+}
+
+export function getAllianceInvites(allianceId: number): AllianceInvite[] {
+  const rows = getDb()
+    .prepare(`
+      SELECT ai.*, a.name as alliance_name, u.username, iu.username as invited_by_username
+      FROM alliance_invites ai
+      JOIN alliances a ON ai.alliance_id = a.id
+      JOIN users u ON ai.user_id = u.id
+      JOIN users iu ON ai.invited_by = iu.id
+      WHERE ai.alliance_id = ? AND ai.status = 'pending'
+      ORDER BY ai.created_at DESC
+    `)
+    .all(allianceId) as AllianceInviteRow[];
+
+  return rows.map(mapInviteRow);
+}
+
+export function createInvite(
+  allianceId: number,
+  targetUserId: number,
+  invitedBy: number
+): number | null {
+  const db = getDb();
+  const alliance = getAllianceById(allianceId);
+  if (!alliance) return null;
+
+  // Check if inviter has permission
+  const inviterMember = getAllianceMember(allianceId, invitedBy);
+  if (!inviterMember || inviterMember.role === "member") {
+    return null;
+  }
+
+  // Check if target is already in an alliance
+  const existingMembership = db
+    .prepare("SELECT id FROM alliance_members WHERE user_id = ?")
+    .get(targetUserId);
+
+  if (existingMembership) return null;
+
+  // Check if invite already exists
+  const existingInvite = db
+    .prepare(`
+      SELECT id FROM alliance_invites
+      WHERE alliance_id = ? AND user_id = ? AND status = 'pending'
+    `)
+    .get(allianceId, targetUserId);
+
+  if (existingInvite) return null;
+
+  // Check member limit
+  if (alliance.member_count && alliance.member_count >= alliance.max_members) {
+    return null;
+  }
+
+  // Create invite (expires in 7 days)
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const result = db
+    .prepare(`
+      INSERT INTO alliance_invites (alliance_id, user_id, invited_by, expires_at)
+      VALUES (?, ?, ?, ?)
+    `)
+    .run(allianceId, targetUserId, invitedBy, expiresAt);
+
+  return result.lastInsertRowid as number;
+}
+
+export function respondToInvite(
+  inviteId: number,
+  userId: number,
+  accept: boolean
+): boolean {
+  const db = getDb();
+
+  const invite = db
+    .prepare("SELECT * FROM alliance_invites WHERE id = ? AND user_id = ? AND status = 'pending'")
+    .get(inviteId, userId) as { alliance_id: number; invited_by: number } | undefined;
+
+  if (!invite) return false;
+
+  if (accept) {
+    // Check if user is already in an alliance
+    const existingMembership = db
+      .prepare("SELECT id FROM alliance_members WHERE user_id = ?")
+      .get(userId);
+
+    if (existingMembership) {
+      db.prepare("UPDATE alliance_invites SET status = 'declined' WHERE id = ?").run(inviteId);
+      return false;
+    }
+
+    // Check member limit
+    const alliance = getAllianceById(invite.alliance_id);
+    if (alliance && alliance.member_count && alliance.member_count >= alliance.max_members) {
+      return false;
+    }
+
+    // Add to alliance
+    db.prepare(`
+      INSERT INTO alliance_members (alliance_id, user_id, role, invited_by)
+      VALUES (?, ?, 'member', ?)
+    `).run(invite.alliance_id, userId, invite.invited_by);
+
+    db.prepare("UPDATE alliance_invites SET status = 'accepted' WHERE id = ?").run(inviteId);
+
+    // Decline other pending invites for this user
+    db.prepare(`
+      UPDATE alliance_invites SET status = 'declined'
+      WHERE user_id = ? AND status = 'pending' AND id != ?
+    `).run(userId, inviteId);
+  } else {
+    db.prepare("UPDATE alliance_invites SET status = 'declined' WHERE id = ?").run(inviteId);
+  }
+
+  return true;
+}
+
+export function cancelInvite(inviteId: number, actingUserId: number, isAdmin: boolean = false): boolean {
+  const db = getDb();
+
+  const invite = db
+    .prepare("SELECT alliance_id FROM alliance_invites WHERE id = ? AND status = 'pending'")
+    .get(inviteId) as { alliance_id: number } | undefined;
+
+  if (!invite) return false;
+
+  if (!isAdmin) {
+    const member = getAllianceMember(invite.alliance_id, actingUserId);
+    if (!member || member.role === "member") {
+      return false;
+    }
+  }
+
+  const result = db
+    .prepare("UPDATE alliance_invites SET status = 'expired' WHERE id = ?")
+    .run(inviteId);
+
+  return result.changes > 0;
+}
+
+// ========== ALLIANCE STATS ==========
+
+export function getAllianceStats(): {
+  total: number;
+  public_count: number;
+  total_members: number;
+} {
+  const db = getDb();
+  const total = db.prepare("SELECT COUNT(*) as count FROM alliances").get() as { count: number };
+  const publicCount = db.prepare("SELECT COUNT(*) as count FROM alliances WHERE is_public = 1").get() as { count: number };
+  const totalMembers = db.prepare("SELECT COUNT(*) as count FROM alliance_members").get() as { count: number };
+
+  return {
+    total: total.count,
+    public_count: publicCount.count,
+    total_members: totalMembers.count,
+  };
 }

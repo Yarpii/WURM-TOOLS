@@ -224,3 +224,64 @@ export interface CreateMerchantInput {
   category: MerchantCategory;
   stock_list: string;
 }
+
+// ========== ALLIANCE TYPES ==========
+
+export type AllianceRole = "leader" | "officer" | "member";
+export type InviteStatus = "pending" | "accepted" | "declined" | "expired";
+
+export interface Alliance {
+  id: number;
+  name: string;
+  description?: string;
+  tag?: string;
+  leader_id: number;
+  leader_username?: string;
+  is_public: boolean;
+  max_members: number;
+  member_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AllianceMember {
+  id: number;
+  alliance_id: number;
+  user_id: number;
+  username: string;
+  display_name?: string;
+  avatar_url?: string;
+  role: AllianceRole;
+  joined_at: string;
+  invited_by?: number;
+  invited_by_username?: string;
+}
+
+export interface AllianceInvite {
+  id: number;
+  alliance_id: number;
+  alliance_name?: string;
+  user_id: number;
+  username?: string;
+  invited_by: number;
+  invited_by_username?: string;
+  status: InviteStatus;
+  created_at: string;
+  expires_at?: string;
+}
+
+export interface CreateAllianceInput {
+  name: string;
+  description?: string;
+  tag?: string;
+  is_public?: boolean;
+  max_members?: number;
+}
+
+export interface UpdateAllianceInput {
+  name?: string;
+  description?: string;
+  tag?: string;
+  is_public?: boolean;
+  max_members?: number;
+}

@@ -11,6 +11,8 @@ const navItems = [
   { href: "/crafting", label: "Crafting" },
   { href: "/market", label: "Market" },
   { href: "/merchants", label: "Merchants" },
+  { href: "/members", label: "Members" },
+  { href: "/alliances", label: "Alliances" },
   { href: "/data", label: "Data" },
 ];
 
@@ -87,7 +89,12 @@ export default function Header() {
                 <div className="w-20 h-8 bg-bg-tertiary rounded-lg animate-pulse" />
               ) : user ? (
                 <>
-                  <span className="text-sm text-text-secondary">{user.username}</span>
+                  <Link
+                    href="/settings"
+                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {user.username}
+                  </Link>
                   <button
                     onClick={() => logout()}
                     className="px-3 py-1.5 text-sm text-text-muted hover:text-text-primary transition-colors"
@@ -161,17 +168,32 @@ export default function Header() {
               {loading ? (
                 <div className="h-10 bg-bg-tertiary rounded-lg animate-pulse" />
               ) : user ? (
-                <div className="flex items-center justify-between px-4">
-                  <span className="text-text-secondary">{user.username}</span>
-                  <button
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                    }}
+                <div className="flex flex-col gap-2 px-4">
+                  <div className="flex items-center justify-between">
+                    <Link
+                      href="/settings"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                      {user.username}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="text-sm text-text-muted hover:text-text-primary"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                  <Link
+                    href="/settings"
+                    onClick={() => setMobileMenuOpen(false)}
                     className="text-sm text-text-muted hover:text-text-primary"
                   >
-                    Logout
-                  </button>
+                    Settings
+                  </Link>
                 </div>
               ) : (
                 <div className="flex gap-2 px-4">
