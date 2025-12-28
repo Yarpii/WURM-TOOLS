@@ -474,6 +474,110 @@ export function getMaterialsList(
   return results;
 }
 
+/**
+ * Get direct recipe ingredients (recipe book style)
+ * Only returns the immediate ingredients, not recursively calculated base materials
+ * Example: Cart → [2x Wheel, 1x Wheel Axle, 10x Plank, ...] (NOT Logs, Iron Ore, etc.)
+ */
+export function getDirectIngredients(
+  itemId: number,
+  quantity: number = 1
+): MaterialResult[] {
+  const item = getItem(itemId);
+  if (!item) return [];
+
+  // Base materials have no recipe - they ARE the ingredient
+  if (item.is_base_material) {
+    return [{
+      id: itemId,
+      name: item.name,
+      category: item.category,
+      quantity: quantity,
+      formatted: formatQuantity(quantity),
+    }];
+  }
+
+  const recipe = getRecipe(itemId);
+  if (recipe.length === 0) {
+    // No recipe found, treat as base material
+    return [{
+      id: itemId,
+      name: item.name,
+      category: item.category,
+      quantity: quantity,
+      formatted: formatQuantity(quantity),
+    }];
+  }
+
+  const results: MaterialResult[] = [];
+
+  for (const ingredient of recipe) {
+    const ingredientItem = getItem(ingredient.ingredient_item_id);
+    if (ingredientItem) {
+      const qty = ingredient.quantity * quantity;
+      results.push({
+        id: ingredient.ingredient_item_id,
+        name: ingredientItem.name,
+        category: ingredientItem.category,
+        quantity: qty,
+        formatted: formatQuantity(qty),
+      });
+    }
+  }
+
+  // Sort by category, then name
+  results.sort((a, b) => {
+    const catCmp = a.category.localeCompare(b.category);
+    return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
+  });
+
+  return results;
+}
+
+/**
+ * Build a shallow crafting tree (only one level deep)
+ * Shows direct ingredients without recursion
+ */
+export function buildShallowCraftingTree(
+  itemId: number,
+  quantity: number = 1
+): CraftingNode | null {
+  const item = getItem(itemId);
+  if (!item) return null;
+
+  const node: CraftingNode = {
+    id: itemId,
+    name: item.name,
+    category: item.category,
+    quantity,
+    is_base: Boolean(item.is_base_material),
+    depth: 0,
+    children: [],
+  };
+
+  if (item.is_base_material) {
+    return node;
+  }
+
+  const recipe = getRecipe(itemId);
+  for (const ingredient of recipe) {
+    const ingredientItem = getItem(ingredient.ingredient_item_id);
+    if (ingredientItem) {
+      node.children.push({
+        id: ingredient.ingredient_item_id,
+        name: ingredientItem.name,
+        category: ingredientItem.category,
+        quantity: ingredient.quantity * quantity,
+        is_base: Boolean(ingredientItem.is_base_material),
+        depth: 1,
+        children: [], // No further recursion
+      });
+    }
+  }
+
+  return node;
+}
+
 // ========== REVERSE LOOKUP ==========
 
 export function findCraftableFrom(itemId: number): CraftableResult[] {
