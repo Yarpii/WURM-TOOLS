@@ -14,6 +14,10 @@ import type {
   CraftingPrediction,
   AdvancedCalculationResult,
   SkillGrindStep,
+  MarketOrder,
+  CreateOrderInput,
+  OrderType,
+  OrderStatus,
 } from "./types";
 import {
   calculateSuccessChance,
@@ -71,6 +75,40 @@ function initDatabase(db: Database.Database): void {
     `);
 
     seedData(db);
+  }
+
+  // Initialize orders table if it doesn't exist
+  const ordersTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='orders'"
+    )
+    .get();
+
+  if (!ordersTableExists) {
+    db.exec(`
+      CREATE TABLE orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        order_type TEXT NOT NULL CHECK(order_type IN ('buy', 'sell', 'trade')),
+        item_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        quality INTEGER,
+        price REAL,
+        currency TEXT DEFAULT 'silver',
+        trade_for TEXT,
+        location TEXT,
+        notes TEXT,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'cancelled', 'expired')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        expires_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+
+      CREATE INDEX idx_orders_user ON orders(user_id);
+      CREATE INDEX idx_orders_status ON orders(status);
+      CREATE INDEX idx_orders_type ON orders(order_type);
+      CREATE INDEX idx_orders_item ON orders(item_name);
+    `);
   }
 }
 
@@ -1228,5 +1266,282 @@ export function calculateBatchEfficiency(
     materialsPerBatch: Math.ceil(totalMaterialQuantity),
     totalTrips,
     efficiencyScore
+  };
+}
+
+// ========== MARKET ORDER FUNCTIONS ==========
+
+interface OrderRow {
+  id: number;
+  user_id: number;
+  order_type: string;
+  item_name: string;
+  quantity: number;
+  quality: number | null;
+  price: number | null;
+  currency: string | null;
+  trade_for: string | null;
+  location: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+  expires_at: string | null;
+}
+
+interface OrderWithUsername extends OrderRow {
+  username: string;
+}
+
+function mapOrderRowToMarketOrder(row: OrderWithUsername): MarketOrder {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    username: row.username,
+    order_type: row.order_type as OrderType,
+    item_name: row.item_name,
+    quantity: row.quantity,
+    quality: row.quality ?? undefined,
+    price: row.price ?? undefined,
+    currency: row.currency ?? undefined,
+    trade_for: row.trade_for ?? undefined,
+    location: row.location ?? undefined,
+    notes: row.notes ?? undefined,
+    status: row.status as OrderStatus,
+    created_at: row.created_at,
+    expires_at: row.expires_at ?? undefined,
+  };
+}
+
+export function getAllOrders(filters?: {
+  status?: OrderStatus;
+  order_type?: OrderType;
+  item_name?: string;
+  user_id?: number;
+}): MarketOrder[] {
+  let query = `
+    SELECT o.*, u.username
+    FROM orders o
+    JOIN users u ON o.user_id = u.id
+    WHERE 1=1
+  `;
+  const params: (string | number)[] = [];
+
+  if (filters?.status) {
+    query += " AND o.status = ?";
+    params.push(filters.status);
+  }
+  if (filters?.order_type) {
+    query += " AND o.order_type = ?";
+    params.push(filters.order_type);
+  }
+  if (filters?.item_name) {
+    query += " AND LOWER(o.item_name) LIKE LOWER(?)";
+    params.push(`%${filters.item_name}%`);
+  }
+  if (filters?.user_id) {
+    query += " AND o.user_id = ?";
+    params.push(filters.user_id);
+  }
+
+  query += " ORDER BY o.created_at DESC";
+
+  const rows = getDb().prepare(query).all(...params) as OrderWithUsername[];
+  return rows.map(mapOrderRowToMarketOrder);
+}
+
+export function getOrderById(id: number): MarketOrder | null {
+  const row = getDb()
+    .prepare(
+      `SELECT o.*, u.username
+       FROM orders o
+       JOIN users u ON o.user_id = u.id
+       WHERE o.id = ?`
+    )
+    .get(id) as OrderWithUsername | undefined;
+
+  return row ? mapOrderRowToMarketOrder(row) : null;
+}
+
+export function getUserOrders(userId: number): MarketOrder[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT o.*, u.username
+       FROM orders o
+       JOIN users u ON o.user_id = u.id
+       WHERE o.user_id = ?
+       ORDER BY o.created_at DESC`
+    )
+    .all(userId) as OrderWithUsername[];
+
+  return rows.map(mapOrderRowToMarketOrder);
+}
+
+export function createOrder(userId: number, input: CreateOrderInput): number {
+  const expiresAt = input.expires_days
+    ? new Date(Date.now() + input.expires_days * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+
+  const result = getDb()
+    .prepare(
+      `INSERT INTO orders (
+        user_id, order_type, item_name, quantity, quality,
+        price, currency, trade_for, location, notes, expires_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      userId,
+      input.order_type,
+      input.item_name,
+      input.quantity,
+      input.quality ?? null,
+      input.price ?? null,
+      input.currency ?? "silver",
+      input.trade_for ?? null,
+      input.location ?? null,
+      input.notes ?? null,
+      expiresAt
+    );
+
+  return result.lastInsertRowid as number;
+}
+
+export function updateOrder(
+  id: number,
+  userId: number,
+  input: Partial<CreateOrderInput>
+): boolean {
+  const order = getOrderById(id);
+  if (!order || order.user_id !== userId) {
+    return false;
+  }
+
+  const fields: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (input.item_name !== undefined) {
+    fields.push("item_name = ?");
+    values.push(input.item_name);
+  }
+  if (input.quantity !== undefined) {
+    fields.push("quantity = ?");
+    values.push(input.quantity);
+  }
+  if (input.quality !== undefined) {
+    fields.push("quality = ?");
+    values.push(input.quality);
+  }
+  if (input.price !== undefined) {
+    fields.push("price = ?");
+    values.push(input.price);
+  }
+  if (input.currency !== undefined) {
+    fields.push("currency = ?");
+    values.push(input.currency);
+  }
+  if (input.trade_for !== undefined) {
+    fields.push("trade_for = ?");
+    values.push(input.trade_for);
+  }
+  if (input.location !== undefined) {
+    fields.push("location = ?");
+    values.push(input.location);
+  }
+  if (input.notes !== undefined) {
+    fields.push("notes = ?");
+    values.push(input.notes);
+  }
+
+  if (fields.length === 0) {
+    return false;
+  }
+
+  values.push(id);
+  const result = getDb()
+    .prepare(`UPDATE orders SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return result.changes > 0;
+}
+
+export function updateOrderStatus(
+  id: number,
+  userId: number,
+  status: OrderStatus,
+  isAdmin: boolean = false
+): boolean {
+  const order = getOrderById(id);
+  if (!order) {
+    return false;
+  }
+
+  // Only owner or admin can update status
+  if (order.user_id !== userId && !isAdmin) {
+    return false;
+  }
+
+  const result = getDb()
+    .prepare("UPDATE orders SET status = ? WHERE id = ?")
+    .run(status, id);
+
+  return result.changes > 0;
+}
+
+export function deleteOrder(id: number, userId: number, isAdmin: boolean = false): boolean {
+  const order = getOrderById(id);
+  if (!order) {
+    return false;
+  }
+
+  // Only owner or admin can delete
+  if (order.user_id !== userId && !isAdmin) {
+    return false;
+  }
+
+  const result = getDb().prepare("DELETE FROM orders WHERE id = ?").run(id);
+  return result.changes > 0;
+}
+
+export function expireOldOrders(): number {
+  const result = getDb()
+    .prepare(
+      `UPDATE orders
+       SET status = 'expired'
+       WHERE status = 'active'
+       AND expires_at IS NOT NULL
+       AND expires_at < datetime('now')`
+    )
+    .run();
+
+  return result.changes;
+}
+
+export function getOrderStats(): {
+  total: number;
+  active: number;
+  buy_orders: number;
+  sell_orders: number;
+  trade_orders: number;
+} {
+  const db = getDb();
+  const total = db.prepare("SELECT COUNT(*) as count FROM orders").get() as { count: number };
+  const active = db
+    .prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'active'")
+    .get() as { count: number };
+  const buy = db
+    .prepare("SELECT COUNT(*) as count FROM orders WHERE order_type = 'buy' AND status = 'active'")
+    .get() as { count: number };
+  const sell = db
+    .prepare("SELECT COUNT(*) as count FROM orders WHERE order_type = 'sell' AND status = 'active'")
+    .get() as { count: number };
+  const trade = db
+    .prepare("SELECT COUNT(*) as count FROM orders WHERE order_type = 'trade' AND status = 'active'")
+    .get() as { count: number };
+
+  return {
+    total: total.count,
+    active: active.count,
+    buy_orders: buy.count,
+    sell_orders: sell.count,
+    trade_orders: trade.count,
   };
 }
