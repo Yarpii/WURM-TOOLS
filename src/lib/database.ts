@@ -68,7 +68,11 @@ function initDatabase(db: Database.Database): void {
         name TEXT NOT NULL UNIQUE,
         category TEXT DEFAULT 'misc',
         is_base_material INTEGER DEFAULT 0,
-        description TEXT
+        description TEXT,
+        difficulty INTEGER DEFAULT NULL,
+        skill_type TEXT DEFAULT NULL,
+        base_time INTEGER DEFAULT NULL,
+        tool_type TEXT DEFAULT NULL
       );
 
       CREATE TABLE recipes (
@@ -85,6 +89,23 @@ function initDatabase(db: Database.Database): void {
     `);
 
     seedData(db);
+  }
+
+  // Migration: Add new crafting columns to items table if they don't exist
+  const columnCheck = db.prepare("PRAGMA table_info(items)").all() as { name: string }[];
+  const columnNames = columnCheck.map(c => c.name);
+
+  if (!columnNames.includes("difficulty")) {
+    db.exec("ALTER TABLE items ADD COLUMN difficulty INTEGER DEFAULT NULL");
+  }
+  if (!columnNames.includes("skill_type")) {
+    db.exec("ALTER TABLE items ADD COLUMN skill_type TEXT DEFAULT NULL");
+  }
+  if (!columnNames.includes("base_time")) {
+    db.exec("ALTER TABLE items ADD COLUMN base_time INTEGER DEFAULT NULL");
+  }
+  if (!columnNames.includes("tool_type")) {
+    db.exec("ALTER TABLE items ADD COLUMN tool_type TEXT DEFAULT NULL");
   }
 
   // Initialize orders table if it doesn't exist
@@ -621,17 +642,44 @@ export function findAllCraftableFrom(
 
 // ========== ADMIN FUNCTIONS ==========
 
+export interface AddItemOptions {
+  name: string;
+  category: string;
+  isBaseMaterial: boolean;
+  description?: string;
+  difficulty?: number | null;
+  skillType?: string | null;
+  baseTime?: number | null;
+  toolType?: string | null;
+}
+
 export function addItem(
   name: string,
   category: string,
   isBaseMaterial: boolean,
-  description: string = ""
+  description: string = "",
+  options?: {
+    difficulty?: number | null;
+    skillType?: string | null;
+    baseTime?: number | null;
+    toolType?: string | null;
+  }
 ): number {
   const result = getDb()
     .prepare(
-      "INSERT INTO items (name, category, is_base_material, description) VALUES (?, ?, ?, ?)"
+      `INSERT INTO items (name, category, is_base_material, description, difficulty, skill_type, base_time, tool_type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(name, category, isBaseMaterial ? 1 : 0, description);
+    .run(
+      name,
+      category,
+      isBaseMaterial ? 1 : 0,
+      description,
+      options?.difficulty ?? null,
+      options?.skillType ?? null,
+      options?.baseTime ?? null,
+      options?.toolType ?? null
+    );
   return result.lastInsertRowid as number;
 }
 
@@ -647,6 +695,48 @@ export function updateItem(
       "UPDATE items SET name = ?, category = ?, is_base_material = ?, description = ? WHERE id = ?"
     )
     .run(name, category, isBaseMaterial ? 1 : 0, description, id);
+  return result.changes > 0;
+}
+
+/**
+ * Update crafting-specific fields for an item
+ */
+export function updateItemCraftingData(
+  id: number,
+  data: {
+    difficulty?: number | null;
+    skillType?: string | null;
+    baseTime?: number | null;
+    toolType?: string | null;
+  }
+): boolean {
+  const fields: string[] = [];
+  const values: (number | string | null)[] = [];
+
+  if (data.difficulty !== undefined) {
+    fields.push("difficulty = ?");
+    values.push(data.difficulty);
+  }
+  if (data.skillType !== undefined) {
+    fields.push("skill_type = ?");
+    values.push(data.skillType);
+  }
+  if (data.baseTime !== undefined) {
+    fields.push("base_time = ?");
+    values.push(data.baseTime);
+  }
+  if (data.toolType !== undefined) {
+    fields.push("tool_type = ?");
+    values.push(data.toolType);
+  }
+
+  if (fields.length === 0) return false;
+
+  values.push(id);
+  const result = getDb()
+    .prepare(`UPDATE items SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
   return result.changes > 0;
 }
 
@@ -724,6 +814,10 @@ export function exportToJson(): {
     category: string;
     is_base_material: boolean;
     description: string;
+    difficulty?: number | null;
+    skill_type?: string | null;
+    base_time?: number | null;
+    tool_type?: string | null;
   }>;
   recipes: Array<{ result: string; ingredient: string; quantity: number }>;
 } {
@@ -731,13 +825,17 @@ export function exportToJson(): {
   const recipes = getAllRecipes();
 
   return {
-    version: "1.0",
+    version: "2.0",
     exported_at: new Date().toISOString(),
     items: items.map((i) => ({
       name: i.name,
       category: i.category,
       is_base_material: Boolean(i.is_base_material),
       description: i.description || "",
+      difficulty: i.difficulty,
+      skill_type: i.skill_type,
+      base_time: i.base_time,
+      tool_type: i.tool_type,
     })),
     recipes: recipes.map((r) => ({
       result: r.result_name,
@@ -782,7 +880,13 @@ export function importFromJson(
         item.name,
         item.category || "misc",
         item.is_base_material || false,
-        item.description || ""
+        item.description || "",
+        {
+          difficulty: item.difficulty ?? null,
+          skillType: item.skill_type ?? null,
+          baseTime: item.base_time ?? null,
+          toolType: item.tool_type ?? null,
+        }
       );
       stats.items_added++;
     } catch (e) {
