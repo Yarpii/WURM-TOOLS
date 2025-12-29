@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { readFileSync } from "fs";
+import { join } from "path";
 import {
   exportToJson,
   importFromJson,
@@ -86,6 +88,30 @@ export async function POST(request: Request) {
         { error: "Invalid import data" },
         { status: 400 }
       );
+    }
+
+    // Reload extended data from JSON file
+    if (action === "reload-extended") {
+      try {
+        const filePath = join(process.cwd(), "data", "wurm-extended-data.json");
+        const fileContent = readFileSync(filePath, "utf-8");
+        const data = JSON.parse(fileContent);
+
+        // Import the data (updates existing items with new extended fields)
+        const stats = importFromJson(data, false); // false = don't replace, just update
+
+        return NextResponse.json({
+          success: true,
+          message: "Extended data reloaded successfully",
+          version: data.version,
+          stats,
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { error: `Failed to reload extended data: ${String(error)}` },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

@@ -948,6 +948,10 @@ export function getStats(): {
   base_materials: number;
   craftable: number;
   categories: number;
+  with_difficulty: number;
+  with_skill_type: number;
+  with_base_time: number;
+  with_tool_type: number;
 } {
   const db = getDb();
   const items = db.prepare("SELECT COUNT(*) as count FROM items").get() as {
@@ -966,12 +970,30 @@ export function getStats(): {
     .prepare("SELECT COUNT(DISTINCT category) as count FROM items")
     .get() as { count: number };
 
+  // Extended data stats
+  const withDifficulty = db
+    .prepare("SELECT COUNT(*) as count FROM items WHERE difficulty IS NOT NULL")
+    .get() as { count: number };
+  const withSkillType = db
+    .prepare("SELECT COUNT(*) as count FROM items WHERE skill_type IS NOT NULL")
+    .get() as { count: number };
+  const withBaseTime = db
+    .prepare("SELECT COUNT(*) as count FROM items WHERE base_time IS NOT NULL")
+    .get() as { count: number };
+  const withToolType = db
+    .prepare("SELECT COUNT(*) as count FROM items WHERE tool_type IS NOT NULL")
+    .get() as { count: number };
+
   return {
     items: items.count,
     recipes: recipes.count,
     base_materials: baseMaterials.count,
     craftable: craftable.count,
     categories: categories.count,
+    with_difficulty: withDifficulty.count,
+    with_skill_type: withSkillType.count,
+    with_base_time: withBaseTime.count,
+    with_tool_type: withToolType.count,
   };
 }
 

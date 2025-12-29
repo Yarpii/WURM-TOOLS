@@ -384,6 +384,50 @@ function BasicCalculator() {
           )}
         </div>
 
+        {/* Item Info - Show crafting details when item is selected */}
+        {selectedItem && mode === "calculate" && (
+          <div className="bg-bg-secondary rounded-xl border border-border p-4">
+            <h3 className="text-sm font-medium text-text-primary mb-3">Item Info</h3>
+
+            {/* Warning if difficulty is unknown */}
+            {!selectedItem.difficulty && (
+              <div className="mb-3 p-2 bg-warning/10 border border-warning/30 rounded-lg">
+                <p className="text-xs text-warning flex items-center gap-2">
+                  <span>⚠</span>
+                  <span>Difficulty unknown - using estimated values</span>
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Difficulty</span>
+                <span className={`font-semibold ${selectedItem.difficulty ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.difficulty ?? 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Skill Type</span>
+                <span className={`font-semibold capitalize ${selectedItem.skill_type ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.skill_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Base Time</span>
+                <span className={`font-semibold ${selectedItem.base_time ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.base_time ? `${selectedItem.base_time}s` : 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Tool</span>
+                <span className={`font-semibold capitalize ${selectedItem.tool_type ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.tool_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Summary */}
         {selectedItem && mode === "calculate" && materials.length > 0 && (
           <div className="bg-bg-secondary rounded-xl border border-border p-4">
@@ -637,6 +681,41 @@ function AdvancedCalculator() {
               <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 rounded-lg bg-bg-tertiary border border-border text-text-secondary hover:text-text-primary">+</button>
             </div>
           </div>
+
+          {/* Item Info - Show when item is selected */}
+          {selectedItem && (
+            <div className="mt-4 pt-4 border-t border-border">
+              {/* Warning if difficulty is unknown */}
+              {!selectedItem.difficulty && (
+                <div className="mb-3 p-2 bg-warning/10 border border-warning/30 rounded-lg">
+                  <p className="text-xs text-warning flex items-center gap-2">
+                    <span>⚠</span>
+                    <span>Difficulty unknown - using estimated values</span>
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded">
+                  <span className="text-text-muted">Difficulty</span>
+                  <span className={selectedItem.difficulty ? 'text-text-primary font-medium' : 'text-text-muted italic'}>
+                    {selectedItem.difficulty ?? '?'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded">
+                  <span className="text-text-muted">Base Time</span>
+                  <span className={selectedItem.base_time ? 'text-text-primary font-medium' : 'text-text-muted italic'}>
+                    {selectedItem.base_time ? `${selectedItem.base_time}s` : '?'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded col-span-2">
+                  <span className="text-text-muted">Skill</span>
+                  <span className={`capitalize ${selectedItem.skill_type ? 'text-text-primary font-medium' : 'text-text-muted italic'}`}>
+                    {selectedItem.skill_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Player Settings */}
