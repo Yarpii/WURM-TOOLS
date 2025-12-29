@@ -39,7 +39,7 @@ export default function Header() {
               </svg>
             </div>
             <span className="text-lg font-semibold text-text-primary">
-              WURM<span className="text-accent">Tools</span>
+              Black<span className="text-accent">forge</span>
             </span>
           </Link>
 

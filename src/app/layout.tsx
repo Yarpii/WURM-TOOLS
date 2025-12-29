@@ -6,9 +6,9 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "WURMTools - Crafting Calculator for Wurm Online",
-  description: "Calculate crafting materials, optimize skill training, and manage recipes for Wurm Online",
-  keywords: ["Wurm Online", "crafting", "calculator", "skills", "materials", "recipes"],
+  title: "Blackforge Tools - Community Hub for Wurm Online",
+  description: "Your all-in-one toolkit for Wurm Online: crafting calculators, skill optimizer, marketplace, merchant directory, and community features.",
+  keywords: ["Wurm Online", "crafting", "calculator", "skills", "materials", "recipes", "marketplace", "merchants", "community"],
 };
 
 export default function RootLayout({
