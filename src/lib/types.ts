@@ -1,14 +1,47 @@
+export type SkillType =
+  | "blacksmithing"
+  | "carpentry"
+  | "fine_carpentry"
+  | "masonry"
+  | "tailoring"
+  | "leatherworking"
+  | "pottery"
+  | "jewelry_smithing"
+  | "weapon_smithing"
+  | "armour_smithing"
+  | "ship_building"
+  | "ropemaking"
+  | "cloth_tailoring"
+  | "cooking"
+  | null;
+
+export type ToolType =
+  | "hammer"
+  | "mallet"
+  | "saw"
+  | "carving_knife"
+  | "pickaxe"
+  | "shovel"
+  | "file"
+  | "trowel"
+  | "needle"
+  | "awl"
+  | "spindle"
+  | "chisel"
+  | "tongs"
+  | null;
+
 export interface Item {
   id: number;
   name: string;
   category: string;
   is_base_material: number;
   description: string | null;
-  // Advanced crafting fields
-  difficulty?: number;           // Base difficulty (0-100)
-  skill_type?: string;           // Required skill (e.g., "blacksmithing")
-  base_time?: number;            // Base crafting time in seconds
-  tool_type?: string;            // Required tool type
+  // Advanced crafting fields (now stored in database)
+  difficulty: number | null;     // Base difficulty (0-100), null = unknown
+  skill_type: SkillType;         // Required skill (e.g., "blacksmithing")
+  base_time: number | null;      // Base crafting time in seconds
+  tool_type: ToolType;           // Required tool type
 }
 
 export interface Recipe {

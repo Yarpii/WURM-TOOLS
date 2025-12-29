@@ -15,7 +15,7 @@ export default function Footer() {
               </svg>
             </div>
             <span className="text-sm text-text-secondary">
-              WURMTools &copy; {currentYear}
+              Blackforge Tools &copy; {currentYear}
             </span>
           </div>
 

@@ -49,9 +49,11 @@ export default function MarketPage() {
 
       const res = await fetch(`/api/orders?${params}`);
       const data = await res.json();
-      setOrders(data);
+      // Ensure we always set an array, even if API returns an error object
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
+      setOrders([]);
     }
   };
 
@@ -60,9 +62,11 @@ export default function MarketPage() {
     try {
       const res = await fetch(`/api/orders?user_id=${user.id}`);
       const data = await res.json();
-      setMyOrders(data);
+      // Ensure we always set an array, even if API returns an error object
+      setMyOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch my orders:", err);
+      setMyOrders([]);
     }
   };
 
@@ -70,7 +74,9 @@ export default function MarketPage() {
     try {
       const res = await fetch("/api/orders?stats=1");
       const data = await res.json();
-      setStats(data);
+      if (data && !data.error) {
+        setStats(data);
+      }
     } catch (err) {
       console.error("Failed to fetch stats:", err);
     }

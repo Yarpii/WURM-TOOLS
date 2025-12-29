@@ -5,6 +5,7 @@ import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
 type Tab = "calculator" | "advanced" | "optimizer";
 type CalcMode = "calculate" | "reverse";
+type MaterialMode = "easy" | "full"; // easy = recipe ingredients, full = all base materials
 type ViewMode = "expected" | "base" | "worstCase";
 
 interface AdvancedMaterialResult extends MaterialResult {
@@ -138,6 +139,7 @@ export default function CraftingPage() {
 // ============================================
 function BasicCalculator() {
   const [mode, setMode] = useState<CalcMode>("calculate");
+  const [materialMode, setMaterialMode] = useState<MaterialMode>("easy"); // easy = recipe, full = all base
   const [items, setItems] = useState<Item[]>([]);
   const [query, setQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -178,12 +180,12 @@ function BasicCalculator() {
     doAction(item);
   };
 
-  const doAction = async (item: Item = selectedItem!) => {
+  const doAction = async (item: Item = selectedItem!, matMode: MaterialMode = materialMode) => {
     if (!item) return;
     setIsLoading(true);
     try {
       if (mode === "calculate") {
-        const res = await fetch(`/api/calculate?item=${item.id}&qty=${quantity}`);
+        const res = await fetch(`/api/calculate?item=${item.id}&qty=${quantity}&mode=${matMode}`);
         const data = await res.json();
         setMaterials(data.materials || []);
         setTree(data.tree || null);
@@ -204,6 +206,10 @@ function BasicCalculator() {
   useEffect(() => {
     if (selectedItem && mode === "calculate") doAction();
   }, [quantity]);
+
+  useEffect(() => {
+    if (selectedItem && mode === "calculate") doAction(selectedItem, materialMode);
+  }, [materialMode]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showDropdown || filteredItems.length === 0) return;
@@ -308,31 +314,61 @@ function BasicCalculator() {
           </div>
 
           {mode === "calculate" && (
-            <div className="mt-4">
-              <label className="block text-sm text-text-secondary mb-2">Quantity</label>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-10 h-10 rounded-lg bg-bg-tertiary border border-border text-text-secondary hover:text-text-primary hover:border-accent transition-colors"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  max="1000"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="flex-1 px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary text-center border border-border focus:border-accent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <button
-                  onClick={() => setQuantity(Math.min(1000, quantity + 1))}
-                  className="w-10 h-10 rounded-lg bg-bg-tertiary border border-border text-text-secondary hover:text-text-primary hover:border-accent transition-colors"
-                >
-                  +
-                </button>
+            <>
+              <div className="mt-4">
+                <label className="block text-sm text-text-secondary mb-2">Quantity</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-10 h-10 rounded-lg bg-bg-tertiary border border-border text-text-secondary hover:text-text-primary hover:border-accent transition-colors"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="flex-1 px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary text-center border border-border focus:border-accent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => setQuantity(Math.min(1000, quantity + 1))}
+                    className="w-10 h-10 rounded-lg bg-bg-tertiary border border-border text-text-secondary hover:text-text-primary hover:border-accent transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
+
+              {/* Material Mode Toggle */}
+              <div className="mt-4">
+                <label className="block text-sm text-text-secondary mb-2">Show Materials</label>
+                <div className="flex gap-1 bg-bg-tertiary p-1 rounded-lg">
+                  <button
+                    onClick={() => setMaterialMode("easy")}
+                    className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+                      materialMode === "easy" ? "bg-accent text-white" : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Recipe
+                  </button>
+                  <button
+                    onClick={() => setMaterialMode("full")}
+                    className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+                      materialMode === "full" ? "bg-accent text-white" : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    All Base
+                  </button>
+                </div>
+                <p className="text-xs text-text-muted mt-2">
+                  {materialMode === "easy"
+                    ? "Shows direct ingredients (like in-game recipe)"
+                    : "Shows all raw materials needed"}
+                </p>
+              </div>
+            </>
           )}
 
           {mode === "reverse" && (
@@ -347,6 +383,50 @@ function BasicCalculator() {
             </label>
           )}
         </div>
+
+        {/* Item Info - Show crafting details when item is selected */}
+        {selectedItem && mode === "calculate" && (
+          <div className="bg-bg-secondary rounded-xl border border-border p-4">
+            <h3 className="text-sm font-medium text-text-primary mb-3">Item Info</h3>
+
+            {/* Warning if difficulty is unknown */}
+            {!selectedItem.difficulty && (
+              <div className="mb-3 p-2 bg-warning/10 border border-warning/30 rounded-lg">
+                <p className="text-xs text-warning flex items-center gap-2">
+                  <span>⚠</span>
+                  <span>Difficulty unknown - using estimated values</span>
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Difficulty</span>
+                <span className={`font-semibold ${selectedItem.difficulty ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.difficulty ?? 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Skill Type</span>
+                <span className={`font-semibold capitalize ${selectedItem.skill_type ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.skill_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Base Time</span>
+                <span className={`font-semibold ${selectedItem.base_time ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.base_time ? `${selectedItem.base_time}s` : 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
+                <span className="text-text-muted">Tool</span>
+                <span className={`font-semibold capitalize ${selectedItem.tool_type ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.tool_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Summary */}
         {selectedItem && mode === "calculate" && materials.length > 0 && (
@@ -391,9 +471,18 @@ function BasicCalculator() {
         {!isLoading && mode === "calculate" && selectedItem && materials.length > 0 && (
           <>
             <div className="bg-bg-secondary rounded-xl border border-border p-4">
-              <h3 className="text-lg font-semibold text-text-primary mb-4">
-                Materials for {quantity}x {selectedItem.name}
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-text-primary">
+                  {materialMode === "easy" ? "Recipe" : "Base Materials"} for {quantity}x {selectedItem.name}
+                </h3>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  materialMode === "easy"
+                    ? "bg-accent/20 text-accent"
+                    : "bg-success/20 text-success"
+                }`}>
+                  {materialMode === "easy" ? "Direct Ingredients" : "All Raw Materials"}
+                </span>
+              </div>
               <div className="space-y-4">
                 {Object.entries(materialsByCategory).map(([category, mats]) => (
                   <div key={category}>
@@ -592,6 +681,41 @@ function AdvancedCalculator() {
               <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 rounded-lg bg-bg-tertiary border border-border text-text-secondary hover:text-text-primary">+</button>
             </div>
           </div>
+
+          {/* Item Info - Show when item is selected */}
+          {selectedItem && (
+            <div className="mt-4 pt-4 border-t border-border">
+              {/* Warning if difficulty is unknown */}
+              {!selectedItem.difficulty && (
+                <div className="mb-3 p-2 bg-warning/10 border border-warning/30 rounded-lg">
+                  <p className="text-xs text-warning flex items-center gap-2">
+                    <span>⚠</span>
+                    <span>Difficulty unknown - using estimated values</span>
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded">
+                  <span className="text-text-muted">Difficulty</span>
+                  <span className={selectedItem.difficulty ? 'text-text-primary font-medium' : 'text-text-muted italic'}>
+                    {selectedItem.difficulty ?? '?'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded">
+                  <span className="text-text-muted">Base Time</span>
+                  <span className={selectedItem.base_time ? 'text-text-primary font-medium' : 'text-text-muted italic'}>
+                    {selectedItem.base_time ? `${selectedItem.base_time}s` : '?'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded col-span-2">
+                  <span className="text-text-muted">Skill</span>
+                  <span className={`capitalize ${selectedItem.skill_type ? 'text-text-primary font-medium' : 'text-text-muted italic'}`}>
+                    {selectedItem.skill_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Player Settings */}
