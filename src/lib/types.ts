@@ -318,3 +318,173 @@ export interface UpdateAllianceInput {
   is_public?: boolean;
   max_members?: number;
 }
+
+// ========== PRICE HISTORY & ANALYTICS TYPES ==========
+
+export interface PriceHistory {
+  id: number;
+  item_name: string;
+  price: number;
+  quality: number;
+  order_type: OrderType;
+  currency: string;
+  recorded_at: string;
+}
+
+export interface PriceAnalytics {
+  item_name: string;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  price_change_24h: number;
+  price_change_7d: number;
+  total_orders: number;
+  buy_orders: number;
+  sell_orders: number;
+}
+
+export interface TrendingItem {
+  item_name: string;
+  order_count: number;
+  total_quantity: number;
+  avg_price: number;
+  trend: "up" | "down" | "stable";
+  trend_percentage: number;
+}
+
+export interface PriceAlert {
+  id: number;
+  user_id: number;
+  item_name: string;
+  target_price: number;
+  condition: "above" | "below";
+  is_active: boolean;
+  triggered_at?: string;
+  created_at: string;
+}
+
+export interface CreatePriceAlertInput {
+  item_name: string;
+  target_price: number;
+  condition: "above" | "below";
+}
+
+// ========== PROJECT PLANNER TYPES ==========
+
+export type ProjectStatus = "planning" | "in_progress" | "completed" | "archived";
+
+export interface Project {
+  id: number;
+  user_id: number;
+  username?: string;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  is_shared: boolean;
+  alliance_id?: number;
+  alliance_name?: string;
+  total_items: number;
+  completed_items: number;
+  progress_percentage: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectItem {
+  id: number;
+  project_id: number;
+  item_id: number;
+  item_name: string;
+  quantity: number;
+  completed_quantity: number;
+  notes?: string;
+  priority: number;
+  is_completed: boolean;
+}
+
+export interface ProjectMaterial {
+  item_id: number;
+  item_name: string;
+  category: string;
+  required_quantity: number;
+  completed_quantity: number;
+  remaining_quantity: number;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  is_shared?: boolean;
+  alliance_id?: number;
+}
+
+export interface UpdateProjectInput {
+  name?: string;
+  description?: string;
+  status?: ProjectStatus;
+  is_shared?: boolean;
+}
+
+export interface AddProjectItemInput {
+  item_id: number;
+  quantity: number;
+  notes?: string;
+  priority?: number;
+}
+
+// ========== TRADE MATCHING TYPES ==========
+
+export type MatchStatus = "pending" | "contacted" | "completed" | "declined" | "expired";
+
+export interface TradeMatch {
+  id: number;
+  buy_order_id: number;
+  sell_order_id: number;
+  buyer_id: number;
+  buyer_username: string;
+  seller_id: number;
+  seller_username: string;
+  item_name: string;
+  quantity: number;
+  buy_price?: number;
+  sell_price?: number;
+  match_score: number;
+  status: MatchStatus;
+  created_at: string;
+  contacted_at?: string;
+}
+
+export interface UserRating {
+  id: number;
+  rater_id: number;
+  rater_username: string;
+  rated_user_id: number;
+  rated_username: string;
+  rating: number;
+  comment?: string;
+  trade_match_id?: number;
+  created_at: string;
+}
+
+export interface UserReputation {
+  user_id: number;
+  username: string;
+  avg_rating: number;
+  total_ratings: number;
+  completed_trades: number;
+  successful_matches: number;
+}
+
+export interface CreateRatingInput {
+  rated_user_id: number;
+  rating: number;
+  comment?: string;
+  trade_match_id?: number;
+}
+
+export interface BarterSuggestion {
+  your_order: MarketOrder;
+  their_order: MarketOrder;
+  match_reason: string;
+  compatibility_score: number;
+}

@@ -28,6 +28,24 @@ import type {
   InviteStatus,
   CreateAllianceInput,
   UpdateAllianceInput,
+  PriceHistory,
+  PriceAnalytics,
+  TrendingItem,
+  PriceAlert,
+  CreatePriceAlertInput,
+  Project,
+  ProjectItem,
+  ProjectMaterial,
+  ProjectStatus,
+  CreateProjectInput,
+  UpdateProjectInput,
+  AddProjectItemInput,
+  TradeMatch,
+  MatchStatus,
+  UserRating,
+  UserReputation,
+  CreateRatingInput,
+  BarterSuggestion,
 } from "./types";
 import {
   calculateSuccessChance,
@@ -228,6 +246,137 @@ function initDatabase(db: Database.Database): void {
       CREATE INDEX idx_alliance_invites_alliance ON alliance_invites(alliance_id);
       CREATE INDEX idx_alliance_invites_user ON alliance_invites(user_id);
       CREATE INDEX idx_alliance_invites_status ON alliance_invites(status);
+    `);
+  }
+
+  // Initialize price_history table if it doesn't exist
+  const priceHistoryTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='price_history'"
+    )
+    .get();
+
+  if (!priceHistoryTableExists) {
+    db.exec(`
+      CREATE TABLE price_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_name TEXT NOT NULL,
+        price REAL NOT NULL,
+        quality INTEGER DEFAULT 50,
+        order_type TEXT NOT NULL CHECK(order_type IN ('buy', 'sell')),
+        currency TEXT DEFAULT 'silver',
+        recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE price_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        item_name TEXT NOT NULL,
+        target_price REAL NOT NULL,
+        condition TEXT NOT NULL CHECK(condition IN ('above', 'below')),
+        is_active INTEGER DEFAULT 1,
+        triggered_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX idx_price_history_item ON price_history(item_name);
+      CREATE INDEX idx_price_history_date ON price_history(recorded_at);
+      CREATE INDEX idx_price_alerts_user ON price_alerts(user_id);
+      CREATE INDEX idx_price_alerts_item ON price_alerts(item_name);
+    `);
+  }
+
+  // Initialize projects tables if they don't exist
+  const projectsTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='projects'"
+    )
+    .get();
+
+  if (!projectsTableExists) {
+    db.exec(`
+      CREATE TABLE projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'planning' CHECK(status IN ('planning', 'in_progress', 'completed', 'archived')),
+        is_shared INTEGER DEFAULT 0,
+        alliance_id INTEGER,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE project_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        item_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        completed_quantity INTEGER DEFAULT 0,
+        notes TEXT,
+        priority INTEGER DEFAULT 0,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES items(id)
+      );
+
+      CREATE INDEX idx_projects_user ON projects(user_id);
+      CREATE INDEX idx_projects_alliance ON projects(alliance_id);
+      CREATE INDEX idx_projects_status ON projects(status);
+      CREATE INDEX idx_project_items_project ON project_items(project_id);
+    `);
+  }
+
+  // Initialize trade matching tables if they don't exist
+  const tradeMatchesTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='trade_matches'"
+    )
+    .get();
+
+  if (!tradeMatchesTableExists) {
+    db.exec(`
+      CREATE TABLE trade_matches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        buy_order_id INTEGER NOT NULL,
+        sell_order_id INTEGER NOT NULL,
+        buyer_id INTEGER NOT NULL,
+        seller_id INTEGER NOT NULL,
+        item_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        buy_price REAL,
+        sell_price REAL,
+        match_score INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'contacted', 'completed', 'declined', 'expired')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        contacted_at TEXT,
+        FOREIGN KEY (buy_order_id) REFERENCES orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (sell_order_id) REFERENCES orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (buyer_id) REFERENCES users(id),
+        FOREIGN KEY (seller_id) REFERENCES users(id)
+      );
+
+      CREATE TABLE user_ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rater_id INTEGER NOT NULL,
+        rated_user_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+        comment TEXT,
+        trade_match_id INTEGER,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (rater_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (rated_user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (trade_match_id) REFERENCES trade_matches(id) ON DELETE SET NULL
+      );
+
+      CREATE INDEX idx_trade_matches_buyer ON trade_matches(buyer_id);
+      CREATE INDEX idx_trade_matches_seller ON trade_matches(seller_id);
+      CREATE INDEX idx_trade_matches_status ON trade_matches(status);
+      CREATE INDEX idx_trade_matches_item ON trade_matches(item_name);
+      CREATE INDEX idx_user_ratings_rater ON user_ratings(rater_id);
+      CREATE INDEX idx_user_ratings_rated ON user_ratings(rated_user_id);
     `);
   }
 }
@@ -1731,6 +1880,17 @@ export function createOrder(userId: number, input: CreateOrderInput): number {
       expiresAt
     );
 
+  // Record price history for analytics (only for buy/sell with prices)
+  if (input.price && (input.order_type === "buy" || input.order_type === "sell")) {
+    recordPrice(
+      input.item_name,
+      input.price,
+      input.quality ?? 50,
+      input.order_type,
+      input.currency ?? "silver"
+    );
+  }
+
   return result.lastInsertRowid as number;
 }
 
@@ -2682,4 +2842,938 @@ export function getAllianceStats(): {
     public_count: publicCount.count,
     total_members: totalMembers.count,
   };
+}
+
+// ========== PRICE HISTORY & ANALYTICS FUNCTIONS ==========
+
+export function recordPrice(
+  itemName: string,
+  price: number,
+  quality: number,
+  orderType: "buy" | "sell",
+  currency: string = "silver"
+): number {
+  const result = getDb()
+    .prepare(
+      `INSERT INTO price_history (item_name, price, quality, order_type, currency)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(itemName, price, quality, orderType, currency);
+
+  return result.lastInsertRowid as number;
+}
+
+export function getPriceHistory(
+  itemName: string,
+  days: number = 30
+): PriceHistory[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM price_history
+       WHERE LOWER(item_name) = LOWER(?)
+       AND recorded_at >= datetime('now', '-' || ? || ' days')
+       ORDER BY recorded_at ASC`
+    )
+    .all(itemName, days) as PriceHistory[];
+
+  return rows;
+}
+
+export function getPriceAnalytics(itemName: string): PriceAnalytics | null {
+  const db = getDb();
+
+  const current = db
+    .prepare(
+      `SELECT
+        item_name,
+        AVG(price) as avg_price,
+        MIN(price) as min_price,
+        MAX(price) as max_price,
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN order_type = 'buy' THEN 1 ELSE 0 END) as buy_orders,
+        SUM(CASE WHEN order_type = 'sell' THEN 1 ELSE 0 END) as sell_orders
+       FROM price_history
+       WHERE LOWER(item_name) = LOWER(?)`
+    )
+    .get(itemName) as {
+      item_name: string;
+      avg_price: number;
+      min_price: number;
+      max_price: number;
+      total_orders: number;
+      buy_orders: number;
+      sell_orders: number;
+    } | undefined;
+
+  if (!current || !current.avg_price) return null;
+
+  // Calculate 24h change
+  const yesterday = db
+    .prepare(
+      `SELECT AVG(price) as avg_price FROM price_history
+       WHERE LOWER(item_name) = LOWER(?)
+       AND recorded_at >= datetime('now', '-1 day')
+       AND recorded_at < datetime('now')`
+    )
+    .get(itemName) as { avg_price: number | null };
+
+  const dayBefore = db
+    .prepare(
+      `SELECT AVG(price) as avg_price FROM price_history
+       WHERE LOWER(item_name) = LOWER(?)
+       AND recorded_at >= datetime('now', '-2 days')
+       AND recorded_at < datetime('now', '-1 day')`
+    )
+    .get(itemName) as { avg_price: number | null };
+
+  // Calculate 7d change
+  const lastWeek = db
+    .prepare(
+      `SELECT AVG(price) as avg_price FROM price_history
+       WHERE LOWER(item_name) = LOWER(?)
+       AND recorded_at >= datetime('now', '-7 days')`
+    )
+    .get(itemName) as { avg_price: number | null };
+
+  const weekBefore = db
+    .prepare(
+      `SELECT AVG(price) as avg_price FROM price_history
+       WHERE LOWER(item_name) = LOWER(?)
+       AND recorded_at >= datetime('now', '-14 days')
+       AND recorded_at < datetime('now', '-7 days')`
+    )
+    .get(itemName) as { avg_price: number | null };
+
+  const change24h = yesterday?.avg_price && dayBefore?.avg_price
+    ? ((yesterday.avg_price - dayBefore.avg_price) / dayBefore.avg_price) * 100
+    : 0;
+
+  const change7d = lastWeek?.avg_price && weekBefore?.avg_price
+    ? ((lastWeek.avg_price - weekBefore.avg_price) / weekBefore.avg_price) * 100
+    : 0;
+
+  return {
+    item_name: current.item_name,
+    avg_price: current.avg_price,
+    min_price: current.min_price,
+    max_price: current.max_price,
+    price_change_24h: Math.round(change24h * 100) / 100,
+    price_change_7d: Math.round(change7d * 100) / 100,
+    total_orders: current.total_orders,
+    buy_orders: current.buy_orders,
+    sell_orders: current.sell_orders,
+  };
+}
+
+export function getTrendingItems(limit: number = 10): TrendingItem[] {
+  const db = getDb();
+
+  // Get items with most activity in the last 7 days
+  const trending = db
+    .prepare(
+      `SELECT
+        item_name,
+        COUNT(*) as order_count,
+        SUM(CASE WHEN order_type = 'sell' THEN 1 ELSE 0 END) as sell_count,
+        AVG(price) as avg_price
+       FROM price_history
+       WHERE recorded_at >= datetime('now', '-7 days')
+       GROUP BY LOWER(item_name)
+       ORDER BY order_count DESC
+       LIMIT ?`
+    )
+    .all(limit) as {
+      item_name: string;
+      order_count: number;
+      sell_count: number;
+      avg_price: number;
+    }[];
+
+  return trending.map((item) => {
+    // Calculate trend by comparing recent vs older prices
+    const recentAvg = db
+      .prepare(
+        `SELECT AVG(price) as avg FROM price_history
+         WHERE LOWER(item_name) = LOWER(?)
+         AND recorded_at >= datetime('now', '-3 days')`
+      )
+      .get(item.item_name) as { avg: number | null };
+
+    const olderAvg = db
+      .prepare(
+        `SELECT AVG(price) as avg FROM price_history
+         WHERE LOWER(item_name) = LOWER(?)
+         AND recorded_at >= datetime('now', '-7 days')
+         AND recorded_at < datetime('now', '-3 days')`
+      )
+      .get(item.item_name) as { avg: number | null };
+
+    let trend: "up" | "down" | "stable" = "stable";
+    let trendPercentage = 0;
+
+    if (recentAvg?.avg && olderAvg?.avg) {
+      trendPercentage = ((recentAvg.avg - olderAvg.avg) / olderAvg.avg) * 100;
+      if (trendPercentage > 5) trend = "up";
+      else if (trendPercentage < -5) trend = "down";
+    }
+
+    return {
+      item_name: item.item_name,
+      order_count: item.order_count,
+      total_quantity: item.sell_count,
+      avg_price: Math.round(item.avg_price * 100) / 100,
+      trend,
+      trend_percentage: Math.round(trendPercentage * 100) / 100,
+    };
+  });
+}
+
+export function getBestDeals(limit: number = 10): MarketOrder[] {
+  // Get sell orders with prices significantly below average
+  const deals = getDb()
+    .prepare(
+      `SELECT o.*, u.username,
+        (SELECT AVG(ph.price) FROM price_history ph WHERE LOWER(ph.item_name) = LOWER(o.item_name)) as avg_price
+       FROM orders o
+       JOIN users u ON o.user_id = u.id
+       WHERE o.order_type = 'sell'
+       AND o.status = 'active'
+       AND o.price IS NOT NULL
+       AND o.price < (SELECT AVG(ph.price) * 0.85 FROM price_history ph WHERE LOWER(ph.item_name) = LOWER(o.item_name))
+       ORDER BY (o.price / COALESCE((SELECT AVG(ph.price) FROM price_history ph WHERE LOWER(ph.item_name) = LOWER(o.item_name)), o.price)) ASC
+       LIMIT ?`
+    )
+    .all(limit) as (OrderWithUsername & { avg_price: number })[];
+
+  return deals.map(mapOrderRowToMarketOrder);
+}
+
+// Helper for mapOrderRowToMarketOrder - need to define interface
+interface OrderWithUsername {
+  id: number;
+  user_id: number;
+  username: string;
+  order_type: string;
+  item_name: string;
+  quantity: number;
+  quality: number | null;
+  price: number | null;
+  currency: string | null;
+  trade_for: string | null;
+  location: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+  expires_at: string | null;
+}
+
+// Price Alerts
+export function createPriceAlert(
+  userId: number,
+  input: CreatePriceAlertInput
+): number {
+  const result = getDb()
+    .prepare(
+      `INSERT INTO price_alerts (user_id, item_name, target_price, condition)
+       VALUES (?, ?, ?, ?)`
+    )
+    .run(userId, input.item_name, input.target_price, input.condition);
+
+  return result.lastInsertRowid as number;
+}
+
+export function getUserPriceAlerts(userId: number): PriceAlert[] {
+  return getDb()
+    .prepare(
+      `SELECT * FROM price_alerts WHERE user_id = ? ORDER BY created_at DESC`
+    )
+    .all(userId) as PriceAlert[];
+}
+
+export function deletePriceAlert(alertId: number, userId: number): boolean {
+  const result = getDb()
+    .prepare("DELETE FROM price_alerts WHERE id = ? AND user_id = ?")
+    .run(alertId, userId);
+  return result.changes > 0;
+}
+
+export function checkPriceAlerts(): PriceAlert[] {
+  const db = getDb();
+  const triggeredAlerts: PriceAlert[] = [];
+
+  // Get active alerts
+  const alerts = db
+    .prepare("SELECT * FROM price_alerts WHERE is_active = 1")
+    .all() as PriceAlert[];
+
+  for (const alert of alerts) {
+    // Get latest price for item
+    const latestPrice = db
+      .prepare(
+        `SELECT price FROM price_history
+         WHERE LOWER(item_name) = LOWER(?)
+         ORDER BY recorded_at DESC LIMIT 1`
+      )
+      .get(alert.item_name) as { price: number } | undefined;
+
+    if (!latestPrice) continue;
+
+    const shouldTrigger =
+      (alert.condition === "below" && latestPrice.price <= alert.target_price) ||
+      (alert.condition === "above" && latestPrice.price >= alert.target_price);
+
+    if (shouldTrigger) {
+      db.prepare(
+        "UPDATE price_alerts SET is_active = 0, triggered_at = datetime('now') WHERE id = ?"
+      ).run(alert.id);
+      triggeredAlerts.push({ ...alert, triggered_at: new Date().toISOString() });
+    }
+  }
+
+  return triggeredAlerts;
+}
+
+// ========== PROJECT PLANNER FUNCTIONS ==========
+
+interface ProjectRow {
+  id: number;
+  user_id: number;
+  name: string;
+  description: string | null;
+  status: string;
+  is_shared: number;
+  alliance_id: number | null;
+  created_at: string;
+  updated_at: string;
+  username?: string;
+  alliance_name?: string;
+  total_items?: number;
+  completed_items?: number;
+}
+
+function mapProjectRow(row: ProjectRow): Project {
+  const totalItems = row.total_items || 0;
+  const completedItems = row.completed_items || 0;
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    username: row.username,
+    name: row.name,
+    description: row.description || undefined,
+    status: row.status as ProjectStatus,
+    is_shared: Boolean(row.is_shared),
+    alliance_id: row.alliance_id || undefined,
+    alliance_name: row.alliance_name || undefined,
+    total_items: totalItems,
+    completed_items: completedItems,
+    progress_percentage: totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export function getUserProjects(userId: number): Project[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT p.*, u.username, a.name as alliance_name,
+        (SELECT COUNT(*) FROM project_items WHERE project_id = p.id) as total_items,
+        (SELECT COUNT(*) FROM project_items WHERE project_id = p.id AND completed_quantity >= quantity) as completed_items
+       FROM projects p
+       JOIN users u ON p.user_id = u.id
+       LEFT JOIN alliances a ON p.alliance_id = a.id
+       WHERE p.user_id = ?
+       ORDER BY p.updated_at DESC`
+    )
+    .all(userId) as ProjectRow[];
+
+  return rows.map(mapProjectRow);
+}
+
+export function getSharedProjects(allianceId: number): Project[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT p.*, u.username, a.name as alliance_name,
+        (SELECT COUNT(*) FROM project_items WHERE project_id = p.id) as total_items,
+        (SELECT COUNT(*) FROM project_items WHERE project_id = p.id AND completed_quantity >= quantity) as completed_items
+       FROM projects p
+       JOIN users u ON p.user_id = u.id
+       LEFT JOIN alliances a ON p.alliance_id = a.id
+       WHERE p.alliance_id = ? AND p.is_shared = 1
+       ORDER BY p.updated_at DESC`
+    )
+    .all(allianceId) as ProjectRow[];
+
+  return rows.map(mapProjectRow);
+}
+
+export function getProjectById(projectId: number): Project | null {
+  const row = getDb()
+    .prepare(
+      `SELECT p.*, u.username, a.name as alliance_name,
+        (SELECT COUNT(*) FROM project_items WHERE project_id = p.id) as total_items,
+        (SELECT COUNT(*) FROM project_items WHERE project_id = p.id AND completed_quantity >= quantity) as completed_items
+       FROM projects p
+       JOIN users u ON p.user_id = u.id
+       LEFT JOIN alliances a ON p.alliance_id = a.id
+       WHERE p.id = ?`
+    )
+    .get(projectId) as ProjectRow | undefined;
+
+  return row ? mapProjectRow(row) : null;
+}
+
+export function createProject(userId: number, input: CreateProjectInput): number {
+  const result = getDb()
+    .prepare(
+      `INSERT INTO projects (user_id, name, description, is_shared, alliance_id)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(
+      userId,
+      input.name,
+      input.description || null,
+      input.is_shared ? 1 : 0,
+      input.alliance_id || null
+    );
+
+  return result.lastInsertRowid as number;
+}
+
+export function updateProject(
+  projectId: number,
+  userId: number,
+  input: UpdateProjectInput
+): boolean {
+  const project = getProjectById(projectId);
+  if (!project || project.user_id !== userId) return false;
+
+  const fields: string[] = ["updated_at = datetime('now')"];
+  const values: (string | number | null)[] = [];
+
+  if (input.name !== undefined) {
+    fields.push("name = ?");
+    values.push(input.name);
+  }
+  if (input.description !== undefined) {
+    fields.push("description = ?");
+    values.push(input.description || null);
+  }
+  if (input.status !== undefined) {
+    fields.push("status = ?");
+    values.push(input.status);
+  }
+  if (input.is_shared !== undefined) {
+    fields.push("is_shared = ?");
+    values.push(input.is_shared ? 1 : 0);
+  }
+
+  values.push(projectId);
+  const result = getDb()
+    .prepare(`UPDATE projects SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return result.changes > 0;
+}
+
+export function deleteProject(projectId: number, userId: number): boolean {
+  const project = getProjectById(projectId);
+  if (!project || project.user_id !== userId) return false;
+
+  const result = getDb().prepare("DELETE FROM projects WHERE id = ?").run(projectId);
+  return result.changes > 0;
+}
+
+// Project Items
+export function getProjectItems(projectId: number): ProjectItem[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT pi.*, i.name as item_name
+       FROM project_items pi
+       JOIN items i ON pi.item_id = i.id
+       WHERE pi.project_id = ?
+       ORDER BY pi.priority DESC, i.name ASC`
+    )
+    .all(projectId) as (ProjectItem & { item_name: string })[];
+
+  return rows.map((row) => ({
+    ...row,
+    is_completed: row.completed_quantity >= row.quantity,
+  }));
+}
+
+export function addProjectItem(
+  projectId: number,
+  userId: number,
+  input: AddProjectItemInput
+): number | null {
+  const project = getProjectById(projectId);
+  if (!project || project.user_id !== userId) return null;
+
+  const result = getDb()
+    .prepare(
+      `INSERT INTO project_items (project_id, item_id, quantity, notes, priority)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(projectId, input.item_id, input.quantity, input.notes || null, input.priority || 0);
+
+  // Update project timestamp
+  getDb()
+    .prepare("UPDATE projects SET updated_at = datetime('now') WHERE id = ?")
+    .run(projectId);
+
+  return result.lastInsertRowid as number;
+}
+
+export function updateProjectItemProgress(
+  itemId: number,
+  projectId: number,
+  userId: number,
+  completedQuantity: number
+): boolean {
+  const project = getProjectById(projectId);
+  if (!project || project.user_id !== userId) return false;
+
+  const result = getDb()
+    .prepare(
+      "UPDATE project_items SET completed_quantity = ? WHERE id = ? AND project_id = ?"
+    )
+    .run(completedQuantity, itemId, projectId);
+
+  if (result.changes > 0) {
+    getDb()
+      .prepare("UPDATE projects SET updated_at = datetime('now') WHERE id = ?")
+      .run(projectId);
+  }
+
+  return result.changes > 0;
+}
+
+export function removeProjectItem(
+  itemId: number,
+  projectId: number,
+  userId: number
+): boolean {
+  const project = getProjectById(projectId);
+  if (!project || project.user_id !== userId) return false;
+
+  const result = getDb()
+    .prepare("DELETE FROM project_items WHERE id = ? AND project_id = ?")
+    .run(itemId, projectId);
+
+  return result.changes > 0;
+}
+
+export function getProjectMaterials(projectId: number): ProjectMaterial[] {
+  const items = getProjectItems(projectId);
+  const materialsMap = new Map<number, ProjectMaterial>();
+
+  for (const projectItem of items) {
+    // Calculate base materials for each item
+    const baseMaterials = getMaterialsList(projectItem.item_id, projectItem.quantity);
+
+    for (const mat of baseMaterials) {
+      const existing = materialsMap.get(mat.id);
+      if (existing) {
+        existing.required_quantity += mat.quantity;
+      } else {
+        materialsMap.set(mat.id, {
+          item_id: mat.id,
+          item_name: mat.name,
+          category: mat.category,
+          required_quantity: mat.quantity,
+          completed_quantity: 0,
+          remaining_quantity: mat.quantity,
+        });
+      }
+    }
+  }
+
+  // Calculate completed quantities based on item progress
+  for (const projectItem of items) {
+    if (projectItem.completed_quantity > 0) {
+      const completionRatio = projectItem.completed_quantity / projectItem.quantity;
+      const baseMaterials = getMaterialsList(projectItem.item_id, projectItem.quantity);
+
+      for (const mat of baseMaterials) {
+        const existing = materialsMap.get(mat.id);
+        if (existing) {
+          existing.completed_quantity += mat.quantity * completionRatio;
+        }
+      }
+    }
+  }
+
+  // Calculate remaining
+  for (const mat of materialsMap.values()) {
+    mat.remaining_quantity = Math.max(0, mat.required_quantity - mat.completed_quantity);
+    mat.completed_quantity = Math.round(mat.completed_quantity * 100) / 100;
+    mat.remaining_quantity = Math.round(mat.remaining_quantity * 100) / 100;
+  }
+
+  return Array.from(materialsMap.values()).sort((a, b) =>
+    a.category.localeCompare(b.category) || a.item_name.localeCompare(b.item_name)
+  );
+}
+
+// ========== TRADE MATCHING FUNCTIONS ==========
+
+interface TradeMatchRow {
+  id: number;
+  buy_order_id: number;
+  sell_order_id: number;
+  buyer_id: number;
+  seller_id: number;
+  item_name: string;
+  quantity: number;
+  buy_price: number | null;
+  sell_price: number | null;
+  match_score: number;
+  status: string;
+  created_at: string;
+  contacted_at: string | null;
+  buyer_username?: string;
+  seller_username?: string;
+}
+
+function mapTradeMatchRow(row: TradeMatchRow): TradeMatch {
+  return {
+    id: row.id,
+    buy_order_id: row.buy_order_id,
+    sell_order_id: row.sell_order_id,
+    buyer_id: row.buyer_id,
+    buyer_username: row.buyer_username || "",
+    seller_id: row.seller_id,
+    seller_username: row.seller_username || "",
+    item_name: row.item_name,
+    quantity: row.quantity,
+    buy_price: row.buy_price || undefined,
+    sell_price: row.sell_price || undefined,
+    match_score: row.match_score,
+    status: row.status as MatchStatus,
+    created_at: row.created_at,
+    contacted_at: row.contacted_at || undefined,
+  };
+}
+
+export function findMatches(): TradeMatch[] {
+  const db = getDb();
+
+  // Find matching buy and sell orders
+  const matches = db
+    .prepare(
+      `SELECT
+        bo.id as buy_order_id,
+        so.id as sell_order_id,
+        bo.user_id as buyer_id,
+        so.user_id as seller_id,
+        bo.item_name,
+        MIN(bo.quantity, so.quantity) as quantity,
+        bo.price as buy_price,
+        so.price as sell_price,
+        bu.username as buyer_username,
+        su.username as seller_username
+       FROM orders bo
+       JOIN orders so ON LOWER(bo.item_name) = LOWER(so.item_name)
+       JOIN users bu ON bo.user_id = bu.id
+       JOIN users su ON so.user_id = su.id
+       WHERE bo.order_type = 'buy'
+       AND so.order_type = 'sell'
+       AND bo.status = 'active'
+       AND so.status = 'active'
+       AND bo.user_id != so.user_id
+       AND (bo.price IS NULL OR so.price IS NULL OR bo.price >= so.price)
+       AND NOT EXISTS (
+         SELECT 1 FROM trade_matches tm
+         WHERE tm.buy_order_id = bo.id AND tm.sell_order_id = so.id
+         AND tm.status IN ('pending', 'contacted')
+       )`
+    )
+    .all() as {
+      buy_order_id: number;
+      sell_order_id: number;
+      buyer_id: number;
+      seller_id: number;
+      item_name: string;
+      quantity: number;
+      buy_price: number | null;
+      sell_price: number | null;
+      buyer_username: string;
+      seller_username: string;
+    }[];
+
+  const createdMatches: TradeMatch[] = [];
+
+  for (const match of matches) {
+    // Calculate match score (0-100)
+    let score = 50; // Base score
+
+    // Price compatibility bonus
+    if (match.buy_price && match.sell_price) {
+      const priceDiff = ((match.buy_price - match.sell_price) / match.sell_price) * 100;
+      score += Math.min(25, priceDiff); // Up to 25 points for price margin
+    }
+
+    // Quantity match bonus
+    score += 15; // Flat bonus for matching items
+
+    // Check quality match if applicable
+    const buyOrder = getOrderById(match.buy_order_id);
+    const sellOrder = getOrderById(match.sell_order_id);
+
+    if (buyOrder?.quality && sellOrder?.quality) {
+      if (sellOrder.quality >= buyOrder.quality) {
+        score += 10; // Quality meets requirements
+      }
+    }
+
+    score = Math.min(100, Math.max(0, score));
+
+    // Create match record
+    const result = db
+      .prepare(
+        `INSERT INTO trade_matches
+         (buy_order_id, sell_order_id, buyer_id, seller_id, item_name, quantity, buy_price, sell_price, match_score)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        match.buy_order_id,
+        match.sell_order_id,
+        match.buyer_id,
+        match.seller_id,
+        match.item_name,
+        match.quantity,
+        match.buy_price,
+        match.sell_price,
+        Math.round(score)
+      );
+
+    createdMatches.push({
+      id: result.lastInsertRowid as number,
+      buy_order_id: match.buy_order_id,
+      sell_order_id: match.sell_order_id,
+      buyer_id: match.buyer_id,
+      buyer_username: match.buyer_username,
+      seller_id: match.seller_id,
+      seller_username: match.seller_username,
+      item_name: match.item_name,
+      quantity: match.quantity,
+      buy_price: match.buy_price || undefined,
+      sell_price: match.sell_price || undefined,
+      match_score: Math.round(score),
+      status: "pending",
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  return createdMatches;
+}
+
+export function getUserMatches(userId: number): TradeMatch[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT tm.*, bu.username as buyer_username, su.username as seller_username
+       FROM trade_matches tm
+       JOIN users bu ON tm.buyer_id = bu.id
+       JOIN users su ON tm.seller_id = su.id
+       WHERE (tm.buyer_id = ? OR tm.seller_id = ?)
+       AND tm.status IN ('pending', 'contacted')
+       ORDER BY tm.match_score DESC, tm.created_at DESC`
+    )
+    .all(userId, userId) as TradeMatchRow[];
+
+  return rows.map(mapTradeMatchRow);
+}
+
+export function getMatchById(matchId: number): TradeMatch | null {
+  const row = getDb()
+    .prepare(
+      `SELECT tm.*, bu.username as buyer_username, su.username as seller_username
+       FROM trade_matches tm
+       JOIN users bu ON tm.buyer_id = bu.id
+       JOIN users su ON tm.seller_id = su.id
+       WHERE tm.id = ?`
+    )
+    .get(matchId) as TradeMatchRow | undefined;
+
+  return row ? mapTradeMatchRow(row) : null;
+}
+
+export function updateMatchStatus(
+  matchId: number,
+  userId: number,
+  status: MatchStatus
+): boolean {
+  const match = getMatchById(matchId);
+  if (!match) return false;
+
+  // Only participants can update
+  if (match.buyer_id !== userId && match.seller_id !== userId) return false;
+
+  const updates: string[] = ["status = ?"];
+  const values: (string | number)[] = [status];
+
+  if (status === "contacted" && !match.contacted_at) {
+    updates.push("contacted_at = datetime('now')");
+  }
+
+  values.push(matchId);
+  const result = getDb()
+    .prepare(`UPDATE trade_matches SET ${updates.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  // If completed, update orders
+  if (status === "completed" && result.changes > 0) {
+    getDb()
+      .prepare("UPDATE orders SET status = 'completed' WHERE id IN (?, ?)")
+      .run(match.buy_order_id, match.sell_order_id);
+  }
+
+  return result.changes > 0;
+}
+
+// User Ratings
+export function createRating(raterId: number, input: CreateRatingInput): number {
+  // Check if user already rated this user for this trade
+  if (input.trade_match_id) {
+    const existing = getDb()
+      .prepare(
+        `SELECT id FROM user_ratings
+         WHERE rater_id = ? AND rated_user_id = ? AND trade_match_id = ?`
+      )
+      .get(raterId, input.rated_user_id, input.trade_match_id);
+
+    if (existing) {
+      throw new Error("Already rated this trade");
+    }
+  }
+
+  const result = getDb()
+    .prepare(
+      `INSERT INTO user_ratings (rater_id, rated_user_id, rating, comment, trade_match_id)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(raterId, input.rated_user_id, input.rating, input.comment || null, input.trade_match_id || null);
+
+  return result.lastInsertRowid as number;
+}
+
+export function getUserRatings(userId: number): UserRating[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT ur.*,
+        ru.username as rater_username,
+        rdu.username as rated_username
+       FROM user_ratings ur
+       JOIN users ru ON ur.rater_id = ru.id
+       JOIN users rdu ON ur.rated_user_id = rdu.id
+       WHERE ur.rated_user_id = ?
+       ORDER BY ur.created_at DESC`
+    )
+    .all(userId) as UserRating[];
+
+  return rows;
+}
+
+export function getUserReputation(userId: number): UserReputation | null {
+  const db = getDb();
+
+  const user = db
+    .prepare("SELECT id, username FROM users WHERE id = ?")
+    .get(userId) as { id: number; username: string } | undefined;
+
+  if (!user) return null;
+
+  const stats = db
+    .prepare(
+      `SELECT
+        AVG(rating) as avg_rating,
+        COUNT(*) as total_ratings
+       FROM user_ratings
+       WHERE rated_user_id = ?`
+    )
+    .get(userId) as { avg_rating: number | null; total_ratings: number };
+
+  const trades = db
+    .prepare(
+      `SELECT COUNT(*) as count FROM trade_matches
+       WHERE (buyer_id = ? OR seller_id = ?) AND status = 'completed'`
+    )
+    .get(userId, userId) as { count: number };
+
+  const matches = db
+    .prepare(
+      `SELECT COUNT(*) as count FROM trade_matches
+       WHERE (buyer_id = ? OR seller_id = ?) AND status IN ('completed', 'contacted')`
+    )
+    .get(userId, userId) as { count: number };
+
+  return {
+    user_id: user.id,
+    username: user.username,
+    avg_rating: stats.avg_rating ? Math.round(stats.avg_rating * 10) / 10 : 0,
+    total_ratings: stats.total_ratings,
+    completed_trades: trades.count,
+    successful_matches: matches.count,
+  };
+}
+
+export function getBarterSuggestions(userId: number): BarterSuggestion[] {
+  // Find potential barter opportunities
+  const userOrders = getDb()
+    .prepare(
+      `SELECT o.*, u.username FROM orders o
+       JOIN users u ON o.user_id = u.id
+       WHERE o.user_id = ? AND o.status = 'active'`
+    )
+    .all(userId) as OrderWithUsername[];
+
+  const suggestions: BarterSuggestion[] = [];
+
+  for (const userOrder of userOrders) {
+    // Find complementary orders
+    const complementary = getDb()
+      .prepare(
+        `SELECT o.*, u.username FROM orders o
+         JOIN users u ON o.user_id = u.id
+         WHERE o.user_id != ?
+         AND o.status = 'active'
+         AND o.order_type != ?
+         AND (
+           (o.order_type = 'trade' AND LOWER(o.trade_for) LIKE LOWER(?))
+           OR (? = 'trade' AND LOWER(o.item_name) LIKE LOWER(?))
+         )
+         LIMIT 5`
+      )
+      .all(
+        userId,
+        userOrder.order_type,
+        `%${userOrder.item_name}%`,
+        userOrder.order_type,
+        userOrder.trade_for || ""
+      ) as OrderWithUsername[];
+
+    for (const other of complementary) {
+      suggestions.push({
+        your_order: mapOrderRowToMarketOrder(userOrder),
+        their_order: mapOrderRowToMarketOrder(other),
+        match_reason: `They want ${userOrder.item_name}, you want ${other.item_name}`,
+        compatibility_score: 75,
+      });
+    }
+  }
+
+  return suggestions.slice(0, 10);
+}
+
+export function expireOldMatches(): number {
+  const result = getDb()
+    .prepare(
+      `UPDATE trade_matches
+       SET status = 'expired'
+       WHERE status = 'pending'
+       AND created_at < datetime('now', '-7 days')`
+    )
+    .run();
+
+  return result.changes;
 }
