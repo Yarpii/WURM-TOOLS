@@ -1,0 +1,15 @@
+{
+  "name": "wurmpedia-harvester",
+  "version": "1.0.0",
+  "description": "One-time script to harvest all page titles from Wurmpedia",
+  "main": "harvest.js",
+  "scripts": {
+    "harvest": "node harvest.js",
+    "harvest:ts": "npx ts-node harvest.ts"
+  },
+  "keywords": ["wurm", "wurmpedia", "harvester"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
