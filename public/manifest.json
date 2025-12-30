@@ -1,0 +1,43 @@
+{
+  "name": "Blackforge - Wurm Online Companion",
+  "short_name": "Blackforge",
+  "description": "Community-driven toolkit for Wurm Online - crafting calculator, marketplace, and more",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Crafting Calculator",
+      "url": "/crafting",
+      "description": "Calculate crafting materials"
+    },
+    {
+      "name": "Market",
+      "url": "/market",
+      "description": "Browse buy and sell orders"
+    },
+    {
+      "name": "Map",
+      "url": "/map",
+      "description": "Explore the world map"
+    }
+  ]
+}

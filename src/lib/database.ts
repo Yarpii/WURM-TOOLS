@@ -46,6 +46,19 @@ import type {
   UserReputation,
   CreateRatingInput,
   BarterSuggestion,
+  MapLocation,
+  LocationType,
+  WurmServer,
+  CreateLocationInput,
+  UpdateLocationInput,
+  Achievement,
+  UserAchievement,
+  UserXP,
+  LeaderboardEntry,
+  AchievementCategory,
+  DiscordWebhook,
+  CreateWebhookInput,
+  DiscordEmbed,
 } from "./types";
 import {
   calculateSuccessChance,
@@ -377,6 +390,102 @@ function initDatabase(db: Database.Database): void {
       CREATE INDEX idx_trade_matches_item ON trade_matches(item_name);
       CREATE INDEX idx_user_ratings_rater ON user_ratings(rater_id);
       CREATE INDEX idx_user_ratings_rated ON user_ratings(rated_user_id);
+    `);
+  }
+
+  // Initialize map_locations table if it doesn't exist
+  const mapLocationsTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='map_locations'"
+    )
+    .get();
+
+  if (!mapLocationsTableExists) {
+    db.exec(`
+      CREATE TABLE map_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        location_type TEXT NOT NULL CHECK(location_type IN ('deed', 'merchant', 'landmark', 'resource', 'spawn', 'other')),
+        server TEXT NOT NULL,
+        x INTEGER NOT NULL,
+        y INTEGER NOT NULL,
+        is_public INTEGER DEFAULT 1,
+        is_verified INTEGER DEFAULT 0,
+        alliance_id INTEGER,
+        merchant_id INTEGER,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE SET NULL,
+        FOREIGN KEY (merchant_id) REFERENCES merchants(id) ON DELETE SET NULL
+      );
+
+      CREATE INDEX idx_map_locations_server ON map_locations(server);
+      CREATE INDEX idx_map_locations_type ON map_locations(location_type);
+      CREATE INDEX idx_map_locations_user ON map_locations(user_id);
+      CREATE INDEX idx_map_locations_coords ON map_locations(x, y);
+    `);
+  }
+
+  // Initialize gamification tables if they don't exist
+  const userXpTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='user_xp'"
+    )
+    .get();
+
+  if (!userXpTableExists) {
+    db.exec(`
+      CREATE TABLE user_xp (
+        user_id INTEGER PRIMARY KEY,
+        total_xp INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE user_achievements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        achievement_id TEXT NOT NULL,
+        progress INTEGER NOT NULL DEFAULT 0,
+        completed INTEGER NOT NULL DEFAULT 0,
+        completed_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(user_id, achievement_id)
+      );
+
+      CREATE INDEX idx_user_achievements_user ON user_achievements(user_id);
+      CREATE INDEX idx_user_achievements_completed ON user_achievements(completed);
+    `);
+  }
+
+  // Initialize discord_webhooks table if it doesn't exist
+  const discordWebhooksTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='discord_webhooks'"
+    )
+    .get();
+
+  if (!discordWebhooksTableExists) {
+    db.exec(`
+      CREATE TABLE discord_webhooks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        webhook_url TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        notify_trades INTEGER DEFAULT 1,
+        notify_matches INTEGER DEFAULT 1,
+        notify_price_alerts INTEGER DEFAULT 1,
+        notify_alliance INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX idx_discord_webhooks_user ON discord_webhooks(user_id);
+      CREATE INDEX idx_discord_webhooks_active ON discord_webhooks(is_active);
     `);
   }
 }
@@ -3776,4 +3885,597 @@ export function expireOldMatches(): number {
     .run();
 
   return result.changes;
+}
+
+// ========== MAP LOCATIONS FUNCTIONS ==========
+
+interface MapLocationRow {
+  id: number;
+  user_id: number;
+  name: string;
+  description: string | null;
+  location_type: string;
+  server: string;
+  x: number;
+  y: number;
+  is_public: number;
+  is_verified: number;
+  alliance_id: number | null;
+  merchant_id: number | null;
+  created_at: string;
+  updated_at: string;
+  username?: string;
+}
+
+function mapLocationRow(row: MapLocationRow): MapLocation {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    username: row.username,
+    name: row.name,
+    description: row.description || undefined,
+    location_type: row.location_type as LocationType,
+    server: row.server as WurmServer,
+    x: row.x,
+    y: row.y,
+    is_public: Boolean(row.is_public),
+    is_verified: Boolean(row.is_verified),
+    alliance_id: row.alliance_id || undefined,
+    merchant_id: row.merchant_id || undefined,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export function getMapLocations(
+  server?: WurmServer,
+  locationType?: LocationType,
+  includePrivate: boolean = false
+): MapLocation[] {
+  let query = `
+    SELECT ml.*, u.username
+    FROM map_locations ml
+    JOIN users u ON ml.user_id = u.id
+    WHERE 1=1
+  `;
+  const params: (string | number)[] = [];
+
+  if (!includePrivate) {
+    query += " AND ml.is_public = 1";
+  }
+  if (server) {
+    query += " AND ml.server = ?";
+    params.push(server);
+  }
+  if (locationType) {
+    query += " AND ml.location_type = ?";
+    params.push(locationType);
+  }
+
+  query += " ORDER BY ml.created_at DESC";
+
+  const rows = getDb().prepare(query).all(...params) as MapLocationRow[];
+  return rows.map(mapLocationRow);
+}
+
+export function getLocationById(id: number): MapLocation | null {
+  const row = getDb()
+    .prepare(
+      `SELECT ml.*, u.username
+       FROM map_locations ml
+       JOIN users u ON ml.user_id = u.id
+       WHERE ml.id = ?`
+    )
+    .get(id) as MapLocationRow | undefined;
+
+  return row ? mapLocationRow(row) : null;
+}
+
+export function createLocation(
+  userId: number,
+  input: CreateLocationInput
+): number {
+  const result = getDb()
+    .prepare(
+      `INSERT INTO map_locations
+       (user_id, name, description, location_type, server, x, y, is_public, alliance_id, merchant_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      userId,
+      input.name,
+      input.description || null,
+      input.location_type,
+      input.server,
+      input.x,
+      input.y,
+      input.is_public !== false ? 1 : 0,
+      input.alliance_id || null,
+      input.merchant_id || null
+    );
+
+  // Award XP for adding location
+  addXP(userId, 10);
+
+  return result.lastInsertRowid as number;
+}
+
+export function updateLocation(
+  id: number,
+  userId: number,
+  input: UpdateLocationInput,
+  isAdmin: boolean = false
+): boolean {
+  const location = getLocationById(id);
+  if (!location) return false;
+  if (!isAdmin && location.user_id !== userId) return false;
+
+  const fields: string[] = ["updated_at = datetime('now')"];
+  const values: (string | number | null)[] = [];
+
+  if (input.name !== undefined) {
+    fields.push("name = ?");
+    values.push(input.name);
+  }
+  if (input.description !== undefined) {
+    fields.push("description = ?");
+    values.push(input.description || null);
+  }
+  if (input.location_type !== undefined) {
+    fields.push("location_type = ?");
+    values.push(input.location_type);
+  }
+  if (input.x !== undefined) {
+    fields.push("x = ?");
+    values.push(input.x);
+  }
+  if (input.y !== undefined) {
+    fields.push("y = ?");
+    values.push(input.y);
+  }
+  if (input.is_public !== undefined) {
+    fields.push("is_public = ?");
+    values.push(input.is_public ? 1 : 0);
+  }
+
+  values.push(id);
+  const result = getDb()
+    .prepare(`UPDATE map_locations SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return result.changes > 0;
+}
+
+export function deleteLocation(
+  id: number,
+  userId: number,
+  isAdmin: boolean = false
+): boolean {
+  const location = getLocationById(id);
+  if (!location) return false;
+  if (!isAdmin && location.user_id !== userId) return false;
+
+  const result = getDb()
+    .prepare("DELETE FROM map_locations WHERE id = ?")
+    .run(id);
+  return result.changes > 0;
+}
+
+export function verifyLocation(id: number): boolean {
+  const result = getDb()
+    .prepare("UPDATE map_locations SET is_verified = 1 WHERE id = ?")
+    .run(id);
+  return result.changes > 0;
+}
+
+// ========== GAMIFICATION & ACHIEVEMENTS FUNCTIONS ==========
+
+// Achievement definitions (stored in code, not database)
+const ACHIEVEMENTS: Achievement[] = [
+  // Trading achievements
+  { id: "first_trade", name: "First Steps", description: "Complete your first trade", category: "trading", icon: "handshake", xp_reward: 50, requirement_type: "trades_completed", requirement_value: 1, is_hidden: false },
+  { id: "trader_10", name: "Apprentice Trader", description: "Complete 10 trades", category: "trading", icon: "coins", xp_reward: 100, requirement_type: "trades_completed", requirement_value: 10, is_hidden: false },
+  { id: "trader_50", name: "Seasoned Merchant", description: "Complete 50 trades", category: "trading", icon: "gem", xp_reward: 250, requirement_type: "trades_completed", requirement_value: 50, is_hidden: false },
+  { id: "trader_100", name: "Master Trader", description: "Complete 100 trades", category: "trading", icon: "crown", xp_reward: 500, requirement_type: "trades_completed", requirement_value: 100, is_hidden: false },
+  { id: "five_star", name: "Five Star Service", description: "Maintain a 5-star rating", category: "trading", icon: "star", xp_reward: 200, requirement_type: "rating", requirement_value: 5, is_hidden: false },
+
+  // Community achievements
+  { id: "first_order", name: "Open for Business", description: "Create your first market order", category: "community", icon: "store", xp_reward: 25, requirement_type: "orders_created", requirement_value: 1, is_hidden: false },
+  { id: "alliance_member", name: "Stronger Together", description: "Join an alliance", category: "community", icon: "users", xp_reward: 50, requirement_type: "alliance_joined", requirement_value: 1, is_hidden: false },
+  { id: "alliance_leader", name: "Born Leader", description: "Create an alliance", category: "community", icon: "flag", xp_reward: 150, requirement_type: "alliance_created", requirement_value: 1, is_hidden: false },
+  { id: "helpful_10", name: "Helpful Hand", description: "Receive 10 positive ratings", category: "community", icon: "thumbs-up", xp_reward: 100, requirement_type: "positive_ratings", requirement_value: 10, is_hidden: false },
+
+  // Exploration achievements
+  { id: "cartographer", name: "Cartographer", description: "Add 5 locations to the map", category: "exploration", icon: "map", xp_reward: 75, requirement_type: "locations_added", requirement_value: 5, is_hidden: false },
+  { id: "explorer", name: "Explorer", description: "Add 25 locations to the map", category: "exploration", icon: "compass", xp_reward: 200, requirement_type: "locations_added", requirement_value: 25, is_hidden: false },
+  { id: "merchant_finder", name: "Merchant Finder", description: "Register 10 merchants", category: "exploration", icon: "search", xp_reward: 100, requirement_type: "merchants_added", requirement_value: 10, is_hidden: false },
+
+  // Crafting achievements
+  { id: "planner", name: "Project Planner", description: "Create your first project", category: "crafting", icon: "clipboard", xp_reward: 25, requirement_type: "projects_created", requirement_value: 1, is_hidden: false },
+  { id: "project_master", name: "Project Master", description: "Complete 10 projects", category: "crafting", icon: "check-circle", xp_reward: 200, requirement_type: "projects_completed", requirement_value: 10, is_hidden: false },
+
+  // Special achievements
+  { id: "early_adopter", name: "Early Adopter", description: "One of the first 100 users", category: "special", icon: "rocket", xp_reward: 500, requirement_type: "user_id", requirement_value: 100, is_hidden: true },
+  { id: "verified_contributor", name: "Verified Contributor", description: "Have a location verified by admins", category: "special", icon: "badge-check", xp_reward: 100, requirement_type: "verified_locations", requirement_value: 1, is_hidden: false },
+];
+
+export function getAchievements(): Achievement[] {
+  return ACHIEVEMENTS.filter(a => !a.is_hidden);
+}
+
+export function getAllAchievements(): Achievement[] {
+  return ACHIEVEMENTS;
+}
+
+export function getAchievementById(id: string): Achievement | undefined {
+  return ACHIEVEMENTS.find(a => a.id === id);
+}
+
+export function getUserAchievements(userId: number): UserAchievement[] {
+  return getDb()
+    .prepare(
+      `SELECT * FROM user_achievements WHERE user_id = ? ORDER BY completed DESC, created_at DESC`
+    )
+    .all(userId) as UserAchievement[];
+}
+
+export function getCompletedAchievements(userId: number): Achievement[] {
+  const completed = getDb()
+    .prepare(
+      `SELECT achievement_id FROM user_achievements WHERE user_id = ? AND completed = 1`
+    )
+    .all(userId) as { achievement_id: string }[];
+
+  const completedIds = new Set(completed.map(c => c.achievement_id));
+  return ACHIEVEMENTS.filter(a => completedIds.has(a.id));
+}
+
+export function updateAchievementProgress(
+  userId: number,
+  achievementId: string,
+  progress: number
+): boolean {
+  const achievement = getAchievementById(achievementId);
+  if (!achievement) return false;
+
+  const completed = progress >= achievement.requirement_value;
+
+  const existing = getDb()
+    .prepare(
+      "SELECT id, completed FROM user_achievements WHERE user_id = ? AND achievement_id = ?"
+    )
+    .get(userId, achievementId) as { id: number; completed: number } | undefined;
+
+  if (existing) {
+    if (existing.completed) return false; // Already completed
+
+    getDb()
+      .prepare(
+        `UPDATE user_achievements
+         SET progress = ?, completed = ?, completed_at = CASE WHEN ? THEN datetime('now') ELSE NULL END
+         WHERE id = ?`
+      )
+      .run(progress, completed ? 1 : 0, completed ? 1 : 0, existing.id);
+  } else {
+    getDb()
+      .prepare(
+        `INSERT INTO user_achievements (user_id, achievement_id, progress, completed, completed_at)
+         VALUES (?, ?, ?, ?, CASE WHEN ? THEN datetime('now') ELSE NULL END)`
+      )
+      .run(userId, achievementId, progress, completed ? 1 : 0, completed ? 1 : 0);
+  }
+
+  // Award XP if completed
+  if (completed && (!existing || !existing.completed)) {
+    addXP(userId, achievement.xp_reward);
+  }
+
+  return completed;
+}
+
+export function checkAndUpdateAchievements(userId: number): Achievement[] {
+  const db = getDb();
+  const newlyCompleted: Achievement[] = [];
+
+  // Get user stats
+  const tradesCompleted = db
+    .prepare(
+      `SELECT COUNT(*) as count FROM trade_matches
+       WHERE (buyer_id = ? OR seller_id = ?) AND status = 'completed'`
+    )
+    .get(userId, userId) as { count: number };
+
+  const ordersCreated = db
+    .prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ?")
+    .get(userId) as { count: number };
+
+  const locationsAdded = db
+    .prepare("SELECT COUNT(*) as count FROM map_locations WHERE user_id = ?")
+    .get(userId) as { count: number };
+
+  const projectsCreated = db
+    .prepare("SELECT COUNT(*) as count FROM projects WHERE user_id = ?")
+    .get(userId) as { count: number };
+
+  const projectsCompleted = db
+    .prepare("SELECT COUNT(*) as count FROM projects WHERE user_id = ? AND status = 'completed'")
+    .get(userId) as { count: number };
+
+  const allianceMember = db
+    .prepare("SELECT COUNT(*) as count FROM alliance_members WHERE user_id = ?")
+    .get(userId) as { count: number };
+
+  const allianceLeader = db
+    .prepare("SELECT COUNT(*) as count FROM alliances WHERE leader_id = ?")
+    .get(userId) as { count: number };
+
+  const positiveRatings = db
+    .prepare("SELECT COUNT(*) as count FROM user_ratings WHERE rated_user_id = ? AND rating >= 4")
+    .get(userId) as { count: number };
+
+  const merchantsAdded = db
+    .prepare("SELECT COUNT(*) as count FROM merchants WHERE user_id = ?")
+    .get(userId) as { count: number };
+
+  const verifiedLocations = db
+    .prepare("SELECT COUNT(*) as count FROM map_locations WHERE user_id = ? AND is_verified = 1")
+    .get(userId) as { count: number };
+
+  // Check each achievement
+  const statsMap: Record<string, number> = {
+    trades_completed: tradesCompleted.count,
+    orders_created: ordersCreated.count,
+    locations_added: locationsAdded.count,
+    projects_created: projectsCreated.count,
+    projects_completed: projectsCompleted.count,
+    alliance_joined: allianceMember.count,
+    alliance_created: allianceLeader.count,
+    positive_ratings: positiveRatings.count,
+    merchants_added: merchantsAdded.count,
+    verified_locations: verifiedLocations.count,
+    user_id: userId,
+  };
+
+  for (const achievement of ACHIEVEMENTS) {
+    const progress = statsMap[achievement.requirement_type] || 0;
+    const completed = updateAchievementProgress(userId, achievement.id, progress);
+    if (completed) {
+      newlyCompleted.push(achievement);
+    }
+  }
+
+  return newlyCompleted;
+}
+
+// XP Functions
+export function getUserXP(userId: number): UserXP | null {
+  const db = getDb();
+
+  const user = db
+    .prepare("SELECT id, username FROM users WHERE id = ?")
+    .get(userId) as { id: number; username: string } | undefined;
+
+  if (!user) return null;
+
+  const xpRow = db
+    .prepare("SELECT total_xp FROM user_xp WHERE user_id = ?")
+    .get(userId) as { total_xp: number } | undefined;
+
+  const totalXp = xpRow?.total_xp || 0;
+  const level = calculateLevel(totalXp);
+  const xpForCurrentLevel = getXPForLevel(level);
+  const xpForNextLevel = getXPForLevel(level + 1);
+
+  // Get rank
+  const rankRow = db
+    .prepare(
+      `SELECT COUNT(*) + 1 as rank FROM user_xp WHERE total_xp > ?`
+    )
+    .get(totalXp) as { rank: number };
+
+  return {
+    user_id: userId,
+    username: user.username,
+    total_xp: totalXp,
+    level,
+    xp_to_next_level: xpForNextLevel - totalXp,
+    rank: rankRow.rank,
+  };
+}
+
+export function addXP(userId: number, amount: number): number {
+  const db = getDb();
+
+  const existing = db
+    .prepare("SELECT total_xp FROM user_xp WHERE user_id = ?")
+    .get(userId) as { total_xp: number } | undefined;
+
+  if (existing) {
+    db.prepare("UPDATE user_xp SET total_xp = total_xp + ? WHERE user_id = ?").run(
+      amount,
+      userId
+    );
+    return existing.total_xp + amount;
+  } else {
+    db.prepare("INSERT INTO user_xp (user_id, total_xp) VALUES (?, ?)").run(
+      userId,
+      amount
+    );
+    return amount;
+  }
+}
+
+function calculateLevel(xp: number): number {
+  // Level formula: level = floor(sqrt(xp / 100))
+  // Level 1: 0-99, Level 2: 100-399, Level 3: 400-899, etc.
+  return Math.floor(Math.sqrt(xp / 100)) + 1;
+}
+
+function getXPForLevel(level: number): number {
+  // Inverse of level formula
+  return Math.pow(level - 1, 2) * 100;
+}
+
+export function getLeaderboard(limit: number = 20): LeaderboardEntry[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT u.id as user_id, u.username, u.display_name, u.avatar_url,
+        COALESCE(ux.total_xp, 0) as total_xp,
+        (SELECT COUNT(*) FROM user_achievements ua WHERE ua.user_id = u.id AND ua.completed = 1) as achievements_count
+       FROM users u
+       LEFT JOIN user_xp ux ON u.id = ux.user_id
+       WHERE u.is_banned = 0
+       ORDER BY total_xp DESC
+       LIMIT ?`
+    )
+    .all(limit) as {
+      user_id: number;
+      username: string;
+      display_name: string | null;
+      avatar_url: string | null;
+      total_xp: number;
+      achievements_count: number;
+    }[];
+
+  return rows.map((row, index) => ({
+    rank: index + 1,
+    user_id: row.user_id,
+    username: row.username,
+    display_name: row.display_name || undefined,
+    total_xp: row.total_xp,
+    level: calculateLevel(row.total_xp),
+    achievements_count: row.achievements_count,
+    avatar_url: row.avatar_url || undefined,
+  }));
+}
+
+// ========== DISCORD WEBHOOK FUNCTIONS ==========
+
+export function getUserWebhooks(userId: number): DiscordWebhook[] {
+  return getDb()
+    .prepare("SELECT * FROM discord_webhooks WHERE user_id = ? ORDER BY created_at DESC")
+    .all(userId) as DiscordWebhook[];
+}
+
+export function getWebhookById(id: number): DiscordWebhook | null {
+  return getDb()
+    .prepare("SELECT * FROM discord_webhooks WHERE id = ?")
+    .get(id) as DiscordWebhook | null;
+}
+
+export function createWebhook(userId: number, input: CreateWebhookInput): number {
+  const result = getDb()
+    .prepare(
+      `INSERT INTO discord_webhooks
+       (user_id, name, webhook_url, notify_trades, notify_matches, notify_price_alerts, notify_alliance)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      userId,
+      input.name,
+      input.webhook_url,
+      input.notify_trades !== false ? 1 : 0,
+      input.notify_matches !== false ? 1 : 0,
+      input.notify_price_alerts !== false ? 1 : 0,
+      input.notify_alliance ? 1 : 0
+    );
+
+  return result.lastInsertRowid as number;
+}
+
+export function updateWebhook(
+  id: number,
+  userId: number,
+  updates: Partial<CreateWebhookInput> & { is_active?: boolean }
+): boolean {
+  const webhook = getWebhookById(id);
+  if (!webhook || webhook.user_id !== userId) return false;
+
+  const fields: string[] = [];
+  const values: (string | number)[] = [];
+
+  if (updates.name !== undefined) {
+    fields.push("name = ?");
+    values.push(updates.name);
+  }
+  if (updates.webhook_url !== undefined) {
+    fields.push("webhook_url = ?");
+    values.push(updates.webhook_url);
+  }
+  if (updates.is_active !== undefined) {
+    fields.push("is_active = ?");
+    values.push(updates.is_active ? 1 : 0);
+  }
+  if (updates.notify_trades !== undefined) {
+    fields.push("notify_trades = ?");
+    values.push(updates.notify_trades ? 1 : 0);
+  }
+  if (updates.notify_matches !== undefined) {
+    fields.push("notify_matches = ?");
+    values.push(updates.notify_matches ? 1 : 0);
+  }
+  if (updates.notify_price_alerts !== undefined) {
+    fields.push("notify_price_alerts = ?");
+    values.push(updates.notify_price_alerts ? 1 : 0);
+  }
+  if (updates.notify_alliance !== undefined) {
+    fields.push("notify_alliance = ?");
+    values.push(updates.notify_alliance ? 1 : 0);
+  }
+
+  if (fields.length === 0) return false;
+
+  values.push(id);
+  const result = getDb()
+    .prepare(`UPDATE discord_webhooks SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return result.changes > 0;
+}
+
+export function deleteWebhook(id: number, userId: number): boolean {
+  const webhook = getWebhookById(id);
+  if (!webhook || webhook.user_id !== userId) return false;
+
+  const result = getDb()
+    .prepare("DELETE FROM discord_webhooks WHERE id = ?")
+    .run(id);
+  return result.changes > 0;
+}
+
+export async function sendDiscordNotification(
+  userId: number,
+  notificationType: "trades" | "matches" | "price_alerts" | "alliance",
+  embed: DiscordEmbed
+): Promise<void> {
+  const webhooks = getDb()
+    .prepare(
+      `SELECT * FROM discord_webhooks WHERE user_id = ? AND is_active = 1 AND notify_${notificationType} = 1`
+    )
+    .all(userId) as DiscordWebhook[];
+
+  for (const webhook of webhooks) {
+    try {
+      await fetch(webhook.webhook_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          embeds: [embed],
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to send Discord notification:", error);
+    }
+  }
+}
+
+export function getActiveWebhooksForNotification(
+  notificationType: "trades" | "matches" | "price_alerts" | "alliance"
+): DiscordWebhook[] {
+  const column = `notify_${notificationType}`;
+  return getDb()
+    .prepare(
+      `SELECT * FROM discord_webhooks WHERE is_active = 1 AND ${column} = 1`
+    )
+    .all() as DiscordWebhook[];
 }
