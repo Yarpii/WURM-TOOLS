@@ -31,6 +31,7 @@ const navCategories = [
       { href: "/analytics", label: "Analytics", icon: "chart", description: "Skill & progress stats" },
       { href: "/trades", label: "Trades", icon: "exchange", description: "Trade history" },
       { href: "/projects", label: "Projects", icon: "folder", description: "Project planning" },
+      { href: "/prospects", label: "Prospects", icon: "target", description: "Recruit management" },
       { href: "/achievements", label: "Achievements", icon: "trophy", description: "Goals & milestones" },
     ],
   },
@@ -91,6 +92,13 @@ const icons: Record<string, React.ReactNode> = {
   trophy: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3h14M5 3v4a7 7 0 007 7m-7-7H2m17 0h3M19 3v4a7 7 0 01-7 7m0 0v4m0 4h-4m4 0h4m-4-4h.01" />
+    </svg>
+  ),
+  target: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="6" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="2" strokeWidth={1.5} />
     </svg>
   ),
 };
