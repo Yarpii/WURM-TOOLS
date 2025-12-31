@@ -488,3 +488,135 @@ export interface BarterSuggestion {
   match_reason: string;
   compatibility_score: number;
 }
+
+// ========== MAP & LOCATIONS TYPES ==========
+
+export type LocationType = "deed" | "merchant" | "landmark" | "resource" | "spawn" | "other";
+export type WurmServer = "harmony" | "melody" | "cadence" | "defiance" | "elevation" | "desertion" | "affliction" | "chaos" | "independence" | "deliverance" | "exodus" | "celebration" | "pristine" | "release" | "xanadu" | "other";
+
+export interface MapLocation {
+  id: number;
+  user_id: number;
+  username?: string;
+  name: string;
+  description?: string;
+  location_type: LocationType;
+  server: WurmServer;
+  x: number;
+  y: number;
+  is_public: boolean;
+  is_verified: boolean;
+  alliance_id?: number;
+  merchant_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateLocationInput {
+  name: string;
+  description?: string;
+  location_type: LocationType;
+  server: WurmServer;
+  x: number;
+  y: number;
+  is_public?: boolean;
+  alliance_id?: number;
+  merchant_id?: number;
+}
+
+export interface UpdateLocationInput {
+  name?: string;
+  description?: string;
+  location_type?: LocationType;
+  x?: number;
+  y?: number;
+  is_public?: boolean;
+}
+
+// ========== GAMIFICATION & ACHIEVEMENTS TYPES ==========
+
+export type AchievementCategory = "trading" | "crafting" | "community" | "exploration" | "special";
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  category: AchievementCategory;
+  icon: string;
+  xp_reward: number;
+  requirement_type: string;
+  requirement_value: number;
+  is_hidden: boolean;
+}
+
+export interface UserAchievement {
+  id: number;
+  user_id: number;
+  achievement_id: string;
+  progress: number;
+  completed: boolean;
+  completed_at?: string;
+  created_at: string;
+}
+
+export interface UserXP {
+  user_id: number;
+  username: string;
+  total_xp: number;
+  level: number;
+  xp_to_next_level: number;
+  rank?: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: number;
+  username: string;
+  display_name?: string;
+  total_xp: number;
+  level: number;
+  achievements_count: number;
+  avatar_url?: string;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
+  category: AchievementCategory;
+}
+
+// ========== DISCORD INTEGRATION TYPES ==========
+
+export interface DiscordWebhook {
+  id: number;
+  user_id: number;
+  name: string;
+  webhook_url: string;
+  is_active: boolean;
+  notify_trades: boolean;
+  notify_matches: boolean;
+  notify_price_alerts: boolean;
+  notify_alliance: boolean;
+  created_at: string;
+}
+
+export interface CreateWebhookInput {
+  name: string;
+  webhook_url: string;
+  notify_trades?: boolean;
+  notify_matches?: boolean;
+  notify_price_alerts?: boolean;
+  notify_alliance?: boolean;
+}
+
+export interface DiscordEmbed {
+  title: string;
+  description?: string;
+  color?: number;
+  fields?: { name: string; value: string; inline?: boolean }[];
+  footer?: { text: string };
+  timestamp?: string;
+}
