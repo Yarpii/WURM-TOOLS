@@ -1,18 +1,50 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   getAllRecipes,
   addRecipeIngredient,
   updateRecipeIngredient,
   deleteRecipeIngredient,
 } from "@/lib/database";
+import { getSession } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
-export async function GET() {
-  const recipes = getAllRecipes();
-  return NextResponse.json(recipes);
+// Helper to verify admin authentication
+function verifyAdmin(request: NextRequest): { error?: NextResponse; session?: ReturnType<typeof getSession> } {
+  const sessionId = request.cookies.get("session")?.value;
+
+  if (!sessionId) {
+    return { error: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
+  }
+
+  const session = getSession(sessionId);
+  if (!session) {
+    return { error: NextResponse.json({ error: "Session expired" }, { status: 401 }) };
+  }
+
+  if (session.user.role !== "admin") {
+    return { error: NextResponse.json({ error: "Admin access required" }, { status: 403 }) };
+  }
+
+  return { session };
 }
 
-export async function POST(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const auth = verifyAdmin(request);
+    if (auth.error) return auth.error;
+
+    const recipes = getAllRecipes();
+    return NextResponse.json(recipes);
+  } catch (error) {
+    return NextResponse.json({ error: sanitizeError(error, "Fetch recipes") }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = verifyAdmin(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const { result_item_id, ingredient_item_id, quantity } = body;
 
@@ -45,12 +77,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ id, success: true });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(error, "Add recipe") }, { status: 500 });
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    const auth = verifyAdmin(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const { id, quantity } = body;
 
@@ -64,12 +99,15 @@ export async function PUT(request: Request) {
     const success = updateRecipeIngredient(id, quantity);
     return NextResponse.json({ success });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(error, "Update recipe") }, { status: 500 });
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    const auth = verifyAdmin(request);
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get("id") || "0");
 
@@ -83,6 +121,6 @@ export async function DELETE(request: Request) {
     const success = deleteRecipeIngredient(id);
     return NextResponse.json({ success });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(error, "Delete recipe") }, { status: 500 });
   }
 }

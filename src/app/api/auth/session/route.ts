@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, refreshSession } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
       response.cookies.set("session", "", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "strict",
         maxAge: 0,
         path: "/",
       });
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Session check failed: " + String(error) },
+      { error: sanitizeError(error, "Session check") },
       { status: 500 }
     );
   }

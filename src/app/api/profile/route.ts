@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, getUserById, updateUserProfile } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/profile - Get current user's full profile
 export async function GET(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ profile: user });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch profile: " + String(error) },
+      { error: sanitizeError(error, "Fetch profile") },
       { status: 500 }
     );
   }
@@ -46,7 +47,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { display_name, bio, avatar_url, location, wurm_server } = body;
 
-    // Validate input
+    // SECURITY: Input validation and sanitization
     if (display_name !== undefined && display_name.length > 50) {
       return NextResponse.json(
         { error: "Display name must be 50 characters or less" },
@@ -72,12 +73,50 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // SECURITY: Validate avatar_url to prevent XSS and only allow safe URLs
+    if (avatar_url !== undefined && avatar_url !== null && avatar_url !== "") {
+      try {
+        const url = new URL(avatar_url);
+        // Only allow HTTPS URLs
+        if (url.protocol !== "https:") {
+          return NextResponse.json(
+            { error: "Avatar URL must use HTTPS" },
+            { status: 400 }
+          );
+        }
+        // Prevent javascript: and data: URLs
+        if (["javascript:", "data:", "vbscript:"].includes(url.protocol)) {
+          return NextResponse.json(
+            { error: "Invalid avatar URL protocol" },
+            { status: 400 }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid avatar URL format" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // SECURITY: Sanitize text inputs - remove potential XSS vectors
+    const sanitizeText = (text: string | undefined): string | undefined => {
+      if (text === undefined) return undefined;
+      // Basic HTML entity encoding for < > & " '
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#x27;");
+    };
+
     const success = updateUserProfile(session.user.id, {
-      display_name,
-      bio,
+      display_name: sanitizeText(display_name),
+      bio: sanitizeText(bio),
       avatar_url,
-      location,
-      wurm_server,
+      location: sanitizeText(location),
+      wurm_server: sanitizeText(wurm_server),
     });
 
     if (!success) {
@@ -95,7 +134,7 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update profile: " + String(error) },
+      { error: sanitizeError(error, "Update profile") },
       { status: 500 }
     );
   }

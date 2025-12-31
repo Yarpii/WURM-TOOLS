@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { login } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set("session", result.sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict", // SECURITY: Changed from 'lax' to 'strict' to prevent CSRF
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: "/",
     });
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Login failed: " + String(error) },
+      { error: sanitizeError(error, "Login") },
       { status: 500 }
     );
   }

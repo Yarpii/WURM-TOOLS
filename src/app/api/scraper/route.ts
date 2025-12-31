@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   getItemByName,
   addItem,
@@ -8,8 +8,29 @@ import {
   updateItem,
   deleteRecipeIngredient,
 } from "@/lib/database";
+import { getSession } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 import Database from "better-sqlite3";
 import path from "path";
+
+// SECURITY: Helper function to verify admin authentication
+function verifyAdminAuth(request: NextRequest): { error: string; status: number } | null {
+  const sessionId = request.cookies.get("session")?.value;
+  if (!sessionId) {
+    return { error: "Authentication required", status: 401 };
+  }
+
+  const sessionResult = getSession(sessionId);
+  if (!sessionResult) {
+    return { error: "Invalid session", status: 401 };
+  }
+
+  if (sessionResult.user.role !== "admin") {
+    return { error: "Admin privileges required", status: 403 };
+  }
+
+  return null;
+}
 
 // ==================== TYPES ====================
 
@@ -873,8 +894,14 @@ export async function GET(request: Request) {
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // SECURITY: All scraper operations require admin authentication
+    const authError = verifyAdminAuth(request);
+    if (authError) {
+      return NextResponse.json({ error: authError.error }, { status: authError.status });
+    }
+
     const body = await request.json();
     const {
       action,
@@ -1090,7 +1117,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    console.error("Scraper error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    // SECURITY: sanitizeError logs the full error server-side
+    return NextResponse.json({ error: sanitizeError(error, "Scraper operation") }, { status: 500 });
   }
 }
