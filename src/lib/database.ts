@@ -86,7 +86,7 @@ const DB_PATH = path.join(process.cwd(), "wurmcalc.sqlite");
 
 let db: Database.Database | null = null;
 
-function getDb(): Database.Database {
+export function getDb(): Database.Database {
   if (!db) {
     db = new Database(DB_PATH);
     db.pragma("journal_mode = WAL");

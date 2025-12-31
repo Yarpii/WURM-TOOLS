@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface UserProfile {
   id: number;
@@ -16,10 +17,11 @@ interface UserProfile {
   show_location: boolean;
 }
 
-type TabType = "profile" | "privacy";
+type TabType = "profile" | "privacy" | "security";
 
 export default function SettingsPage() {
-  const { user, refresh } = useAuth();
+  const { user, refresh, logout } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,19 @@ export default function SettingsPage() {
     show_in_members_list: false,
     show_location: true,
   });
+
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+
+  const [deleteForm, setDeleteForm] = useState({
+    password: "",
+    confirmation: "",
+  });
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -138,6 +153,87 @@ export default function SettingsPage() {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setError("New passwords do not match");
+      return;
+    }
+
+    if (passwordForm.new_password.length < 8) {
+      setError("New password must be at least 8 characters");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/account/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(passwordForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to change password");
+        return;
+      }
+
+      setSuccess("Password changed successfully! Please log in again.");
+      setPasswordForm({ current_password: "", new_password: "", confirm_password: "" });
+
+      // Redirect to login after short delay
+      setTimeout(() => {
+        logout();
+        router.push("/login");
+      }, 2000);
+    } catch (err) {
+      setError("Failed to change password: " + String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (deleteForm.confirmation !== "DELETE") {
+      setError("Please type DELETE to confirm");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(deleteForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to delete account");
+        return;
+      }
+
+      // Redirect to home
+      logout();
+      router.push("/");
+    } catch (err) {
+      setError("Failed to delete account: " + String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -198,6 +294,16 @@ export default function SettingsPage() {
           }`}
         >
           Privacy & Visibility
+        </button>
+        <button
+          onClick={() => setActiveTab("security")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "security"
+              ? "bg-accent text-white"
+              : "text-text-secondary hover:text-text-primary hover:bg-bg-hover"
+          }`}
+        >
+          Security
         </button>
       </div>
 
@@ -425,6 +531,171 @@ export default function SettingsPage() {
                 your public profile when you opt-in to the members list.
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Security Tab */}
+      {activeTab === "security" && (
+        <div className="space-y-6">
+          {/* Change Password */}
+          <div className="bg-bg-secondary rounded-xl border border-border p-6">
+            <h2 className="text-xl font-semibold text-text-primary mb-2">
+              Change Password
+            </h2>
+            <p className="text-text-muted mb-6">
+              Update your password to keep your account secure
+            </p>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm text-text-secondary mb-2">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.current_password}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, current_password: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-text-secondary mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.new_password}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, new_password: e.target.value })
+                  }
+                  minLength={8}
+                  className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
+                  required
+                />
+                <p className="text-xs text-text-muted mt-1">
+                  Must be at least 8 characters
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-text-secondary mb-2">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.confirm_password}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, confirm_password: e.target.value })
+                  }
+                  minLength={8}
+                  className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className={`w-full py-3 rounded-lg font-medium transition-all ${
+                  saving
+                    ? "bg-bg-tertiary cursor-not-allowed text-text-muted"
+                    : "bg-accent hover:bg-accent-hover text-white"
+                }`}
+              >
+                {saving ? "Changing Password..." : "Change Password"}
+              </button>
+            </form>
+          </div>
+
+          {/* Delete Account */}
+          <div className="bg-bg-secondary rounded-xl border border-danger/30 p-6">
+            <h2 className="text-xl font-semibold text-danger mb-2">
+              Danger Zone
+            </h2>
+            <p className="text-text-muted mb-4">
+              Permanently delete your account and all associated data
+            </p>
+
+            {!showDeleteConfirm ? (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-4 py-2 bg-danger/20 text-danger rounded-lg hover:bg-danger/30 transition-colors"
+              >
+                Delete Account
+              </button>
+            ) : (
+              <form onSubmit={handleDeleteAccount} className="space-y-4">
+                <div className="p-4 bg-danger/10 border border-danger/30 rounded-lg mb-4">
+                  <p className="text-danger text-sm font-medium mb-2">
+                    This action cannot be undone!
+                  </p>
+                  <p className="text-text-muted text-sm">
+                    All your data will be permanently deleted, including orders, projects,
+                    prospects, merchants, and achievements.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-text-secondary mb-2">
+                    Enter your password
+                  </label>
+                  <input
+                    type="password"
+                    value={deleteForm.password}
+                    onChange={(e) =>
+                      setDeleteForm({ ...deleteForm, password: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-danger focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-text-secondary mb-2">
+                    Type <span className="font-mono text-danger">DELETE</span> to confirm
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteForm.confirmation}
+                    onChange={(e) =>
+                      setDeleteForm({ ...deleteForm, confirmation: e.target.value })
+                    }
+                    placeholder="DELETE"
+                    className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-danger focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setDeleteForm({ password: "", confirmation: "" });
+                    }}
+                    className="flex-1 py-3 rounded-lg font-medium bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving || deleteForm.confirmation !== "DELETE"}
+                    className={`flex-1 py-3 rounded-lg font-medium transition-all ${
+                      saving || deleteForm.confirmation !== "DELETE"
+                        ? "bg-bg-tertiary cursor-not-allowed text-text-muted"
+                        : "bg-danger hover:bg-danger/80 text-white"
+                    }`}
+                  >
+                    {saving ? "Deleting..." : "Delete My Account"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
