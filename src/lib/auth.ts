@@ -724,3 +724,134 @@ export function getUserStats(): {
     admins: admins.count,
   };
 }
+
+// ========== PASSWORD MANAGEMENT ==========
+
+export interface ChangePasswordResult {
+  success: boolean;
+  error?: string;
+}
+
+export function changePassword(
+  userId: number,
+  currentPassword: string,
+  newPassword: string
+): ChangePasswordResult {
+  const db = getDb();
+
+  // Get current user's password hash and salt
+  const user = db
+    .prepare("SELECT password_hash, salt FROM users WHERE id = ?")
+    .get(userId) as { password_hash: string; salt: string } | undefined;
+
+  if (!user) {
+    return { success: false, error: "User not found" };
+  }
+
+  // Verify current password
+  if (!verifyPassword(currentPassword, user.password_hash, user.salt)) {
+    return { success: false, error: "Current password is incorrect" };
+  }
+
+  // Validate new password
+  if (newPassword.length < 8) {
+    return { success: false, error: "New password must be at least 8 characters" };
+  }
+
+  if (newPassword.length > 128) {
+    return { success: false, error: "New password is too long" };
+  }
+
+  // Generate new salt and hash
+  const newSalt = crypto.randomBytes(16).toString("hex");
+  const newHash = hashPassword(newPassword, newSalt);
+
+  // Update password
+  const result = db
+    .prepare("UPDATE users SET password_hash = ?, salt = ? WHERE id = ?")
+    .run(newHash, newSalt, userId);
+
+  if (result.changes === 0) {
+    return { success: false, error: "Failed to update password" };
+  }
+
+  // Invalidate all other sessions for this user (security measure)
+  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+
+  return { success: true };
+}
+
+export function deleteAccount(userId: number, password: string): ChangePasswordResult {
+  const db = getDb();
+
+  // Get current user's password hash and salt
+  const user = db
+    .prepare("SELECT password_hash, salt, role FROM users WHERE id = ?")
+    .get(userId) as { password_hash: string; salt: string; role: string } | undefined;
+
+  if (!user) {
+    return { success: false, error: "User not found" };
+  }
+
+  // Don't allow admins to delete their account this way
+  if (user.role === "admin") {
+    return { success: false, error: "Admin accounts cannot be deleted this way" };
+  }
+
+  // Verify password
+  if (!verifyPassword(password, user.password_hash, user.salt)) {
+    return { success: false, error: "Password is incorrect" };
+  }
+
+  // Delete user data in order (respecting foreign keys)
+  const transaction = db.transaction(() => {
+    // Delete sessions
+    db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+
+    // Delete prospects and prospect pages
+    db.prepare("DELETE FROM prospects WHERE user_id = ?").run(userId);
+    db.prepare("DELETE FROM prospect_pages WHERE user_id = ?").run(userId);
+
+    // Delete orders
+    db.prepare("DELETE FROM orders WHERE user_id = ?").run(userId);
+
+    // Delete merchants
+    db.prepare("DELETE FROM merchants WHERE user_id = ?").run(userId);
+
+    // Delete projects and project items
+    db.prepare(`
+      DELETE FROM project_items WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)
+    `).run(userId);
+    db.prepare("DELETE FROM projects WHERE user_id = ?").run(userId);
+
+    // Delete price alerts
+    db.prepare("DELETE FROM price_alerts WHERE user_id = ?").run(userId);
+
+    // Delete map locations
+    db.prepare("DELETE FROM map_locations WHERE user_id = ?").run(userId);
+
+    // Delete achievements and XP
+    db.prepare("DELETE FROM user_achievements WHERE user_id = ?").run(userId);
+    db.prepare("DELETE FROM user_xp WHERE user_id = ?").run(userId);
+
+    // Delete webhooks
+    db.prepare("DELETE FROM discord_webhooks WHERE user_id = ?").run(userId);
+
+    // Delete ratings (both given and received)
+    db.prepare("DELETE FROM user_ratings WHERE rater_id = ? OR rated_user_id = ?").run(userId, userId);
+
+    // Leave alliances
+    db.prepare("DELETE FROM alliance_members WHERE user_id = ?").run(userId);
+    db.prepare("DELETE FROM alliance_invites WHERE user_id = ?").run(userId);
+
+    // Finally delete user
+    db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+  });
+
+  try {
+    transaction();
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to delete account" };
+  }
+}

@@ -59,6 +59,16 @@ import type {
   DiscordWebhook,
   CreateWebhookInput,
   DiscordEmbed,
+  ProspectPage,
+  Prospect,
+  ProspectWithPage,
+  ProspectStats,
+  ProspectStatus,
+  ProspectPriority,
+  CreateProspectPageInput,
+  UpdateProspectPageInput,
+  CreateProspectInput,
+  UpdateProspectInput,
 } from "./types";
 import {
   calculateSuccessChance,
@@ -76,7 +86,7 @@ const DB_PATH = path.join(process.cwd(), "wurmcalc.sqlite");
 
 let db: Database.Database | null = null;
 
-function getDb(): Database.Database {
+export function getDb(): Database.Database {
   if (!db) {
     db = new Database(DB_PATH);
     db.pragma("journal_mode = WAL");
@@ -486,6 +496,75 @@ function initDatabase(db: Database.Database): void {
 
       CREATE INDEX idx_discord_webhooks_user ON discord_webhooks(user_id);
       CREATE INDEX idx_discord_webhooks_active ON discord_webhooks(is_active);
+    `);
+  }
+
+  // Initialize prospect_pages table if it doesn't exist
+  const prospectPagesTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='prospect_pages'"
+    )
+    .get();
+
+  if (!prospectPagesTableExists) {
+    db.exec(`
+      CREATE TABLE prospect_pages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        color TEXT DEFAULT '#3b82f6',
+        icon TEXT DEFAULT 'folder',
+        is_default INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX idx_prospect_pages_user ON prospect_pages(user_id);
+      CREATE INDEX idx_prospect_pages_sort ON prospect_pages(sort_order);
+    `);
+  }
+
+  // Initialize prospects table if it doesn't exist
+  const prospectsTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='prospects'"
+    )
+    .get();
+
+  if (!prospectsTableExists) {
+    db.exec(`
+      CREATE TABLE prospects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        page_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        character_name TEXT,
+        server TEXT,
+        location TEXT,
+        status TEXT NOT NULL DEFAULT 'potential' CHECK(status IN ('potential', 'contacted', 'interested', 'recruited', 'declined', 'inactive')),
+        priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
+        quality_rating INTEGER DEFAULT 3 CHECK(quality_rating >= 1 AND quality_rating <= 5),
+        skills TEXT,
+        notes TEXT,
+        contact_info TEXT,
+        last_contact TEXT,
+        source TEXT,
+        tags TEXT,
+        custom_fields TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (page_id) REFERENCES prospect_pages(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX idx_prospects_page ON prospects(page_id);
+      CREATE INDEX idx_prospects_user ON prospects(user_id);
+      CREATE INDEX idx_prospects_status ON prospects(status);
+      CREATE INDEX idx_prospects_priority ON prospects(priority);
+      CREATE INDEX idx_prospects_quality ON prospects(quality_rating);
     `);
   }
 }
@@ -4670,4 +4749,377 @@ export function getActiveWebhooksForNotification(
       `SELECT * FROM discord_webhooks WHERE is_active = 1 AND ${column} = 1`
     )
     .all() as DiscordWebhook[];
+}
+
+// ========== PROSPECT PAGE FUNCTIONS ==========
+
+export function getProspectPagesByUser(userId: number): ProspectPage[] {
+  return getDb()
+    .prepare("SELECT * FROM prospect_pages WHERE user_id = ? ORDER BY sort_order ASC, created_at ASC")
+    .all(userId) as ProspectPage[];
+}
+
+export function getProspectPageById(id: number): ProspectPage | null {
+  return getDb()
+    .prepare("SELECT * FROM prospect_pages WHERE id = ?")
+    .get(id) as ProspectPage | null;
+}
+
+export function createProspectPage(userId: number, input: CreateProspectPageInput): number {
+  const db = getDb();
+
+  // Check if this is the first page for the user (make it default)
+  const existingPages = db
+    .prepare("SELECT COUNT(*) as count FROM prospect_pages WHERE user_id = ?")
+    .get(userId) as { count: number };
+
+  const isDefault = existingPages.count === 0 ? 1 : 0;
+  const sortOrder = existingPages.count;
+
+  const result = db
+    .prepare(
+      `INSERT INTO prospect_pages (user_id, name, description, color, icon, is_default, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      userId,
+      input.name,
+      input.description || null,
+      input.color || '#3b82f6',
+      input.icon || 'folder',
+      isDefault,
+      sortOrder
+    );
+
+  return result.lastInsertRowid as number;
+}
+
+export function updateProspectPage(id: number, userId: number, updates: UpdateProspectPageInput): boolean {
+  const page = getProspectPageById(id);
+  if (!page || page.user_id !== userId) return false;
+
+  const fields: string[] = ["updated_at = datetime('now')"];
+  const values: (string | number)[] = [];
+
+  if (updates.name !== undefined) {
+    fields.push("name = ?");
+    values.push(updates.name);
+  }
+  if (updates.description !== undefined) {
+    fields.push("description = ?");
+    values.push(updates.description);
+  }
+  if (updates.color !== undefined) {
+    fields.push("color = ?");
+    values.push(updates.color);
+  }
+  if (updates.icon !== undefined) {
+    fields.push("icon = ?");
+    values.push(updates.icon);
+  }
+  if (updates.sort_order !== undefined) {
+    fields.push("sort_order = ?");
+    values.push(updates.sort_order);
+  }
+
+  if (values.length === 0) return true;
+
+  values.push(id);
+  const result = getDb()
+    .prepare(`UPDATE prospect_pages SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return result.changes > 0;
+}
+
+export function deleteProspectPage(id: number, userId: number): boolean {
+  const page = getProspectPageById(id);
+  if (!page || page.user_id !== userId) return false;
+
+  // Don't delete the default page if it has prospects
+  if (page.is_default) {
+    const prospectCount = getDb()
+      .prepare("SELECT COUNT(*) as count FROM prospects WHERE page_id = ?")
+      .get(id) as { count: number };
+
+    if (prospectCount.count > 0) {
+      return false;
+    }
+  }
+
+  const result = getDb()
+    .prepare("DELETE FROM prospect_pages WHERE id = ?")
+    .run(id);
+
+  return result.changes > 0;
+}
+
+// ========== PROSPECT FUNCTIONS ==========
+
+export function getProspectsByPage(pageId: number, userId: number): Prospect[] {
+  return getDb()
+    .prepare(
+      `SELECT * FROM prospects
+       WHERE page_id = ? AND user_id = ?
+       ORDER BY
+         CASE priority
+           WHEN 'urgent' THEN 1
+           WHEN 'high' THEN 2
+           WHEN 'medium' THEN 3
+           WHEN 'low' THEN 4
+         END,
+         quality_rating DESC,
+         created_at DESC`
+    )
+    .all(pageId, userId) as Prospect[];
+}
+
+export function getProspectsByUser(userId: number, limit = 100, offset = 0): ProspectWithPage[] {
+  return getDb()
+    .prepare(
+      `SELECT p.*, pp.name as page_name, pp.color as page_color, pp.icon as page_icon
+       FROM prospects p
+       LEFT JOIN prospect_pages pp ON p.page_id = pp.id
+       WHERE p.user_id = ?
+       ORDER BY p.updated_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(userId, limit, offset) as ProspectWithPage[];
+}
+
+export function getProspectById(id: number): Prospect | null {
+  return getDb()
+    .prepare("SELECT * FROM prospects WHERE id = ?")
+    .get(id) as Prospect | null;
+}
+
+export function createProspect(userId: number, input: CreateProspectInput): number {
+  // Verify page belongs to user
+  const page = getProspectPageById(input.page_id);
+  if (!page || page.user_id !== userId) {
+    throw new Error("Invalid page");
+  }
+
+  const result = getDb()
+    .prepare(
+      `INSERT INTO prospects
+       (page_id, user_id, name, character_name, server, location, status, priority, quality_rating, skills, notes, contact_info, source, tags, custom_fields)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      input.page_id,
+      userId,
+      input.name,
+      input.character_name || null,
+      input.server || null,
+      input.location || null,
+      input.status || 'potential',
+      input.priority || 'medium',
+      input.quality_rating || 3,
+      input.skills || null,
+      input.notes || null,
+      input.contact_info || null,
+      input.source || null,
+      input.tags || null,
+      input.custom_fields || null
+    );
+
+  return result.lastInsertRowid as number;
+}
+
+export function updateProspect(id: number, userId: number, updates: UpdateProspectInput): boolean {
+  const prospect = getProspectById(id);
+  if (!prospect || prospect.user_id !== userId) return false;
+
+  // If changing page, verify new page belongs to user
+  if (updates.page_id !== undefined) {
+    const newPage = getProspectPageById(updates.page_id);
+    if (!newPage || newPage.user_id !== userId) return false;
+  }
+
+  const fields: string[] = ["updated_at = datetime('now')"];
+  const values: (string | number | null)[] = [];
+
+  const fieldMap: Record<string, keyof UpdateProspectInput> = {
+    page_id: 'page_id',
+    name: 'name',
+    character_name: 'character_name',
+    server: 'server',
+    location: 'location',
+    status: 'status',
+    priority: 'priority',
+    quality_rating: 'quality_rating',
+    skills: 'skills',
+    notes: 'notes',
+    contact_info: 'contact_info',
+    last_contact: 'last_contact',
+    source: 'source',
+    tags: 'tags',
+    custom_fields: 'custom_fields',
+  };
+
+  for (const [field, key] of Object.entries(fieldMap)) {
+    if (updates[key] !== undefined) {
+      fields.push(`${field} = ?`);
+      values.push(updates[key] as string | number | null);
+    }
+  }
+
+  if (values.length === 0) return true;
+
+  values.push(id);
+  const result = getDb()
+    .prepare(`UPDATE prospects SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return result.changes > 0;
+}
+
+export function deleteProspect(id: number, userId: number): boolean {
+  const prospect = getProspectById(id);
+  if (!prospect || prospect.user_id !== userId) return false;
+
+  const result = getDb()
+    .prepare("DELETE FROM prospects WHERE id = ?")
+    .run(id);
+
+  return result.changes > 0;
+}
+
+export function searchProspects(
+  userId: number,
+  query: string,
+  filters?: {
+    status?: ProspectStatus;
+    priority?: ProspectPriority;
+    pageId?: number;
+    minQuality?: number;
+  }
+): ProspectWithPage[] {
+  let sql = `
+    SELECT p.*, pp.name as page_name, pp.color as page_color, pp.icon as page_icon
+    FROM prospects p
+    LEFT JOIN prospect_pages pp ON p.page_id = pp.id
+    WHERE p.user_id = ?
+  `;
+  const params: (string | number)[] = [userId];
+
+  if (query) {
+    sql += ` AND (p.name LIKE ? OR p.character_name LIKE ? OR p.notes LIKE ? OR p.tags LIKE ?)`;
+    const searchTerm = `%${query}%`;
+    params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+  }
+
+  if (filters?.status) {
+    sql += ` AND p.status = ?`;
+    params.push(filters.status);
+  }
+
+  if (filters?.priority) {
+    sql += ` AND p.priority = ?`;
+    params.push(filters.priority);
+  }
+
+  if (filters?.pageId) {
+    sql += ` AND p.page_id = ?`;
+    params.push(filters.pageId);
+  }
+
+  if (filters?.minQuality) {
+    sql += ` AND p.quality_rating >= ?`;
+    params.push(filters.minQuality);
+  }
+
+  sql += ` ORDER BY p.updated_at DESC LIMIT 100`;
+
+  return getDb().prepare(sql).all(...params) as ProspectWithPage[];
+}
+
+export function getProspectStats(userId: number): ProspectStats {
+  const db = getDb();
+
+  const total = db
+    .prepare("SELECT COUNT(*) as count FROM prospects WHERE user_id = ?")
+    .get(userId) as { count: number };
+
+  const byStatus = db
+    .prepare(
+      `SELECT status, COUNT(*) as count FROM prospects WHERE user_id = ? GROUP BY status`
+    )
+    .all(userId) as { status: ProspectStatus; count: number }[];
+
+  const byPriority = db
+    .prepare(
+      `SELECT priority, COUNT(*) as count FROM prospects WHERE user_id = ? GROUP BY priority`
+    )
+    .all(userId) as { priority: ProspectPriority; count: number }[];
+
+  const byQuality = db
+    .prepare(
+      `SELECT quality_rating, COUNT(*) as count FROM prospects WHERE user_id = ? GROUP BY quality_rating`
+    )
+    .all(userId) as { quality_rating: number; count: number }[];
+
+  const recentContacts = db
+    .prepare(
+      `SELECT COUNT(*) as count FROM prospects
+       WHERE user_id = ? AND last_contact >= datetime('now', '-7 days')`
+    )
+    .get(userId) as { count: number };
+
+  const recruited = db
+    .prepare(
+      `SELECT COUNT(*) as count FROM prospects WHERE user_id = ? AND status = 'recruited'`
+    )
+    .get(userId) as { count: number };
+
+  const statusMap: Record<ProspectStatus, number> = {
+    potential: 0,
+    contacted: 0,
+    interested: 0,
+    recruited: 0,
+    declined: 0,
+    inactive: 0,
+  };
+  for (const s of byStatus) {
+    statusMap[s.status] = s.count;
+  }
+
+  const priorityMap: Record<ProspectPriority, number> = {
+    low: 0,
+    medium: 0,
+    high: 0,
+    urgent: 0,
+  };
+  for (const p of byPriority) {
+    priorityMap[p.priority] = p.count;
+  }
+
+  const qualityMap: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const q of byQuality) {
+    qualityMap[q.quality_rating] = q.count;
+  }
+
+  const contacted = statusMap.contacted + statusMap.interested + statusMap.recruited + statusMap.declined;
+  const conversionRate = contacted > 0 ? (recruited.count / contacted) * 100 : 0;
+
+  return {
+    total: total.count,
+    by_status: statusMap,
+    by_priority: priorityMap,
+    by_quality: qualityMap,
+    recent_contacts: recentContacts.count,
+    conversion_rate: Math.round(conversionRate * 10) / 10,
+  };
+}
+
+export function updateProspectLastContact(id: number, userId: number): boolean {
+  const prospect = getProspectById(id);
+  if (!prospect || prospect.user_id !== userId) return false;
+
+  const result = getDb()
+    .prepare("UPDATE prospects SET last_contact = datetime('now'), updated_at = datetime('now') WHERE id = ?")
+    .run(id);
+
+  return result.changes > 0;
 }
