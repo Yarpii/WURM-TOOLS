@@ -1,20 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getAllAlliances, createAlliance, getUserAlliance } from "@/lib/database";
+import { getAllAlliances, getAlliancesPaginated, createAlliance, getUserAlliance } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/alliances - Get list of public alliances
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const paginate = searchParams.get("paginate") === "true";
+
     const sessionId = request.cookies.get("session")?.value;
     const session = sessionId ? getSession(sessionId) : null;
     const isAdmin = session?.user?.role === "admin";
 
-    const alliances = getAllAlliances(isAdmin);
+    // SECURITY: Use paginated version for large datasets
+    if (paginate) {
+      const result = getAlliancesPaginated(isAdmin, { page, limit });
+      return NextResponse.json(result);
+    }
 
+    const alliances = getAllAlliances(isAdmin);
     return NextResponse.json({ alliances });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch alliances: " + String(error) },
+      { error: sanitizeError(error, "Fetch alliances") },
       { status: 500 }
     );
   }
@@ -93,7 +106,7 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json(
-      { error: "Failed to create alliance: " + errorMessage },
+      { error: sanitizeError(error, "Create alliance") },
       { status: 500 }
     );
   }

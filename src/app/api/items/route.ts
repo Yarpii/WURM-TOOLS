@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getAllItems,
+  getItemsPaginated,
   searchItems,
   addItem,
   getItemByName,
@@ -14,16 +15,29 @@ export async function GET(request: Request) {
   const query = searchParams.get("q");
   const categoriesOnly = searchParams.get("categories");
 
+  // Pagination parameters
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "50", 10);
+  const paginate = searchParams.get("paginate") === "true";
+
   if (categoriesOnly) {
     const categories = getCategories();
     return NextResponse.json(categories);
   }
 
   if (query) {
+    // Search results are typically smaller, no pagination needed
     const items = searchItems(query);
     return NextResponse.json(items);
   }
 
+  // SECURITY: Use paginated version for large datasets
+  if (paginate) {
+    const result = getItemsPaginated({ page, limit });
+    return NextResponse.json(result);
+  }
+
+  // Backwards compatible: return all items (but getAllItems is still bounded by database size)
   const items = getAllItems();
   return NextResponse.json(items);
 }

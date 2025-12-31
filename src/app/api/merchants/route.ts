@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import {
   getAllMerchants,
+  getMerchantsPaginated,
   createMerchant,
   getMerchantStats,
   getServers,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { MerchantCategory, CreateMerchantInput } from "@/lib/types";
 
 const VALID_CATEGORIES: MerchantCategory[] = [
@@ -45,6 +47,11 @@ export async function GET(request: NextRequest) {
     const stats_only = searchParams.get("stats");
     const servers_only = searchParams.get("servers");
 
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const paginate = searchParams.get("paginate") === "true";
+
     if (stats_only) {
       const stats = getMerchantStats();
       return NextResponse.json(stats);
@@ -57,18 +64,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(allServers);
     }
 
-    const merchants = getAllMerchants({
+    const filters = {
       is_active: true,
       category: category || undefined,
       server: server || undefined,
       search: search || undefined,
       user_id: user_id ? parseInt(user_id) : undefined,
-    });
+    };
 
+    // SECURITY: Use paginated version for large datasets
+    if (paginate) {
+      const result = getMerchantsPaginated(filters, { page, limit });
+      return NextResponse.json(result);
+    }
+
+    const merchants = getAllMerchants(filters);
     return NextResponse.json(merchants);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch merchants: " + String(error) },
+      { error: sanitizeError(error, "Fetch merchants") },
       { status: 500 }
     );
   }
@@ -154,7 +168,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ id: merchantId, success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to create merchant: " + String(error) },
+      { error: sanitizeError(error, "Create merchant") },
       { status: 500 }
     );
   }

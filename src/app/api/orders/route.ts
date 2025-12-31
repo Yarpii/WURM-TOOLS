@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import {
   getAllOrders,
+  getOrdersPaginated,
   createOrder,
   getOrderStats,
   expireOldOrders,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { OrderType, OrderStatus, CreateOrderInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -20,22 +22,34 @@ export async function GET(request: NextRequest) {
     const user_id = searchParams.get("user_id");
     const stats_only = searchParams.get("stats");
 
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const paginate = searchParams.get("paginate") === "true";
+
     if (stats_only) {
       const stats = getOrderStats();
       return NextResponse.json(stats);
     }
 
-    const orders = getAllOrders({
+    const filters = {
       status: status || undefined,
       order_type: order_type || undefined,
       item_name: item_name || undefined,
       user_id: user_id ? parseInt(user_id) : undefined,
-    });
+    };
 
+    // SECURITY: Use paginated version for large datasets
+    if (paginate) {
+      const result = getOrdersPaginated(filters, { page, limit });
+      return NextResponse.json(result);
+    }
+
+    const orders = getAllOrders(filters);
     return NextResponse.json(orders);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch orders: " + String(error) },
+      { error: sanitizeError(error, "Fetch orders") },
       { status: 500 }
     );
   }
@@ -121,7 +135,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ id: orderId, success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to create order: " + String(error) },
+      { error: sanitizeError(error, "Create order") },
       { status: 500 }
     );
   }

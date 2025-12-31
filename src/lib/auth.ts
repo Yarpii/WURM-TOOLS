@@ -293,6 +293,47 @@ export function getAllUsers(): User[] {
   return rows.map(dbRowToUser);
 }
 
+// SECURITY: Pagination types and helpers for DoS prevention
+export interface UserPaginatedResult {
+  data: User[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 200;
+
+// SECURITY: Paginated version to prevent DoS via unbounded queries
+export function getUsersPaginated(params?: { page?: number; limit?: number }): UserPaginatedResult {
+  const page = Math.max(1, Math.floor(params?.page || 1));
+  const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, Math.floor(params?.limit || DEFAULT_PAGE_LIMIT)));
+  const offset = (page - 1) * limit;
+
+  const db = getDb();
+  const total = (db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number }).count;
+
+  const rows = db
+    .prepare(`
+      SELECT id, username, email, role, created_at,
+             display_name, bio, avatar_url, location, wurm_server,
+             show_in_members_list, show_email, show_location,
+             is_banned, ban_reason, banned_at, banned_by
+      FROM users ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `)
+    .all(limit, offset) as UserDbRow[];
+
+  return {
+    data: rows.map(dbRowToUser),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 // Get visible members (opt-in and not banned)
 export function getVisibleMembers(): User[] {
   const rows = getDb()

@@ -594,10 +594,53 @@ function seedData(db: Database.Database): void {
   insertRecipes();
 }
 
+// ========== PAGINATION TYPES ==========
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+// SECURITY: Default and maximum limits to prevent DoS
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 200;
+
+function validatePagination(params?: PaginationParams): { offset: number; limit: number; page: number } {
+  const page = Math.max(1, Math.floor(params?.page || 1));
+  const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, Math.floor(params?.limit || DEFAULT_PAGE_LIMIT)));
+  const offset = (page - 1) * limit;
+  return { offset, limit, page };
+}
+
 // ========== QUERY FUNCTIONS ==========
 
 export function getAllItems(): Item[] {
   return getDb().prepare("SELECT * FROM items ORDER BY name").all() as Item[];
+}
+
+// SECURITY: Paginated version to prevent DoS via unbounded queries
+export function getItemsPaginated(params?: PaginationParams): PaginatedResult<Item> {
+  const { offset, limit, page } = validatePagination(params);
+  const db = getDb();
+
+  const total = (db.prepare("SELECT COUNT(*) as count FROM items").get() as { count: number }).count;
+  const data = db.prepare("SELECT * FROM items ORDER BY name LIMIT ? OFFSET ?").all(limit, offset) as Item[];
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export function getItem(id: number): Item | undefined {
@@ -1936,6 +1979,61 @@ export function getAllOrders(filters?: {
   return rows.map(mapOrderRowToMarketOrder);
 }
 
+// SECURITY: Paginated version to prevent DoS via unbounded queries
+export function getOrdersPaginated(
+  filters?: {
+    status?: OrderStatus;
+    order_type?: OrderType;
+    item_name?: string;
+    user_id?: number;
+  },
+  pagination?: PaginationParams
+): PaginatedResult<MarketOrder> {
+  const { offset, limit, page } = validatePagination(pagination);
+
+  let whereClause = "WHERE 1=1";
+  const params: (string | number)[] = [];
+
+  if (filters?.status) {
+    whereClause += " AND o.status = ?";
+    params.push(filters.status);
+  }
+  if (filters?.order_type) {
+    whereClause += " AND o.order_type = ?";
+    params.push(filters.order_type);
+  }
+  if (filters?.item_name) {
+    whereClause += " AND LOWER(o.item_name) LIKE LOWER(?)";
+    params.push(`%${filters.item_name}%`);
+  }
+  if (filters?.user_id) {
+    whereClause += " AND o.user_id = ?";
+    params.push(filters.user_id);
+  }
+
+  const db = getDb();
+  const countQuery = `SELECT COUNT(*) as count FROM orders o ${whereClause}`;
+  const total = (db.prepare(countQuery).get(...params) as { count: number }).count;
+
+  const dataQuery = `
+    SELECT o.*, u.username
+    FROM orders o
+    JOIN users u ON o.user_id = u.id
+    ${whereClause}
+    ORDER BY o.created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+  const rows = db.prepare(dataQuery).all(...params, limit, offset) as OrderWithUsername[];
+
+  return {
+    data: rows.map(mapOrderRowToMarketOrder),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 export function getOrderById(id: number): MarketOrder | null {
   const row = getDb()
     .prepare(
@@ -2226,6 +2324,67 @@ export function getAllMerchants(filters?: {
   return rows.map(mapMerchantRowToMerchant);
 }
 
+// SECURITY: Paginated version to prevent DoS via unbounded queries
+export function getMerchantsPaginated(
+  filters?: {
+    is_active?: boolean;
+    category?: MerchantCategory;
+    server?: string;
+    search?: string;
+    user_id?: number;
+  },
+  pagination?: PaginationParams
+): PaginatedResult<Merchant> {
+  const { offset, limit, page } = validatePagination(pagination);
+
+  let whereClause = "WHERE 1=1";
+  const params: (string | number)[] = [];
+
+  if (filters?.is_active !== undefined) {
+    whereClause += " AND m.is_active = ?";
+    params.push(filters.is_active ? 1 : 0);
+  }
+  if (filters?.category) {
+    whereClause += " AND m.category = ?";
+    params.push(filters.category);
+  }
+  if (filters?.server) {
+    whereClause += " AND m.server = ?";
+    params.push(filters.server);
+  }
+  if (filters?.search) {
+    whereClause += " AND (LOWER(m.name) LIKE LOWER(?) OR LOWER(m.stock_list) LIKE LOWER(?) OR LOWER(m.location) LIKE LOWER(?))";
+    const searchTerm = `%${filters.search}%`;
+    params.push(searchTerm, searchTerm, searchTerm);
+  }
+  if (filters?.user_id) {
+    whereClause += " AND m.user_id = ?";
+    params.push(filters.user_id);
+  }
+
+  const db = getDb();
+  const countQuery = `SELECT COUNT(*) as count FROM merchants m ${whereClause}`;
+  const total = (db.prepare(countQuery).get(...params) as { count: number }).count;
+
+  const dataQuery = `
+    SELECT m.*, u.username
+    FROM merchants m
+    JOIN users u ON m.user_id = u.id
+    ${whereClause}
+    ORDER BY m.updated_at DESC
+    LIMIT ? OFFSET ?
+  `;
+  const rows = db.prepare(dataQuery).all(...params, limit, offset) as MerchantWithUsername[];
+
+  return {
+    data: rows.map(mapMerchantRowToMerchant),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 export function getMerchantById(id: number): Merchant | null {
   const row = getDb()
     .prepare(
@@ -2454,6 +2613,39 @@ export function getAllAlliances(includePrivate: boolean = false): Alliance[] {
 
   const rows = getDb().prepare(query).all() as AllianceWithLeader[];
   return rows.map(mapAllianceRow);
+}
+
+// SECURITY: Paginated version to prevent DoS via unbounded queries
+export function getAlliancesPaginated(
+  includePrivate: boolean = false,
+  pagination?: PaginationParams
+): PaginatedResult<Alliance> {
+  const { offset, limit, page } = validatePagination(pagination);
+  const db = getDb();
+
+  const whereClause = includePrivate ? "" : "WHERE a.is_public = 1";
+
+  const countQuery = `SELECT COUNT(*) as count FROM alliances a ${whereClause}`;
+  const total = (db.prepare(countQuery).get() as { count: number }).count;
+
+  const dataQuery = `
+    SELECT a.*, u.username as leader_username,
+           (SELECT COUNT(*) FROM alliance_members WHERE alliance_id = a.id) as member_count
+    FROM alliances a
+    JOIN users u ON a.leader_id = u.id
+    ${whereClause}
+    ORDER BY a.name ASC
+    LIMIT ? OFFSET ?
+  `;
+  const rows = db.prepare(dataQuery).all(limit, offset) as AllianceWithLeader[];
+
+  return {
+    data: rows.map(mapAllianceRow),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export function getAllianceById(id: number): Alliance | null {
