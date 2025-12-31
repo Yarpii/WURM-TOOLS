@@ -101,19 +101,10 @@ function initAuthTables(db: Database.Database): void {
     db.exec("ALTER TABLE users ADD COLUMN banned_by INTEGER");
   }
 
-  // Ensure admin user exists (create if not present)
-  const adminExists = db
-    .prepare("SELECT id FROM users WHERE username = 'admin'")
-    .get();
-
-  if (!adminExists) {
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = hashPassword("admin123", salt);
-
-    db.prepare(
-      "INSERT INTO users (username, email, password_hash, salt, role, show_in_members_list) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run("admin", "admin@wurmtools.com", hash, salt, "admin", 1);
-  }
+  // Note: Admin user should be created manually via environment variable or CLI
+  // DO NOT create default admin with hardcoded password - this is a critical security risk
+  // To create an admin, use: ADMIN_INITIAL_PASSWORD=<secure_password> npm run setup-admin
+  // Or promote an existing user via the database
 }
 
 // ========== PASSWORD UTILITIES ==========

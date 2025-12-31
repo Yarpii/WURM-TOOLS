@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getItem, updateItem, deleteItem, getItemByName } from "@/lib/database";
+import { getSession } from "@/lib/auth";
 
 export async function GET(
   request: Request,
@@ -16,10 +17,34 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // SECURITY: Require admin authentication for updating items
+    const sessionId = request.cookies.get("session")?.value;
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const sessionResult = getSession(sessionId);
+    if (!sessionResult) {
+      return NextResponse.json(
+        { error: "Invalid session" },
+        { status: 401 }
+      );
+    }
+
+    if (sessionResult.user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin privileges required" },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { name, category, is_base_material, description } = body;
@@ -28,7 +53,12 @@ export async function PUT(
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    const existing = getItemByName(name);
+    // SECURITY: Input validation - sanitize inputs
+    const sanitizedName = String(name).trim().slice(0, 100);
+    const sanitizedCategory = String(category || "misc").trim().slice(0, 50);
+    const sanitizedDescription = String(description || "").trim().slice(0, 500);
+
+    const existing = getItemByName(sanitizedName);
     if (existing && existing.id !== parseInt(id)) {
       return NextResponse.json(
         { error: "Another item with this name exists" },
@@ -38,10 +68,10 @@ export async function PUT(
 
     const success = updateItem(
       parseInt(id),
-      name,
-      category || "misc",
+      sanitizedName,
+      sanitizedCategory,
       is_base_material || false,
-      description || ""
+      sanitizedDescription
     );
 
     return NextResponse.json({ success });
@@ -51,10 +81,34 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // SECURITY: Require admin authentication for deleting items
+    const sessionId = request.cookies.get("session")?.value;
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const sessionResult = getSession(sessionId);
+    if (!sessionResult) {
+      return NextResponse.json(
+        { error: "Invalid session" },
+        { status: 401 }
+      );
+    }
+
+    if (sessionResult.user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin privileges required" },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const success = deleteItem(parseInt(id));
     return NextResponse.json({ success });
