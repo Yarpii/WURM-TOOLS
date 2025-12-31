@@ -4,17 +4,17 @@ import { createUser, login } from "@/lib/auth";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, email, password } = body;
+    const { username, password } = body;
 
-    // Create user
-    const result = createUser(username, email, password);
+    // Create user (email is auto-generated for privacy)
+    const result = createUser(username, password);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     // Auto-login after registration
-    const loginResult = login(email, password);
+    const loginResult = login(username, password);
 
     if (!loginResult.success) {
       return NextResponse.json({ error: "Registration successful but login failed" }, { status: 500 });

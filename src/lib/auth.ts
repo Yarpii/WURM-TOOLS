@@ -172,30 +172,29 @@ export interface UserWithPassword extends User {
 
 export function createUser(
   username: string,
-  email: string,
   password: string
 ): { success: true; user: User } | { success: false; error: string } {
   const db = getDb();
 
   // Validate input
   if (!username || username.length < 3) {
-    return { success: false, error: "Username must be at least 3 characters" };
-  }
-  if (!email || !email.includes("@")) {
-    return { success: false, error: "Invalid email address" };
+    return { success: false, error: "Character name must be at least 3 characters" };
   }
   if (!password || password.length < 6) {
     return { success: false, error: "Password must be at least 6 characters" };
   }
 
-  // Check if username or email already exists
+  // Check if username already exists
   const existingUser = db
-    .prepare("SELECT id FROM users WHERE username = ? OR email = ?")
-    .get(username.toLowerCase(), email.toLowerCase());
+    .prepare("SELECT id FROM users WHERE username = ?")
+    .get(username.toLowerCase());
 
   if (existingUser) {
-    return { success: false, error: "Username or email already exists" };
+    return { success: false, error: "This character name is already registered" };
   }
+
+  // Generate placeholder email for database compatibility (not used for anything)
+  const placeholderEmail = `${username.toLowerCase()}@wurmtools.local`;
 
   // Create user
   const salt = crypto.randomBytes(16).toString("hex");
@@ -206,7 +205,7 @@ export function createUser(
       .prepare(
         "INSERT INTO users (username, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?)"
       )
-      .run(username.toLowerCase(), email.toLowerCase(), hash, salt, "user");
+      .run(username.toLowerCase(), placeholderEmail, hash, salt, "user");
 
     const user = getUserById(result.lastInsertRowid as number);
     if (!user) {

@@ -64,7 +64,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-text-secondary text-sm mb-2">
-                Username or Email
+                Character Name
               </label>
               <input
                 type="text"
@@ -73,7 +73,7 @@ export default function LoginPage() {
                 required
                 autoComplete="username"
                 className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
-                placeholder="Enter your username or email"
+                placeholder="Your Wurm character name"
               />
             </div>
 
@@ -115,11 +115,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-bg-secondary rounded-lg border border-border">
-          <p className="text-text-muted text-xs text-center">
-            <span className="text-accent">Default Admin:</span> admin / admin123
-          </p>
-        </div>
       </div>
     </div>
   );

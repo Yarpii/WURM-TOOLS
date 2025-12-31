@@ -7,14 +7,12 @@ import Link from "next/link";
 interface UserProfile {
   id: number;
   username: string;
-  email: string;
   display_name?: string;
   bio?: string;
   avatar_url?: string;
   location?: string;
   wurm_server?: string;
   show_in_members_list: boolean;
-  show_email: boolean;
   show_location: boolean;
 }
 
@@ -40,7 +38,6 @@ export default function SettingsPage() {
 
   const [privacyForm, setPrivacyForm] = useState({
     show_in_members_list: false,
-    show_email: false,
     show_location: true,
   });
 
@@ -65,7 +62,6 @@ export default function SettingsPage() {
         });
         setPrivacyForm({
           show_in_members_list: data.profile.show_in_members_list,
-          show_email: data.profile.show_email,
           show_location: data.profile.show_location,
         });
       } catch (err) {
@@ -374,32 +370,6 @@ export default function SettingsPage() {
                       Your profile is visible
                     </div>
                   )}
-                </div>
-              </label>
-            </div>
-
-            {/* Show Email */}
-            <div className="p-4 bg-bg-tertiary rounded-lg border border-border">
-              <label className="flex items-start gap-4 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={privacyForm.show_email}
-                  onChange={(e) =>
-                    setPrivacyForm({
-                      ...privacyForm,
-                      show_email: e.target.checked,
-                    })
-                  }
-                  className="mt-1 w-5 h-5 rounded border-border bg-bg-secondary checked:bg-accent checked:border-accent focus:ring-accent"
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-text-primary">
-                    Show Email Address
-                  </div>
-                  <p className="text-sm text-text-muted mt-1">
-                    Display your email address on your public profile. Only visible
-                    when your profile is public.
-                  </p>
                 </div>
               </label>
             </div>
