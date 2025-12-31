@@ -1,25 +1,158 @@
-# WurmCalc
+# BlackForge Tools
 
-A crafting calculator for [WURM Online](https://www.wurmonline.com/) built with Next.js, TypeScript, and SQLite.
+<div align="center">
+
+![BlackForge Tools](https://img.shields.io/badge/WURM-Online-orange?style=for-the-badge)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=for-the-badge&logo=typescript)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql)
+
+**The Ultimate Companion Tool for WURM Online**
+
+[Live Demo](https://blackforge.tools) · [Report Bug](https://github.com/Yarpii/WURM-TOOLS/issues) · [Request Feature](https://github.com/Yarpii/WURM-TOOLS/issues)
+
+</div>
+
+---
+
+## About
+
+BlackForge Tools is a comprehensive companion web application for [WURM Online](https://www.wurmonline.com/) players. It provides crafting calculators, market trading, alliance management, project planning, and much more - all in one place.
+
+Built with modern technologies and a focus on user experience, it helps players optimize their gameplay and connect with the community.
+
+---
 
 ## Features
 
-- **Material Calculator** - Calculate total base materials needed for any craftable item
-- **Crafting Tree** - Visual breakdown of the complete crafting hierarchy
-- **Reverse Lookup** - Find out what items you can craft with a specific material
-- **Admin Panel** - Manage items and recipes with full CRUD operations
-- **Data Management** - Import/export data as JSON for backup and sharing
-- **Autocomplete Search** - Quick item search with keyboard navigation
-- **Dark Theme** - Easy on the eyes with a custom dark color scheme
-- **Market System** - Track merchants, orders, and alliances
-- **User Authentication** - Secure session-based authentication with role management
+### Crafting System
+
+| Feature | Description |
+|---------|-------------|
+| **Material Calculator** | Calculate exact base materials needed for any craftable item |
+| **Advanced Crafting** | Factor in skill levels, tool quality, and difficulty for realistic estimates |
+| **Crafting Tree** | Visual breakdown of the complete crafting hierarchy |
+| **Reverse Lookup** | Find what items can be crafted from a specific material |
+| **Skill Predictions** | Predict success chance, quality output, and skill gains |
+
+### Market & Trading
+
+| Feature | Description |
+|---------|-------------|
+| **Buy/Sell Orders** | Post and browse buy/sell orders for items |
+| **Trade Matching** | Automatic matching of compatible buy and sell orders |
+| **Price History** | Track historical prices and market trends |
+| **Price Alerts** | Get notified when items reach your target price |
+| **Trade Ratings** | Rate traders to build community trust |
+
+### Merchants
+
+| Feature | Description |
+|---------|-------------|
+| **Merchant Directory** | Browse player-run merchant shops |
+| **Stock Lists** | See what merchants have in stock |
+| **Location Mapping** | Find merchants on the map |
+| **Category Filtering** | Filter by item category, server, location |
+
+### Alliances & Community
+
+| Feature | Description |
+|---------|-------------|
+| **Alliance Management** | Create and manage alliances/guilds |
+| **Member Roles** | Leader, Officer, Member role hierarchy |
+| **Invite System** | Send and manage alliance invitations |
+| **Alliance Projects** | Collaborative project planning |
+
+### Project Planning
+
+| Feature | Description |
+|---------|-------------|
+| **Project Tracker** | Plan large crafting or building projects |
+| **Material Lists** | Auto-calculate materials for project items |
+| **Progress Tracking** | Track completion of project items |
+| **Sharing** | Share projects with alliance members |
+
+### Prospect Management
+
+| Feature | Description |
+|---------|-------------|
+| **Recruitment Tracking** | Track potential alliance recruits |
+| **Custom Pages** | Organize prospects into categories |
+| **Status Workflow** | Potential → Contacted → Interested → Recruited |
+| **Notes & History** | Keep detailed notes on each prospect |
+
+### Map System
+
+| Feature | Description |
+|---------|-------------|
+| **Location Database** | Mark and share in-game locations |
+| **Location Types** | Deeds, merchants, landmarks, resources, spawns |
+| **Server Support** | All WURM Online servers supported |
+| **Coordinate System** | Precise X/Y coordinate tracking |
+
+### Gamification
+
+| Feature | Description |
+|---------|-------------|
+| **XP System** | Earn experience for using the platform |
+| **Achievements** | Unlock achievements for various activities |
+| **Leaderboards** | Compete with other players |
+| **Badges** | Display earned badges on your profile |
+
+### User Features
+
+| Feature | Description |
+|---------|-------------|
+| **User Profiles** | Customizable member profiles |
+| **Dashboard** | Personal dashboard with stats and activity |
+| **Discord Webhooks** | Get notifications in your Discord server |
+| **Settings** | Customize your experience |
+
+### Analytics
+
+| Feature | Description |
+|---------|-------------|
+| **Market Analytics** | Price trends, volume, popular items |
+| **Trending Items** | See what's hot in the market |
+| **Personal Stats** | Your trading and crafting statistics |
+
+---
+
+## Screenshots
+
+<details>
+<summary>Click to view screenshots</summary>
+
+### Crafting Calculator
+Calculate materials with skill-based predictions
+
+### Market System
+Browse and post trade orders
+
+### Alliance Management
+Manage your guild and members
+
+### Dashboard
+Personal stats and activity overview
+
+</details>
+
+---
 
 ## Tech Stack
 
-- **Next.js 16** - React framework with App Router
-- **TypeScript** - Type-safe development
-- **better-sqlite3** - Fast SQLite database
-- **Tailwind CSS v4** - Utility-first styling
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Next.js** | 16 | React framework with App Router |
+| **React** | 19 | UI library |
+| **TypeScript** | 5.9 | Type-safe development |
+| **PostgreSQL** | 16 | Production database |
+| **SQLite** | - | Local development database |
+| **Tailwind CSS** | 4 | Utility-first styling |
+| **PM2** | - | Process management |
+| **Caddy** | - | Reverse proxy with auto-SSL |
+
+---
 
 ## Getting Started
 
@@ -27,167 +160,246 @@ A crafting calculator for [WURM Online](https://www.wurmonline.com/) built with 
 
 - Node.js 18+
 - npm or yarn
+- PostgreSQL 16 (for production)
 
-### Installation
+### Local Development
 
 ```bash
+# Clone the repository
+git clone https://github.com/Yarpii/WURM-TOOLS.git
+cd WURM-TOOLS
+
 # Install dependencies
 npm install
 
-# Run development server
+# Run development server (uses SQLite)
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Build for Production
+### Production Deployment (VPS)
+
+We provide complete deployment scripts for Ubuntu VPS:
 
 ```bash
-npm run build
-npm start
+# On your VPS
+cd scripts/vps
+chmod +x *.sh
+
+# Run setup scripts
+sudo bash 01-initial-setup.sh    # PostgreSQL, Node.js, PM2, Caddy
+sudo bash 02-security-setup.sh   # Firewall, Fail2Ban, SSH hardening
+sudo bash 03-deploy-app.sh       # Deploy application
+
+# Setup automatic backups
+sudo bash 04-backup.sh --install-cron
 ```
+
+See [scripts/vps/README.md](scripts/vps/README.md) for detailed documentation.
+
+---
 
 ## Environment Variables
 
-Create a `.env.local` file in the project root:
+Create a `.env.local` file:
 
 ```env
-# Required for production
+# Environment
 NODE_ENV=production
 
-# Optional: Custom database paths (defaults to project root)
-# DATABASE_URL=./data/wurmcalc.sqlite
-# SCRAPER_DB_PATH=./data/scraper-cache.sqlite
+# Database (PostgreSQL for production)
+DATABASE_URL=postgresql://user:password@localhost:5432/wurmtools
+
+# Optional: SSL settings
+DATABASE_SSL=true
+DATABASE_POOL_MAX=10
 ```
 
-## Security Features
+See [.env.example](.env.example) for all options.
 
-This application includes comprehensive security hardening:
-
-### Authentication & Authorization
-- Session-based authentication with secure httpOnly cookies
-- PBKDF2-SHA512 password hashing with random salts
-- Role-based access control (admin/user)
-- All admin endpoints require authentication
-
-### CSRF Protection
-- `sameSite: "strict"` cookies prevent cross-site request forgery
-- Secure flag enabled in production (HTTPS only)
-
-### Rate Limiting
-- In-memory rate limiting (100 requests/minute per IP)
-- **Note:** For horizontal scaling, implement Redis-based rate limiting
-
-### Security Headers
-- Content Security Policy (CSP)
-- X-Frame-Options: DENY (clickjacking protection)
-- X-Content-Type-Options: nosniff
-- Referrer-Policy: strict-origin-when-cross-origin
-- HSTS enabled in production
-
-### Input Validation & Sanitization
-- All user inputs validated and sanitized
-- XSS protection via HTML entity encoding
-- SQL injection prevention via parameterized queries
-- URL validation (HTTPS-only for external resources)
-
-### Error Handling
-- Production-safe error messages (no stack traces leaked)
-- Detailed logging for debugging (server-side only)
-
-### API Pagination
-- All list endpoints support pagination to prevent DoS
-- Usage: `?paginate=true&page=1&limit=50`
-- Maximum 200 items per page
-
-## Production Deployment Checklist
-
-Before deploying to production, ensure:
-
-- [ ] Set `NODE_ENV=production`
-- [ ] Configure HTTPS with valid SSL certificate
-- [ ] Set up proper database backups
-- [ ] Replace in-memory rate limiting with Redis for horizontal scaling
-- [ ] Configure proper logging and monitoring
-- [ ] Review and restrict CORS if needed
-- [ ] Set up proper firewall rules
+---
 
 ## Project Structure
 
 ```
 src/
-├── app/
-│   ├── page.tsx              # Main calculator page
-│   ├── admin/page.tsx        # Admin panel
-│   ├── data/page.tsx         # Data import/export
-│   ├── layout.tsx            # Root layout
-│   ├── globals.css           # Global styles
-│   └── api/
-│       ├── auth/             # Authentication endpoints
-│       ├── items/            # Items CRUD API
-│       ├── calculate/        # Calculate materials API
-│       ├── reverse/          # Reverse lookup API
-│       ├── admin/            # Admin-only endpoints
-│       ├── orders/           # Market orders API
-│       ├── merchants/        # Merchants API
-│       ├── alliances/        # Alliances API
-│       └── data/             # Import/export API
+├── app/                    # Next.js App Router pages
+│   ├── page.tsx            # Home / Landing page
+│   ├── crafting/           # Crafting calculator
+│   ├── market/             # Buy/sell orders
+│   ├── merchants/          # Merchant directory
+│   ├── alliances/          # Alliance management
+│   ├── members/            # Member profiles
+│   ├── projects/           # Project planning
+│   ├── prospects/          # Recruitment tracking
+│   ├── trades/             # Trade matching
+│   ├── map/                # Location database
+│   ├── achievements/       # Gamification
+│   ├── analytics/          # Market analytics
+│   ├── dashboard/          # User dashboard
+│   ├── settings/           # User settings
+│   ├── admin/              # Admin panel
+│   ├── data/               # Import/export
+│   ├── login/              # Authentication
+│   ├── register/           # Registration
+│   └── api/                # 42 API routes
 ├── lib/
-│   ├── database.ts           # SQLite database layer
-│   ├── auth.ts               # Authentication logic
-│   ├── security.ts           # Security utilities
-│   └── types.ts              # TypeScript interfaces
-└── middleware.ts             # Rate limiting & security headers
+│   ├── database.ts         # SQLite database layer
+│   ├── database-pg.ts      # PostgreSQL database layer
+│   ├── db-config.ts        # Database configuration
+│   ├── auth.ts             # Authentication logic
+│   ├── security.ts         # Security utilities
+│   ├── types.ts            # TypeScript interfaces
+│   └── wurm-formulas.ts    # Game mechanics calculations
+├── components/             # Reusable React components
+└── middleware.ts           # Rate limiting & security headers
+
+scripts/
+├── schema.sql              # PostgreSQL schema
+├── migrate-to-postgres.ts  # SQLite → PostgreSQL migration
+└── vps/                    # VPS deployment scripts
+    ├── 01-initial-setup.sh
+    ├── 02-security-setup.sh
+    ├── 03-deploy-app.sh
+    ├── 04-backup.sh
+    └── 05-maintenance.sh
+
+docs/
+├── VPS-DATABASE-SETUP.md   # PostgreSQL setup guide
+└── DEPLOYMENT-OPTIONS.md   # Deployment architecture
 ```
 
-## Usage
-
-### Calculator Mode
-
-1. Search for an item using the autocomplete
-2. Set the quantity you want to craft
-3. View the total base materials and crafting tree
-
-### Reverse Lookup Mode
-
-1. Switch to "Reverse Lookup" mode
-2. Search for a material
-3. See all items that can be crafted using that material
-4. Toggle "Include indirect uses" for full dependency tree
-
-### Admin Panel
-
-- Add, edit, and delete items
-- Manage recipe ingredients with quantity
-- Automatic circular dependency detection
-- Requires admin authentication
-
-### Data Management
-
-- Export all data as JSON backup
-- Import data from JSON files
-- Clear all data (with confirmation)
-- Admin authentication required for dangerous operations
+---
 
 ## API Reference
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login
-- `POST /api/auth/logout` - Logout
-- `GET /api/auth/session` - Check session status
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/logout` | Logout |
+| GET | `/api/auth/session` | Check session |
 
-### Items (Admin auth required for mutations)
-- `GET /api/items` - List items (supports `?paginate=true`)
-- `POST /api/items` - Create item
-- `PUT /api/items/[id]` - Update item
-- `DELETE /api/items/[id]` - Delete item
+### Crafting
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/items` | List all items |
+| GET | `/api/calculate?id=X&qty=Y` | Calculate materials |
+| GET | `/api/advanced-calculate` | Calculate with skill factors |
+| GET | `/api/reverse?id=X` | Reverse lookup |
 
-### Market (Auth required)
-- `GET /api/orders` - List orders (supports pagination)
-- `GET /api/merchants` - List merchants (supports pagination)
-- `GET /api/alliances` - List alliances (supports pagination)
+### Market
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/orders` | List orders |
+| POST | `/api/orders` | Create order |
+| GET | `/api/merchants` | List merchants |
+| GET | `/api/matches` | Get trade matches |
+| GET | `/api/price_alerts` | Price alerts |
+
+### Community
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/alliances` | List alliances |
+| GET | `/api/members` | List members |
+| GET | `/api/projects` | List projects |
+| GET | `/api/prospects` | List prospects |
+| GET | `/api/map` | Map locations |
+
+### Gamification
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/achievements` | Achievements |
+| GET | `/api/leaderboard` | Leaderboard |
+| GET | `/api/dashboard` | Dashboard data |
+
+All list endpoints support pagination: `?paginate=true&page=1&limit=50`
+
+---
+
+## Security
+
+### Authentication & Authorization
+- Session-based authentication with httpOnly cookies
+- PBKDF2-SHA512 password hashing with random salts
+- Role-based access control (admin/user)
+
+### Protection Measures
+- **Firewall**: UFW with only ports 22, 80, 443
+- **Brute-force**: Fail2Ban for SSH and login protection
+- **Rate Limiting**: 100 requests/minute per IP
+- **CSRF**: Strict SameSite cookies
+- **XSS**: Content Security Policy headers
+- **SQL Injection**: Parameterized queries only
+
+### Security Headers
+```
+Content-Security-Policy: default-src 'self'
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=31536000
+Referrer-Policy: strict-origin-when-cross-origin
+```
+
+---
+
+## Maintenance
+
+```bash
+# Check system status
+sudo bash scripts/vps/05-maintenance.sh status
+
+# View logs
+sudo bash scripts/vps/05-maintenance.sh logs app
+
+# Update application
+sudo bash scripts/vps/05-maintenance.sh update
+
+# Run health checks
+sudo bash scripts/vps/05-maintenance.sh health
+
+# Create backup
+sudo bash scripts/vps/04-backup.sh --full
+
+# Restore from backup
+sudo bash scripts/vps/04-backup.sh --restore <backup-file>
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- [WURM Online](https://www.wurmonline.com/) - The game we love
+- [Next.js](https://nextjs.org/) - React framework
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [PostgreSQL](https://www.postgresql.org/) - Database
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the WURM Online Community**
+
+[Website](https://blackforge.tools) · [GitHub](https://github.com/Yarpii/WURM-TOOLS)
+
+</div>
