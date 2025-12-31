@@ -12,6 +12,7 @@ import {
   importRecipesFromCsv,
 } from "@/lib/database";
 import { getSession } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 // SECURITY: Helper function to verify admin authentication
 function verifyAdminAuth(request: NextRequest): { error: string; status: number } | null {
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
         });
       } catch (error) {
         return NextResponse.json(
-          { error: `Failed to reload extended data: ${String(error)}` },
+          { error: sanitizeError(error, "Reload extended data") },
           { status: 500 }
         );
       }
@@ -145,6 +146,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(error, "Data operation") }, { status: 500 });
   }
 }

@@ -9,6 +9,7 @@ import {
   deleteRecipeIngredient,
 } from "@/lib/database";
 import { getSession } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 import Database from "better-sqlite3";
 import path from "path";
 
@@ -1116,7 +1117,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    console.error("Scraper error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    // SECURITY: sanitizeError logs the full error server-side
+    return NextResponse.json({ error: sanitizeError(error, "Scraper operation") }, { status: 500 });
   }
 }

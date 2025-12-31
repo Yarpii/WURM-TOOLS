@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logout } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set("session", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict", // SECURITY: Changed from 'lax' to 'strict' for CSRF protection
       maxAge: 0,
       path: "/",
     });
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Logout failed: " + String(error) },
+      { error: sanitizeError(error, "Logout") },
       { status: 500 }
     );
   }

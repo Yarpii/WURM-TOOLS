@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getItem, updateItem, deleteItem, getItemByName } from "@/lib/database";
 import { getSession } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 export async function GET(
   request: Request,
@@ -76,7 +77,7 @@ export async function PUT(
 
     return NextResponse.json({ success });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(error, "Update item") }, { status: 500 });
   }
 }
 
@@ -113,6 +114,6 @@ export async function DELETE(
     const success = deleteItem(parseInt(id));
     return NextResponse.json({ success });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(error, "Delete item") }, { status: 500 });
   }
 }

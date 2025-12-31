@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { login } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Login failed: " + String(error) },
+      { error: sanitizeError(error, "Login") },
       { status: 500 }
     );
   }

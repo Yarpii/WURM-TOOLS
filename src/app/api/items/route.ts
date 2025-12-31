@@ -7,6 +7,7 @@ import {
   getCategories,
 } from "@/lib/database";
 import { getSession } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ id, success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: String(error) },
+      { error: sanitizeError(error, "Create item") },
       { status: 500 }
     );
   }

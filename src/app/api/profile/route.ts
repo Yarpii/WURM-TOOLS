@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, getUserById, updateUserProfile } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/profile - Get current user's full profile
 export async function GET(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ profile: user });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch profile: " + String(error) },
+      { error: sanitizeError(error, "Fetch profile") },
       { status: 500 }
     );
   }
@@ -133,7 +134,7 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update profile: " + String(error) },
+      { error: sanitizeError(error, "Update profile") },
       { status: 500 }
     );
   }

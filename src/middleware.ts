@@ -2,7 +2,18 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // ==================== RATE LIMITING ====================
-// Simple in-memory rate limiter (for production, use Redis)
+/**
+ * PRODUCTION WARNING: This in-memory rate limiter does NOT work with:
+ * - Multiple server instances (load balanced)
+ * - Serverless deployments (Vercel, AWS Lambda)
+ * - Container orchestration (Kubernetes)
+ *
+ * For production, implement Redis-based rate limiting:
+ * - Use Redis INCR with EXPIRE for atomic counters
+ * - Or use a service like Cloudflare, AWS WAF, or rate-limit middleware
+ *
+ * See /src/lib/security.ts for Redis implementation example.
+ */
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
