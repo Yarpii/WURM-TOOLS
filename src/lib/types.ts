@@ -726,3 +726,216 @@ export interface ProspectStats {
   recent_contacts: number;
   conversion_rate: number;
 }
+
+// ========== PLAYER HUB - SKILL TRACKING ==========
+
+export interface UserSkill {
+  id: number;
+  user_id: number;
+  skill_name: string;
+  current_level: number;
+  target_level?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SkillHistory {
+  id: number;
+  user_skill_id: number;
+  old_level: number;
+  new_level: number;
+  recorded_at: string;
+}
+
+export interface WurmSkill {
+  id: number;
+  name: string;
+  category: string;
+  parent_skill?: string;
+  max_level: number;
+  description?: string;
+}
+
+export interface CreateSkillInput {
+  skill_name: string;
+  current_level: number;
+  target_level?: number;
+  notes?: string;
+}
+
+export interface UpdateSkillInput {
+  current_level?: number;
+  target_level?: number;
+  notes?: string;
+}
+
+// Skill gain calculation helpers
+export interface SkillGainEstimate {
+  skill_name: string;
+  current_level: number;
+  target_level: number;
+  estimated_actions: number;
+  estimated_time_hours: number;
+  with_sleep_bonus: {
+    estimated_actions: number;
+    estimated_time_hours: number;
+  };
+}
+
+// ========== PLAYER HUB - TIMERS ==========
+
+export type TimerType =
+  | "sleep_bonus"
+  | "fatigue"
+  | "crop"
+  | "animal"
+  | "sermon"
+  | "meditation"
+  | "custom"
+  | "cooldown"
+  | "bulk";
+
+export interface UserTimer {
+  id: number;
+  user_id: number;
+  name: string;
+  description?: string;
+  timer_type: TimerType;
+  duration_minutes: number;
+  start_time: string;
+  end_time: string;
+  is_recurring: boolean;
+  recurrence_interval?: number;
+  notify_discord: boolean;
+  is_active: boolean;
+  color: string;
+  icon?: string;
+  created_at: string;
+}
+
+export interface TimerPreset {
+  id: number;
+  user_id?: number;
+  name: string;
+  timer_type: TimerType;
+  duration_minutes: number;
+  description?: string;
+  color: string;
+  icon?: string;
+  is_public: boolean;
+}
+
+export interface CreateTimerInput {
+  name: string;
+  description?: string;
+  timer_type: TimerType;
+  duration_minutes: number;
+  is_recurring?: boolean;
+  recurrence_interval?: number;
+  notify_discord?: boolean;
+  color?: string;
+  icon?: string;
+}
+
+export interface UpdateTimerInput {
+  name?: string;
+  description?: string;
+  is_recurring?: boolean;
+  recurrence_interval?: number;
+  notify_discord?: boolean;
+  is_active?: boolean;
+  color?: string;
+}
+
+// ========== PLAYER HUB - EVENTS / CALENDAR ==========
+
+export type EventType =
+  | "impalong"
+  | "rift"
+  | "unique"
+  | "sermon_group"
+  | "market"
+  | "pvp"
+  | "community"
+  | "personal"
+  | "other";
+
+export type AttendeeStatus = "interested" | "going" | "maybe" | "not_going";
+
+export interface WurmEvent {
+  id: number;
+  user_id: number;
+  username?: string;
+  title: string;
+  description?: string;
+  event_type: EventType;
+  server?: WurmServer;
+  location?: string;
+  coordinates?: string;
+  start_date: string;
+  end_date?: string;
+  is_all_day: boolean;
+  is_public: boolean;
+  is_featured: boolean;
+  max_attendees?: number;
+  contact_info?: string;
+  external_link?: string;
+  image_url?: string;
+  attendee_count?: number;
+  user_status?: AttendeeStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventAttendee {
+  id: number;
+  event_id: number;
+  user_id: number;
+  username?: string;
+  status: AttendeeStatus;
+  character_name?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface CreateEventInput {
+  title: string;
+  description?: string;
+  event_type: EventType;
+  server?: WurmServer;
+  location?: string;
+  coordinates?: string;
+  start_date: string;
+  end_date?: string;
+  is_all_day?: boolean;
+  is_public?: boolean;
+  max_attendees?: number;
+  contact_info?: string;
+  external_link?: string;
+  image_url?: string;
+}
+
+export interface UpdateEventInput {
+  title?: string;
+  description?: string;
+  event_type?: EventType;
+  server?: WurmServer;
+  location?: string;
+  coordinates?: string;
+  start_date?: string;
+  end_date?: string;
+  is_all_day?: boolean;
+  is_public?: boolean;
+  is_featured?: boolean;
+  max_attendees?: number;
+  contact_info?: string;
+  external_link?: string;
+  image_url?: string;
+}
+
+export interface UpdateAttendanceInput {
+  status: AttendeeStatus;
+  character_name?: string;
+  notes?: string;
+}

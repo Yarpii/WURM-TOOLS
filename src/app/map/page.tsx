@@ -37,11 +37,12 @@ export default function MapPage() {
   const [selectedServer, setSelectedServer] = useState<WurmServer>("harmony");
   const [selectedType, setSelectedType] = useState<LocationType | "all">("all");
 
-  // Map state
+  // Map state - Wurm maps are typically 4096x4096 or 8192x8192, so we need a low initial zoom
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.15); // Start zoomed out to see more of the map
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
 
   // Selected location
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
@@ -81,10 +82,44 @@ export default function MapPage() {
     loadData();
   }, [selectedServer, selectedType]);
 
+  // Handle canvas resize to fill container
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const container = canvas.parentElement;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const width = Math.floor(rect.width);
+      const height = Math.floor(rect.height);
+
+      if (width > 0 && height > 0 && (width !== canvasSize.width || height !== canvasSize.height)) {
+        setCanvasSize({ width, height });
+      }
+    };
+
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+
+    // Also update after a short delay to ensure container is rendered
+    const timeout = setTimeout(updateCanvasSize, 100);
+
+    return () => {
+      window.removeEventListener('resize', updateCanvasSize);
+      clearTimeout(timeout);
+    };
+  }, [canvasSize.width, canvasSize.height]);
+
   // Draw map
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Update canvas resolution to match container
+    canvas.width = canvasSize.width;
+    canvas.height = canvasSize.height;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -92,24 +127,24 @@ export default function MapPage() {
     const draw = () => {
       // Clear
       ctx.fillStyle = "#1a1a2e";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
       // Draw grid
       ctx.strokeStyle = "#2a2a4a";
       ctx.lineWidth = 1;
       const gridSize = 100 * zoom;
 
-      for (let x = (offset.x % gridSize); x < canvas.width; x += gridSize) {
+      for (let x = (offset.x % gridSize); x < canvasSize.width; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        ctx.lineTo(x, canvasSize.height);
         ctx.stroke();
       }
 
-      for (let y = (offset.y % gridSize); y < canvas.height; y += gridSize) {
+      for (let y = (offset.y % gridSize); y < canvasSize.height; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.lineTo(canvasSize.width, y);
         ctx.stroke();
       }
 
@@ -119,7 +154,7 @@ export default function MapPage() {
         const y = (loc.y * zoom) + offset.y;
 
         // Skip if off-screen
-        if (x < -20 || x > canvas.width + 20 || y < -20 || y > canvas.height + 20) continue;
+        if (x < -20 || x > canvasSize.width + 20 || y < -20 || y > canvasSize.height + 20) continue;
 
         const typeInfo = LOCATION_TYPES.find(t => t.value === loc.location_type);
         const color = typeInfo?.color || "#6b7280";
@@ -153,7 +188,7 @@ export default function MapPage() {
     };
 
     draw();
-  }, [locations, offset, zoom, selectedServer]);
+  }, [locations, offset, zoom, selectedServer, canvasSize]);
 
   // Mouse handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -176,8 +211,9 @@ export default function MapPage() {
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setZoom(Math.max(0.5, Math.min(3, zoom + delta)));
+    // Scale the delta based on current zoom level for smoother zooming
+    const delta = e.deltaY > 0 ? -zoom * 0.1 : zoom * 0.1;
+    setZoom(Math.max(0.05, Math.min(5, zoom + delta)));
   };
 
   const handleCanvasClick = (e: React.MouseEvent) => {
@@ -309,20 +345,26 @@ export default function MapPage() {
 
           <div className="flex gap-1">
             <button
-              onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
+              onClick={() => setZoom(Math.max(0.05, zoom * 0.7))}
               className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary hover:bg-bg-hover"
+              title="Zoom out"
             >
               -
             </button>
             <button
-              onClick={() => setZoom(1)}
+              onClick={() => {
+                setZoom(0.15);
+                setOffset({ x: 0, y: 0 });
+              }}
               className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary hover:bg-bg-hover"
+              title="Reset view"
             >
               Reset
             </button>
             <button
-              onClick={() => setZoom(Math.min(3, zoom + 0.25))}
+              onClick={() => setZoom(Math.min(5, zoom * 1.4))}
               className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary hover:bg-bg-hover"
+              title="Zoom in"
             >
               +
             </button>
@@ -334,15 +376,16 @@ export default function MapPage() {
       <div className="flex-1 relative">
         <canvas
           ref={canvasRef}
-          width={1200}
-          height={800}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
+          width={canvasSize.width}
+          height={canvasSize.height}
+          className="w-full h-full cursor-grab active:cursor-grabbing block"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
           onClick={handleCanvasClick}
+          style={{ touchAction: 'none' }}
         />
 
         {/* Legend */}
