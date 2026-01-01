@@ -153,7 +153,13 @@ export default function Footer() {
             <p className="text-sm text-text-muted">
               &copy; {currentYear} Blackforge Tools. Made with care for the Wurm community.
             </p>
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-4 text-sm">
+              <Link href="/about" className="text-text-muted hover:text-text-primary transition-colors">
+                About
+              </Link>
+              <Link href="/contact" className="text-text-muted hover:text-text-primary transition-colors">
+                Contact
+              </Link>
               <Link href="/disclaimer" className="text-text-muted hover:text-text-primary transition-colors">
                 Disclaimer
               </Link>
