@@ -89,6 +89,54 @@ export default function Home() {
       color: "from-orange-500 to-amber-600",
     },
     {
+      href: "/skills",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      title: "Skill Tracker",
+      description: "Track your progress and estimate time to goals",
+      features: ["Skill gain calculations", "Sleep bonus estimates", "Progress tracking"],
+      color: "from-yellow-500 to-orange-600",
+    },
+    {
+      href: "/timers",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      title: "Timer Dashboard",
+      description: "Never miss a cooldown or harvest again",
+      features: ["Sleep bonus & fatigue", "Crop & animal timers", "Custom timers"],
+      color: "from-emerald-500 to-teal-600",
+    },
+    {
+      href: "/events",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      title: "Event Calendar",
+      description: "Discover Impalongs, Rifts, and community events",
+      features: ["Impalongs & Rifts", "RSVP system", "Server filtering"],
+      color: "from-pink-500 to-rose-600",
+    },
+    {
+      href: "/map",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+      ),
+      title: "World Map",
+      description: "Interactive map with locations and merchants",
+      features: ["Deed locations", "Merchant finder", "Resource spots"],
+      color: "from-blue-500 to-indigo-600",
+    },
+    {
       href: "/market",
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,31 +146,7 @@ export default function Home() {
       title: "Marketplace",
       description: "Buy, sell, and trade items with the community",
       features: ["Buy & sell orders", "Trade offers", "Price tracking"],
-      color: "from-emerald-500 to-teal-600",
-    },
-    {
-      href: "/merchants",
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      ),
-      title: "Merchants",
-      description: "Find in-game merchants and their stock",
-      features: ["Merchant directory", "Inventory search", "Location maps"],
       color: "from-violet-500 to-purple-600",
-    },
-    {
-      href: "/members",
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      ),
-      title: "Community",
-      description: "Connect with other Wurm players",
-      features: ["Member profiles", "Server filtering", "Contact players"],
-      color: "from-blue-500 to-cyan-600",
     },
   ];
 
@@ -138,25 +162,73 @@ export default function Home() {
       description: "Create and manage player alliances",
     },
     {
-      href: "/data",
+      href: "/merchants",
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       ),
-      title: "Data Management",
-      description: "Import, export, and manage item data",
+      title: "Merchants",
+      description: "Find in-game merchants",
     },
     {
-      href: "/settings",
+      href: "/members",
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
-      title: "Profile & Settings",
-      description: "Customize your experience",
+      title: "Community",
+      description: "Connect with other players",
+    },
+    {
+      href: "/achievements",
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3h14M5 3v4a7 7 0 007 7m-7-7H2m17 0h3M19 3v4a7 7 0 01-7 7m0 0v4m0 4h-4m4 0h4" />
+        </svg>
+      ),
+      title: "Achievements",
+      description: "Track goals and earn XP",
+    },
+  ];
+
+  const roadmapFeatures = [
+    {
+      title: "Deed Planner",
+      description: "Visual drag-and-drop tool to plan your deed layout with buildings, fences, and terrain",
+      icon: "🏗️",
+      status: "planned",
+    },
+    {
+      title: "Price Guide",
+      description: "Community-driven price database with historical trends and server-specific pricing",
+      icon: "💰",
+      status: "planned",
+    },
+    {
+      title: "Affinity Tracker",
+      description: "Track and manage affinities across all your characters in one place",
+      icon: "✨",
+      status: "planned",
+    },
+    {
+      title: "Recipe Book",
+      description: "Complete cooking recipe database with ingredients and nutrition info",
+      icon: "📖",
+      status: "planned",
+    },
+    {
+      title: "Discord Bot",
+      description: "Get timer notifications and event reminders directly in your Discord server",
+      icon: "🤖",
+      status: "planned",
+    },
+    {
+      title: "Mobile App",
+      description: "Take Blackforge Tools with you on mobile for on-the-go tracking",
+      icon: "📱",
+      status: "future",
     },
   ];
 
@@ -255,7 +327,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {mainFeatures.map((feature, index) => (
               <Link
                 key={index}
@@ -315,7 +387,7 @@ export default function Home() {
           <h3 className="text-lg font-semibold text-text-primary mb-6 text-center">
             More Features
           </h3>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {additionalFeatures.map((feature, index) => (
               <Link
                 key={index}
@@ -335,6 +407,65 @@ export default function Home() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Roadmap / Coming Soon Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-4">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Roadmap
+            </div>
+            <h2 className="text-3xl font-bold text-text-primary mb-4">
+              Coming Soon
+            </h2>
+            <p className="text-text-secondary max-w-2xl mx-auto">
+              We&apos;re constantly working on new features. Here&apos;s what&apos;s on our roadmap.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {roadmapFeatures.map((feature, index) => (
+              <div
+                key={index}
+                className="group p-6 bg-bg-secondary rounded-2xl border border-border hover:border-purple-500/30 transition-all duration-300"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-3xl">{feature.icon}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold text-text-primary group-hover:text-purple-400 transition-colors">
+                        {feature.title}
+                      </h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        feature.status === "planned"
+                          ? "bg-purple-500/20 text-purple-400"
+                          : "bg-gray-500/20 text-gray-400"
+                      }`}>
+                        {feature.status === "planned" ? "Planned" : "Future"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-text-muted group-hover:text-text-secondary transition-colors">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-text-muted text-sm">
+              Have a feature suggestion?{" "}
+              <Link href="/contact" className="text-accent hover:underline">
+                Let us know!
+              </Link>
+            </p>
           </div>
         </div>
       </section>
