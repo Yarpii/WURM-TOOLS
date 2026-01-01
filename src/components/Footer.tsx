@@ -55,28 +55,33 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Community */}
+          {/* Player Hub */}
           <div>
-            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Community</h3>
+            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Player Hub</h3>
             <ul className="space-y-2">
+              <li>
+                <Link href="/skills" className="text-sm text-text-muted hover:text-text-primary transition-colors">
+                  Skill Calculator
+                </Link>
+              </li>
+              <li>
+                <Link href="/timers" className="text-sm text-text-muted hover:text-text-primary transition-colors">
+                  Timer Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link href="/events" className="text-sm text-text-muted hover:text-text-primary transition-colors">
+                  Event Calendar
+                </Link>
+              </li>
               <li>
                 <Link href="/alliances" className="text-sm text-text-muted hover:text-text-primary transition-colors">
                   Alliances
                 </Link>
               </li>
               <li>
-                <Link href="/members" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Members
-                </Link>
-              </li>
-              <li>
                 <Link href="/achievements" className="text-sm text-text-muted hover:text-text-primary transition-colors">
                   Achievements
-                </Link>
-              </li>
-              <li>
-                <Link href="/trades" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Trade History
                 </Link>
               </li>
             </ul>

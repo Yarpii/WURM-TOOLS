@@ -18,6 +18,14 @@ const navCategories = [
     ],
   },
   {
+    label: "Player Hub",
+    items: [
+      { href: "/skills", label: "Skills", icon: "skill", description: "Skill calculator & tracker" },
+      { href: "/timers", label: "Timers", icon: "timer", description: "Timer dashboard" },
+      { href: "/events", label: "Events", icon: "calendar", description: "Community calendar" },
+    ],
+  },
+  {
     label: "Community",
     items: [
       { href: "/members", label: "Members", icon: "users", description: "Player directory" },
@@ -99,6 +107,21 @@ const icons: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
       <circle cx="12" cy="12" r="6" strokeWidth={1.5} />
       <circle cx="12" cy="12" r="2" strokeWidth={1.5} />
+    </svg>
+  ),
+  skill: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
+  timer: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  calendar: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   ),
 };
