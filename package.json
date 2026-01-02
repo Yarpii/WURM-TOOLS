@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "npx ts-node scripts/migrate-to-postgres.ts",
-    "db:migrate:dry": "npx ts-node scripts/migrate-to-postgres.ts --dry-run",
-    "db:schema": "echo 'Run: psql $DATABASE_URL -f scripts/schema.sql'"
+    "db:migrate:pg": "npx ts-node scripts/migrate-to-postgres.ts",
+    "db:migrate:pg:dry": "npx ts-node scripts/migrate-to-postgres.ts --dry-run",
+    "db:migrate:mysql": "npx ts-node scripts/migrate-to-mysql.ts",
+    "db:migrate:mysql:dry": "npx ts-node scripts/migrate-to-mysql.ts --dry-run",
+    "db:schema:pg": "echo 'Run: psql $DATABASE_URL -f scripts/schema.sql'",
+    "db:schema:mysql": "echo 'Run: mysql -u user -p database < scripts/schema-mysql.sql'"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
@@ -20,6 +23,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.23",
     "better-sqlite3": "^12.5.0",
+    "mysql2": "^3.16.0",
     "next": "^16.1.1",
     "pg": "^8.13.1",
     "postcss": "^8.5.6",
