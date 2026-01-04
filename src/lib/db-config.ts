@@ -2,13 +2,10 @@
  * Database Configuration
  *
  * This module provides database configuration based on environment.
- * Supports SQLite (local development), PostgreSQL, and MySQL/MariaDB (production).
+ * Supports MySQL/MariaDB for production.
  */
 
-export type DatabaseType = 'sqlite' | 'postgresql' | 'mysql';
-
 export interface DatabaseConfig {
-  type: DatabaseType;
   connectionString?: string;
   host?: string;
   port?: number;
@@ -45,59 +42,24 @@ function parseMySQLConnectionString(url: string): Partial<DatabaseConfig> {
 export function getDatabaseConfig(): DatabaseConfig {
   const databaseUrl = process.env.DATABASE_URL;
 
-  // If DATABASE_URL is set and starts with mysql://, use MySQL/MariaDB
-  if (databaseUrl && (databaseUrl.startsWith('mysql://') || databaseUrl.startsWith('mariadb://'))) {
-    const parsed = parseMySQLConnectionString(databaseUrl);
-    return {
-      type: 'mysql',
-      connectionString: databaseUrl,
-      ...parsed,
-      ssl: process.env.DATABASE_SSL === 'true'
-        ? { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' }
-        : false,
-      poolMin: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),
-      poolMax: parseInt(process.env.DATABASE_POOL_MAX || '10', 10),
-    };
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL environment variable is required. Format: mysql://user:password@host:port/database');
   }
 
-  // If DATABASE_URL is set and starts with postgresql://, use PostgreSQL
-  if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
-    return {
-      type: 'postgresql',
-      connectionString: databaseUrl,
-      ssl: process.env.DATABASE_SSL === 'false'
-        ? false
-        : { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' },
-      poolMin: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),
-      poolMax: parseInt(process.env.DATABASE_POOL_MAX || '10', 10),
-    };
+  if (!databaseUrl.startsWith('mysql://') && !databaseUrl.startsWith('mariadb://')) {
+    throw new Error('DATABASE_URL must start with mysql:// or mariadb://');
   }
 
-  // Default to SQLite for local development
+  const parsed = parseMySQLConnectionString(databaseUrl);
   return {
-    type: 'sqlite',
+    connectionString: databaseUrl,
+    ...parsed,
+    ssl: process.env.DATABASE_SSL === 'true'
+      ? { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' }
+      : false,
+    poolMin: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),
+    poolMax: parseInt(process.env.DATABASE_POOL_MAX || '10', 10),
   };
-}
-
-/**
- * Check if using MySQL/MariaDB
- */
-export function isMySQL(): boolean {
-  return getDatabaseConfig().type === 'mysql';
-}
-
-/**
- * Check if using PostgreSQL
- */
-export function isPostgres(): boolean {
-  return getDatabaseConfig().type === 'postgresql';
-}
-
-/**
- * Check if using SQLite
- */
-export function isSQLite(): boolean {
-  return getDatabaseConfig().type === 'sqlite';
 }
 
 /**
@@ -111,15 +73,5 @@ export function isProduction(): boolean {
  * Get the current database type name for logging
  */
 export function getDatabaseTypeName(): string {
-  const config = getDatabaseConfig();
-  switch (config.type) {
-    case 'mysql':
-      return 'MySQL/MariaDB';
-    case 'postgresql':
-      return 'PostgreSQL';
-    case 'sqlite':
-      return 'SQLite';
-    default:
-      return 'Unknown';
-  }
+  return 'MySQL/MariaDB';
 }
