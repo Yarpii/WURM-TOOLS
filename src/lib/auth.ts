@@ -535,6 +535,14 @@ export function isAdmin(user: User | null): boolean {
   return user?.role === "admin";
 }
 
+/**
+ * Check if the current user is an admin (async version using cookies)
+ */
+export async function isAdminAsync(): Promise<boolean> {
+  const session = await getSessionAsync();
+  return session?.role === "admin";
+}
+
 export function requireAuth(sessionId: string | undefined): User | null {
   if (!sessionId) return null;
   const result = getSession(sessionId);
@@ -853,5 +861,47 @@ export function deleteAccount(userId: number, password: string): ChangePasswordR
     return { success: true };
   } catch {
     return { success: false, error: "Failed to delete account" };
+  }
+}
+
+// ========== ASYNC SESSION HELPERS ==========
+
+/**
+ * Session result for async getSession (used by API routes)
+ */
+export interface AsyncSessionResult {
+  userId: number;
+  username: string;
+  role: string;
+}
+
+/**
+ * Get session from Next.js cookies (async version for Server Components/API Routes)
+ * This uses the Next.js cookies() function to automatically get the session cookie
+ */
+export async function getSessionAsync(): Promise<AsyncSessionResult | null> {
+  try {
+    // Dynamic import of next/headers to avoid issues during build
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get("session")?.value;
+
+    if (!sessionId) {
+      return null;
+    }
+
+    const result = getSession(sessionId);
+    if (!result) {
+      return null;
+    }
+
+    return {
+      userId: result.user.id,
+      username: result.user.username,
+      role: result.user.role,
+    };
+  } catch {
+    // If cookies() is not available (e.g., during build), return null
+    return null;
   }
 }

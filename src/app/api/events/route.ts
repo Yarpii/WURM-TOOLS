@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, isAdmin } from "@/lib/auth";
+import { getSessionAsync as getSession, isAdminAsync as isAdmin } from "@/lib/auth";
 import { query } from "@/lib/database";
 import type { WurmEvent, CreateEventInput, UpdateEventInput, UpdateAttendanceInput } from "@/lib/types";
 
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
             [event_id, session.userId]
           );
 
-          if (parseInt(currentCount.rows[0].count) >= e.max_attendees) {
+          if (parseInt(String(currentCount.rows[0].count)) >= Number(e.max_attendees)) {
             return NextResponse.json({ error: "Event is full" }, { status: 400 });
           }
         }

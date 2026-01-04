@@ -571,6 +571,30 @@ CREATE TABLE IF NOT EXISTS wurm_skills (
 CREATE INDEX idx_wurm_skills_category ON wurm_skills(category);
 CREATE INDEX idx_wurm_skills_parent ON wurm_skills(parent_skill);
 
+-- ========== RECIPE SUBMISSIONS ==========
+
+CREATE TABLE IF NOT EXISTS recipe_submissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    ingredients TEXT NOT NULL,
+    source_url VARCHAR(500),
+    notes TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    admin_notes TEXT,
+    reviewed_by INT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL,
+
+    CONSTRAINT fk_recipe_submissions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_recipe_submissions_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT chk_recipe_submissions_status CHECK (status IN ('pending', 'approved', 'rejected'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_recipe_submissions_user ON recipe_submissions(user_id);
+CREATE INDEX idx_recipe_submissions_status ON recipe_submissions(status);
+CREATE INDEX idx_recipe_submissions_created ON recipe_submissions(created_at);
+
 -- ========== SEED DATA: BASE MATERIALS ==========
 
 INSERT IGNORE INTO items (name, category, is_base_material, description) VALUES

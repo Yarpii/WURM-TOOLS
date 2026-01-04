@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSessionAsync as getSession } from "@/lib/auth";
 import { query } from "@/lib/database";
 import type { UserTimer, TimerPreset, CreateTimerInput, UpdateTimerInput } from "@/lib/types";
 
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Preset not found" }, { status: 404 });
         }
 
-        const p = preset.rows[0];
+        const p = preset.rows[0] as { duration_minutes: number; name: string; description: string; timer_type: string; color: string; icon: string };
         const startTime = new Date();
         const endTime = new Date(startTime.getTime() + p.duration_minutes * 60 * 1000);
 
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Timer not found" }, { status: 404 });
         }
 
-        const timer = current.rows[0];
+        const timer = current.rows[0] as { duration_minutes: number };
         const startTime = new Date();
         const endTime = new Date(startTime.getTime() + timer.duration_minutes * 60 * 1000);
 

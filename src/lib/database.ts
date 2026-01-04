@@ -1,5 +1,10 @@
 import Database from "better-sqlite3";
 import path from "path";
+
+// Re-export unified query functions from db/core
+export { query, getClient, withTransaction } from "./db/core";
+export type { QueryResult, DbClient } from "./db/core";
+
 import type {
   Item,
   Recipe,
