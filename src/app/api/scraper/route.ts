@@ -10,17 +10,15 @@ import {
 } from "@/lib/database";
 import { getSession } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
-import Database from "better-sqlite3";
-import path from "path";
 
 // SECURITY: Helper function to verify admin authentication
-function verifyAdminAuth(request: NextRequest): { error: string; status: number } | null {
+async function verifyAdminAuth(request: NextRequest): Promise<{ error: string; status: number } | null> {
   const sessionId = request.cookies.get("session")?.value;
   if (!sessionId) {
     return { error: "Authentication required", status: 401 };
   }
 
-  const sessionResult = getSession(sessionId);
+  const sessionResult = await getSession(sessionId);
   if (!sessionResult) {
     return { error: "Invalid session", status: 401 };
   }
@@ -76,7 +74,6 @@ interface DryRunResult {
 }
 
 interface ScrapeProgress {
-  id?: number;
   category: string;
   last_item: string;
   items_processed: number;
@@ -149,122 +146,48 @@ const WIKI_API_URL = "https://www.wurmpedia.com/api.php";
 const MAX_RETRIES = 4;
 const BASE_DELAY_MS = 2000;
 
-// ==================== SCRAPER DATABASE ====================
+// ==================== IN-MEMORY CACHE ====================
 
-const SCRAPER_DB_PATH = path.join(process.cwd(), "scraper-cache.sqlite");
-let scraperDb: Database.Database | null = null;
-
-function getScraperDb(): Database.Database {
-  if (!scraperDb) {
-    scraperDb = new Database(SCRAPER_DB_PATH);
-    scraperDb.pragma("journal_mode = WAL");
-    initScraperDatabase(scraperDb);
-  }
-  return scraperDb;
-}
-
-function initScraperDatabase(db: Database.Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS item_cache (
-      item_name TEXT PRIMARY KEY,
-      wiki_url TEXT NOT NULL,
-      last_modified TEXT,
-      etag TEXT,
-      last_fetched TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS scrape_progress (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      category TEXT NOT NULL,
-      last_item TEXT,
-      items_processed INTEGER DEFAULT 0,
-      total_items INTEGER DEFAULT 0,
-      started_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      status TEXT DEFAULT 'in_progress',
-      error TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_progress_category ON scrape_progress(category);
-    CREATE INDEX IF NOT EXISTS idx_progress_status ON scrape_progress(status);
-  `);
-}
-
-// ==================== CACHE FUNCTIONS ====================
+// In-memory cache for scraped items (resets on server restart)
+const itemCacheMap = new Map<string, ItemCache>();
+const progressMap = new Map<string, ScrapeProgress>();
 
 function getItemCache(itemName: string): ItemCache | null {
-  const db = getScraperDb();
-  return db
-    .prepare("SELECT * FROM item_cache WHERE item_name = ?")
-    .get(itemName) as ItemCache | null;
+  return itemCacheMap.get(itemName) || null;
 }
 
 function setItemCache(cache: ItemCache): void {
-  const db = getScraperDb();
-  db.prepare(`
-    INSERT OR REPLACE INTO item_cache (item_name, wiki_url, last_modified, etag, last_fetched)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(cache.item_name, cache.wiki_url, cache.last_modified, cache.etag, cache.last_fetched);
+  itemCacheMap.set(cache.item_name, cache);
 }
-
-// ==================== PROGRESS FUNCTIONS ====================
 
 function getActiveProgress(category: string): ScrapeProgress | null {
-  const db = getScraperDb();
-  return db
-    .prepare(
-      "SELECT * FROM scrape_progress WHERE category = ? AND status = 'in_progress' ORDER BY id DESC LIMIT 1"
-    )
-    .get(category) as ScrapeProgress | null;
-}
-
-function saveProgress(progress: ScrapeProgress): number {
-  const db = getScraperDb();
-  if (progress.id) {
-    db.prepare(`
-      UPDATE scrape_progress
-      SET last_item = ?, items_processed = ?, total_items = ?, updated_at = ?, status = ?, error = ?
-      WHERE id = ?
-    `).run(
-      progress.last_item,
-      progress.items_processed,
-      progress.total_items,
-      new Date().toISOString(),
-      progress.status,
-      progress.error || null,
-      progress.id
-    );
-    return progress.id;
-  } else {
-    const result = db.prepare(`
-      INSERT INTO scrape_progress (category, last_item, items_processed, total_items, started_at, updated_at, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      progress.category,
-      progress.last_item,
-      progress.items_processed,
-      progress.total_items,
-      new Date().toISOString(),
-      new Date().toISOString(),
-      progress.status
-    );
-    return result.lastInsertRowid as number;
+  const progress = progressMap.get(category);
+  if (progress && progress.status === "in_progress") {
+    return progress;
   }
+  return null;
 }
 
-function completeProgress(progressId: number, status: "completed" | "failed", error?: string): void {
-  const db = getScraperDb();
-  db.prepare(`
-    UPDATE scrape_progress SET status = ?, error = ?, updated_at = ? WHERE id = ?
-  `).run(status, error || null, new Date().toISOString(), progressId);
+function saveProgress(progress: ScrapeProgress): void {
+  progress.updated_at = new Date().toISOString();
+  progressMap.set(progress.category, progress);
+}
+
+function completeProgress(category: string, status: "completed" | "failed", error?: string): void {
+  const progress = progressMap.get(category);
+  if (progress) {
+    progress.status = status;
+    progress.error = error;
+    progress.updated_at = new Date().toISOString();
+  }
 }
 
 // ==================== ITEM CACHE ====================
 
 let existingItemsCache: Map<string, number> = new Map();
 
-function loadExistingItemsCache(): Map<string, number> {
-  const items = getAllItems();
+async function loadExistingItemsCache(): Promise<Map<string, number>> {
+  const items = await getAllItems();
   const cache = new Map<string, number>();
   for (const item of items) {
     cache.set(item.name.toLowerCase(), item.id);
@@ -517,7 +440,7 @@ async function dryRunScrape(
     throw new Error(`Unknown category: ${categoryKey}`);
   }
 
-  existingItemsCache = loadExistingItemsCache();
+  existingItemsCache = await loadExistingItemsCache();
 
   // Use MediaWiki API for bulk fetching
   const catName = category.urls[0].split("Category:")[1];
@@ -540,7 +463,7 @@ async function dryRunScrape(
     mode: "dry-run",
     would_fetch: newItems.length,
     would_skip: existingItems.length,
-    would_update: 0, // Would need to check cache for this
+    would_update: 0,
     would_add: newItems.length,
     existing_items: existingItems,
     new_items: newItems,
@@ -562,7 +485,6 @@ async function scrapeCategory(
   apiCallsSaved: number;
   cacheHits: number;
   retries: number;
-  progressId: number;
 }> {
   const category = WIKI_CATEGORIES[categoryKey];
   if (!category) {
@@ -573,7 +495,6 @@ async function scrapeCategory(
       apiCallsSaved: 0,
       cacheHits: 0,
       retries: 0,
-      progressId: 0,
     };
   }
 
@@ -584,7 +505,7 @@ async function scrapeCategory(
   let cacheHits = 0;
   let totalRetries = 0;
 
-  existingItemsCache = loadExistingItemsCache();
+  existingItemsCache = await loadExistingItemsCache();
 
   // Use MediaWiki API for bulk category fetching
   const catName = category.urls[0].split("Category:")[1];
@@ -596,11 +517,11 @@ async function scrapeCategory(
     console.log(`[Scraper] Found ${allItems.length} items in category ${categoryKey}`);
   } catch (error) {
     errors.push(`Failed to fetch category: ${error}`);
-    return { items, errors, skippedItems, apiCallsSaved, cacheHits, retries: totalRetries, progressId: 0 };
+    return { items, errors, skippedItems, apiCallsSaved, cacheHits, retries: totalRetries };
   }
 
   // Apply maxItems limit
-  let itemsToProcess = allItems.slice(0, maxItems);
+  const itemsToProcess = allItems.slice(0, maxItems);
 
   // Handle resume - find where we left off
   let startIndex = 0;
@@ -614,21 +535,17 @@ async function scrapeCategory(
     }
   }
 
-  // Check for active progress
-  let progress = getActiveProgress(categoryKey);
-  if (!progress) {
-    progress = {
-      category: categoryKey,
-      last_item: "",
-      items_processed: startIndex,
-      total_items: itemsToProcess.length,
-      started_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      status: "in_progress",
-    };
-  }
-  const progressId = saveProgress(progress);
-  progress.id = progressId;
+  // Initialize progress
+  let progress: ScrapeProgress = {
+    category: categoryKey,
+    last_item: "",
+    items_processed: startIndex,
+    total_items: itemsToProcess.length,
+    started_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    status: "in_progress",
+  };
+  saveProgress(progress);
 
   // Filter items based on mode
   for (let i = startIndex; i < itemsToProcess.length; i++) {
@@ -680,7 +597,7 @@ async function scrapeCategory(
         item.wikiUrl = wikiUrl;
         items.push(item);
 
-        // Update cache
+        // Update in-memory cache
         setItemCache({
           item_name: itemName,
           wiki_url: wikiUrl,
@@ -711,17 +628,17 @@ async function scrapeCategory(
   }
 
   // Mark progress as completed
-  completeProgress(progressId, "completed");
+  completeProgress(categoryKey, "completed");
 
-  return { items, errors, skippedItems, apiCallsSaved, cacheHits, retries: totalRetries, progressId };
+  return { items, errors, skippedItems, apiCallsSaved, cacheHits, retries: totalRetries };
 }
 
 // ==================== IMPORT LOGIC ====================
 
-function importScrapedItems(
+async function importScrapedItems(
   items: ScrapedItem[],
   mode: ScrapeMode
-): {
+): Promise<{
   items_added: number;
   items_updated: number;
   items_skipped: number;
@@ -729,7 +646,7 @@ function importScrapedItems(
   recipes_updated: number;
   recipes_skipped: number;
   errors: string[];
-} {
+}> {
   const result = {
     items_added: 0,
     items_updated: 0,
@@ -740,7 +657,7 @@ function importScrapedItems(
     errors: [] as string[],
   };
 
-  existingItemsCache = loadExistingItemsCache();
+  existingItemsCache = await loadExistingItemsCache();
 
   // First pass: add or update items
   for (const item of items) {
@@ -753,13 +670,13 @@ function importScrapedItems(
       }
 
       try {
-        updateItem(existingId, item.name, item.category, item.isBaseMaterial, item.description);
+        await updateItem(existingId, item.name, item.category, item.isBaseMaterial, item.description);
         result.items_updated++;
 
         if (mode === "force") {
-          const existingRecipes = getRecipe(existingId);
+          const existingRecipes = await getRecipe(existingId);
           for (const recipe of existingRecipes) {
-            deleteRecipeIngredient(recipe.id);
+            await deleteRecipeIngredient(recipe.id);
           }
         }
       } catch (e) {
@@ -767,7 +684,7 @@ function importScrapedItems(
       }
     } else {
       try {
-        addItem(item.name, item.category, item.isBaseMaterial, item.description);
+        await addItem(item.name, item.category, item.isBaseMaterial, item.description);
         result.items_added++;
         existingItemsCache.set(item.name.toLowerCase(), -1);
       } catch (e) {
@@ -776,14 +693,14 @@ function importScrapedItems(
     }
   }
 
-  existingItemsCache = loadExistingItemsCache();
+  existingItemsCache = await loadExistingItemsCache();
 
   // Add missing ingredients
   for (const item of items) {
     for (const ing of item.ingredients) {
       if (!itemExistsInCache(ing.name)) {
         try {
-          addItem(ing.name, "material", true, "");
+          await addItem(ing.name, "material", true, "");
           result.items_added++;
           existingItemsCache.set(ing.name.toLowerCase(), -1);
         } catch {
@@ -793,23 +710,23 @@ function importScrapedItems(
     }
   }
 
-  existingItemsCache = loadExistingItemsCache();
+  existingItemsCache = await loadExistingItemsCache();
 
   // Add recipes
   for (const item of items) {
     if (item.ingredients.length === 0) continue;
 
-    const resultItem = getItemByName(item.name);
+    const resultItem = await getItemByName(item.name);
     if (!resultItem) {
       result.errors.push(`Result item not found: ${item.name}`);
       continue;
     }
 
-    const existingRecipes = getRecipe(resultItem.id);
+    const existingRecipes = await getRecipe(resultItem.id);
     const existingIngredientIds = new Set(existingRecipes.map((r) => r.ingredient_item_id));
 
     for (const ing of item.ingredients) {
-      const ingredientItem = getItemByName(ing.name);
+      const ingredientItem = await getItemByName(ing.name);
       if (!ingredientItem) {
         result.errors.push(`Ingredient not found: ${ing.name}`);
         continue;
@@ -823,7 +740,7 @@ function importScrapedItems(
       }
 
       try {
-        const recipeId = addRecipeIngredient(resultItem.id, ingredientItem.id, ing.quantity);
+        const recipeId = await addRecipeIngredient(resultItem.id, ingredientItem.id, ing.quantity);
         if (recipeId === null) {
           result.recipes_skipped++;
         } else {
@@ -859,7 +776,7 @@ export async function GET(request: Request) {
   }
 
   if (action === "stats") {
-    existingItemsCache = loadExistingItemsCache();
+    existingItemsCache = await loadExistingItemsCache();
     return NextResponse.json({
       existingItems: existingItemsCache.size,
       categories: Object.keys(WIKI_CATEGORIES).length,
@@ -874,20 +791,13 @@ export async function GET(request: Request) {
     }
 
     // Return all active progress
-    const db = getScraperDb();
-    const allProgress = db
-      .prepare("SELECT * FROM scrape_progress WHERE status = 'in_progress' ORDER BY updated_at DESC")
-      .all();
+    const allProgress = Array.from(progressMap.values()).filter(p => p.status === "in_progress");
     return NextResponse.json({ progress: allProgress });
   }
 
   if (action === "cache-stats") {
-    const db = getScraperDb();
-    const stats = db
-      .prepare("SELECT COUNT(*) as total FROM item_cache")
-      .get() as { total: number };
     return NextResponse.json({
-      cached_items: stats.total,
+      cached_items: itemCacheMap.size,
     });
   }
 
@@ -897,7 +807,7 @@ export async function GET(request: Request) {
 export async function POST(request: NextRequest) {
   try {
     // SECURITY: All scraper operations require admin authentication
-    const authError = verifyAdminAuth(request);
+    const authError = await verifyAdminAuth(request);
     if (authError) {
       return NextResponse.json({ error: authError.error }, { status: authError.status });
     }
@@ -928,9 +838,7 @@ export async function POST(request: NextRequest) {
     if (action === "resume") {
       const progress = category
         ? getActiveProgress(category)
-        : getScraperDb()
-            .prepare("SELECT * FROM scrape_progress WHERE status = 'in_progress' ORDER BY updated_at DESC LIMIT 1")
-            .get() as ScrapeProgress | null;
+        : Array.from(progressMap.values()).find(p => p.status === "in_progress");
 
       if (!progress) {
         return NextResponse.json({
@@ -974,7 +882,7 @@ export async function POST(request: NextRequest) {
       result.errors = scrapeResult.errors;
 
       if (!preview) {
-        const importResult = importScrapedItems(scrapeResult.items, scrapeMode);
+        const importResult = await importScrapedItems(scrapeResult.items, scrapeMode);
         result.items_added = importResult.items_added;
         result.items_updated = importResult.items_updated;
         result.items_skipped = importResult.items_skipped + scrapeResult.skippedItems.length;
@@ -1021,7 +929,6 @@ export async function POST(request: NextRequest) {
       result.cache_hits = scrapeResult.cacheHits;
       result.retries = scrapeResult.retries;
       result.errors = scrapeResult.errors;
-      result.progress_saved = scrapeResult.progressId > 0;
 
       if (preview) {
         result.items_skipped = scrapeResult.skippedItems.length;
@@ -1029,7 +936,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(result);
       }
 
-      const importResult = importScrapedItems(scrapeResult.items, scrapeMode);
+      const importResult = await importScrapedItems(scrapeResult.items, scrapeMode);
       result.items_added = importResult.items_added;
       result.items_updated = importResult.items_updated;
       result.items_skipped = importResult.items_skipped + scrapeResult.skippedItems.length;
@@ -1048,7 +955,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "URL is required" }, { status: 400 });
       }
 
-      existingItemsCache = loadExistingItemsCache();
+      existingItemsCache = await loadExistingItemsCache();
 
       const fetchResult = await fetchWithRetry(url);
       const itemName = decodeURIComponent(
@@ -1058,7 +965,7 @@ export async function POST(request: NextRequest) {
       const item = parseItemPage(fetchResult.html, itemName);
       const exists = itemExistsInCache(itemName);
 
-      // Update cache
+      // Update in-memory cache
       if (item) {
         setItemCache({
           item_name: itemName,
@@ -1083,7 +990,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Items array required" }, { status: 400 });
       }
 
-      existingItemsCache = loadExistingItemsCache();
+      existingItemsCache = await loadExistingItemsCache();
 
       const existing: string[] = [];
       const missing: string[] = [];
@@ -1100,18 +1007,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "clear-progress") {
-      const db = getScraperDb();
       if (category) {
-        db.prepare("DELETE FROM scrape_progress WHERE category = ?").run(category);
+        progressMap.delete(category);
       } else {
-        db.prepare("DELETE FROM scrape_progress").run();
+        progressMap.clear();
       }
       return NextResponse.json({ success: true });
     }
 
     if (action === "clear-cache") {
-      const db = getScraperDb();
-      db.prepare("DELETE FROM item_cache").run();
+      itemCacheMap.clear();
       return NextResponse.json({ success: true });
     }
 

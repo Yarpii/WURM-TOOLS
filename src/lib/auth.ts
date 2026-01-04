@@ -1,111 +1,5 @@
-import Database from "better-sqlite3";
-import path from "path";
 import crypto from "crypto";
-
-const DB_PATH = path.join(process.cwd(), "wurmcalc.sqlite");
-
-let db: Database.Database | null = null;
-
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma("journal_mode = WAL");
-    initAuthTables(db);
-  }
-  return db;
-}
-
-function initAuthTables(db: Database.Database): void {
-  // Check if users table exists
-  const usersTableExists = db
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-    .get();
-
-  if (!usersTableExists) {
-    db.exec(`
-      CREATE TABLE users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        salt TEXT NOT NULL,
-        role TEXT DEFAULT 'user',
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        display_name TEXT,
-        bio TEXT,
-        avatar_url TEXT,
-        location TEXT,
-        wurm_server TEXT,
-        show_in_members_list INTEGER DEFAULT 0,
-        show_email INTEGER DEFAULT 0,
-        show_location INTEGER DEFAULT 1,
-        is_banned INTEGER DEFAULT 0,
-        ban_reason TEXT,
-        banned_at TEXT,
-        banned_by INTEGER
-      );
-
-      CREATE TABLE sessions (
-        id TEXT PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        expires_at TEXT NOT NULL,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      CREATE INDEX idx_sessions_user ON sessions(user_id);
-      CREATE INDEX idx_sessions_expires ON sessions(expires_at);
-      CREATE INDEX idx_users_visible ON users(show_in_members_list);
-      CREATE INDEX idx_users_banned ON users(is_banned);
-    `);
-  }
-
-  // Add new columns if they don't exist (migration for existing databases)
-  const columns = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
-  const columnNames = columns.map(c => c.name);
-
-  if (!columnNames.includes("display_name")) {
-    db.exec("ALTER TABLE users ADD COLUMN display_name TEXT");
-  }
-  if (!columnNames.includes("bio")) {
-    db.exec("ALTER TABLE users ADD COLUMN bio TEXT");
-  }
-  if (!columnNames.includes("avatar_url")) {
-    db.exec("ALTER TABLE users ADD COLUMN avatar_url TEXT");
-  }
-  if (!columnNames.includes("location")) {
-    db.exec("ALTER TABLE users ADD COLUMN location TEXT");
-  }
-  if (!columnNames.includes("wurm_server")) {
-    db.exec("ALTER TABLE users ADD COLUMN wurm_server TEXT");
-  }
-  if (!columnNames.includes("show_in_members_list")) {
-    db.exec("ALTER TABLE users ADD COLUMN show_in_members_list INTEGER DEFAULT 0");
-  }
-  if (!columnNames.includes("show_email")) {
-    db.exec("ALTER TABLE users ADD COLUMN show_email INTEGER DEFAULT 0");
-  }
-  if (!columnNames.includes("show_location")) {
-    db.exec("ALTER TABLE users ADD COLUMN show_location INTEGER DEFAULT 1");
-  }
-  if (!columnNames.includes("is_banned")) {
-    db.exec("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0");
-  }
-  if (!columnNames.includes("ban_reason")) {
-    db.exec("ALTER TABLE users ADD COLUMN ban_reason TEXT");
-  }
-  if (!columnNames.includes("banned_at")) {
-    db.exec("ALTER TABLE users ADD COLUMN banned_at TEXT");
-  }
-  if (!columnNames.includes("banned_by")) {
-    db.exec("ALTER TABLE users ADD COLUMN banned_by INTEGER");
-  }
-
-  // Note: Admin user should be created manually via environment variable or CLI
-  // DO NOT create default admin with hardcoded password - this is a critical security risk
-  // To create an admin, use: ADMIN_INITIAL_PASSWORD=<secure_password> npm run setup-admin
-  // Or promote an existing user via the database
-}
+import { query, withTransaction } from "./db/core";
 
 // ========== PASSWORD UTILITIES ==========
 
@@ -159,14 +53,58 @@ export interface UserWithPassword extends User {
   salt: string;
 }
 
+// ========== DB ROW TYPES ==========
+
+interface UserDbRow {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  created_at: string;
+  display_name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  location?: string | null;
+  wurm_server?: string | null;
+  show_in_members_list: number;
+  show_email: number;
+  show_location: number;
+  is_banned: number;
+  ban_reason?: string | null;
+  banned_at?: string | null;
+  banned_by?: number | null;
+  password_hash?: string;
+  salt?: string;
+}
+
+function dbRowToUser(row: UserDbRow): User {
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    role: row.role as "user" | "admin",
+    created_at: row.created_at,
+    display_name: row.display_name || undefined,
+    bio: row.bio || undefined,
+    avatar_url: row.avatar_url || undefined,
+    location: row.location || undefined,
+    wurm_server: row.wurm_server || undefined,
+    show_in_members_list: Boolean(row.show_in_members_list),
+    show_email: Boolean(row.show_email),
+    show_location: Boolean(row.show_location),
+    is_banned: Boolean(row.is_banned),
+    ban_reason: row.ban_reason || undefined,
+    banned_at: row.banned_at || undefined,
+    banned_by: row.banned_by || undefined,
+  };
+}
+
 // ========== USER FUNCTIONS ==========
 
-export function createUser(
+export async function createUser(
   username: string,
   password: string
-): { success: true; user: User } | { success: false; error: string } {
-  const db = getDb();
-
+): Promise<{ success: true; user: User } | { success: false; error: string }> {
   // Validate input
   if (!username || username.length < 3) {
     return { success: false, error: "Character name must be at least 3 characters" };
@@ -176,11 +114,12 @@ export function createUser(
   }
 
   // Check if username already exists
-  const existingUser = db
-    .prepare("SELECT id FROM users WHERE username = ?")
-    .get(username.toLowerCase());
+  const existing = await query<UserDbRow>(
+    "SELECT id FROM users WHERE username = ?",
+    [username.toLowerCase()]
+  );
 
-  if (existingUser) {
+  if (existing.rows.length > 0) {
     return { success: false, error: "This character name is already registered" };
   }
 
@@ -192,105 +131,76 @@ export function createUser(
   const hash = hashPassword(password, salt);
 
   try {
-    const result = db
-      .prepare(
-        "INSERT INTO users (username, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?)"
-      )
-      .run(username.toLowerCase(), placeholderEmail, hash, salt, "user");
+    await query(
+      "INSERT INTO users (username, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?)",
+      [username.toLowerCase(), placeholderEmail, hash, salt, "user"]
+    );
 
-    const user = getUserById(result.lastInsertRowid as number);
+    const user = await getUserByUsername(username.toLowerCase());
     if (!user) {
       return { success: false, error: "Failed to create user" };
     }
 
-    return { success: true, user };
+    return { success: true, user: dbRowToUser(user as unknown as UserDbRow) };
   } catch (e) {
     return { success: false, error: "Failed to create user: " + String(e) };
   }
 }
 
-interface UserDbRow {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  created_at: string;
-  display_name?: string;
-  bio?: string;
-  avatar_url?: string;
-  location?: string;
-  wurm_server?: string;
-  show_in_members_list: number;
-  show_email: number;
-  show_location: number;
-  is_banned: number;
-  ban_reason?: string;
-  banned_at?: string;
-  banned_by?: number;
+export async function getUserById(id: number): Promise<User | null> {
+  const result = await query<UserDbRow>(
+    `SELECT id, username, email, role, created_at,
+            display_name, bio, avatar_url, location, wurm_server,
+            show_in_members_list, show_email, show_location,
+            is_banned, ban_reason, banned_at, banned_by
+     FROM users WHERE id = ?`,
+    [id]
+  );
+
+  if (result.rows.length === 0) return null;
+  return dbRowToUser(result.rows[0]);
 }
 
-export function getUserById(id: number): User | null {
-  const row = getDb()
-    .prepare(`
-      SELECT id, username, email, role, created_at,
-             display_name, bio, avatar_url, location, wurm_server,
-             show_in_members_list, show_email, show_location,
-             is_banned, ban_reason, banned_at, banned_by
-      FROM users WHERE id = ?
-    `)
-    .get(id) as UserDbRow | undefined;
+export async function getUserByEmail(email: string): Promise<UserWithPassword | null> {
+  const result = await query<UserDbRow>(
+    "SELECT * FROM users WHERE email = ?",
+    [email.toLowerCase()]
+  );
 
-  if (!row) return null;
-
-  return dbRowToUser(row);
-}
-
-export function getUserByEmail(email: string): UserWithPassword | null {
-  return getDb()
-    .prepare("SELECT * FROM users WHERE email = ?")
-    .get(email.toLowerCase()) as UserWithPassword | null;
-}
-
-export function getUserByUsername(username: string): UserWithPassword | null {
-  return getDb()
-    .prepare("SELECT * FROM users WHERE username = ?")
-    .get(username.toLowerCase()) as UserWithPassword | null;
-}
-
-function dbRowToUser(row: UserDbRow): User {
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
   return {
-    id: row.id,
-    username: row.username,
-    email: row.email,
-    role: row.role as "user" | "admin",
-    created_at: row.created_at,
-    display_name: row.display_name,
-    bio: row.bio,
-    avatar_url: row.avatar_url,
-    location: row.location,
-    wurm_server: row.wurm_server,
-    show_in_members_list: Boolean(row.show_in_members_list),
-    show_email: Boolean(row.show_email),
-    show_location: Boolean(row.show_location),
-    is_banned: Boolean(row.is_banned),
-    ban_reason: row.ban_reason,
-    banned_at: row.banned_at,
-    banned_by: row.banned_by,
+    ...dbRowToUser(row),
+    password_hash: row.password_hash!,
+    salt: row.salt!,
   };
 }
 
-export function getAllUsers(): User[] {
-  const rows = getDb()
-    .prepare(`
-      SELECT id, username, email, role, created_at,
-             display_name, bio, avatar_url, location, wurm_server,
-             show_in_members_list, show_email, show_location,
-             is_banned, ban_reason, banned_at, banned_by
-      FROM users ORDER BY created_at DESC
-    `)
-    .all() as UserDbRow[];
+export async function getUserByUsername(username: string): Promise<UserWithPassword | null> {
+  const result = await query<UserDbRow>(
+    "SELECT * FROM users WHERE username = ?",
+    [username.toLowerCase()]
+  );
 
-  return rows.map(dbRowToUser);
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    ...dbRowToUser(row),
+    password_hash: row.password_hash!,
+    salt: row.salt!,
+  };
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  const result = await query<UserDbRow>(
+    `SELECT id, username, email, role, created_at,
+            display_name, bio, avatar_url, location, wurm_server,
+            show_in_members_list, show_email, show_location,
+            is_banned, ban_reason, banned_at, banned_by
+     FROM users ORDER BY created_at DESC`
+  );
+
+  return result.rows.map(dbRowToUser);
 }
 
 // SECURITY: Pagination types and helpers for DoS prevention
@@ -306,27 +216,26 @@ const DEFAULT_PAGE_LIMIT = 50;
 const MAX_PAGE_LIMIT = 200;
 
 // SECURITY: Paginated version to prevent DoS via unbounded queries
-export function getUsersPaginated(params?: { page?: number; limit?: number }): UserPaginatedResult {
+export async function getUsersPaginated(params?: { page?: number; limit?: number }): Promise<UserPaginatedResult> {
   const page = Math.max(1, Math.floor(params?.page || 1));
   const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, Math.floor(params?.limit || DEFAULT_PAGE_LIMIT)));
   const offset = (page - 1) * limit;
 
-  const db = getDb();
-  const total = (db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number }).count;
+  const countResult = await query<{ count: number }>("SELECT COUNT(*) as count FROM users");
+  const total = countResult.rows[0]?.count || 0;
 
-  const rows = db
-    .prepare(`
-      SELECT id, username, email, role, created_at,
-             display_name, bio, avatar_url, location, wurm_server,
-             show_in_members_list, show_email, show_location,
-             is_banned, ban_reason, banned_at, banned_by
-      FROM users ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `)
-    .all(limit, offset) as UserDbRow[];
+  const result = await query<UserDbRow>(
+    `SELECT id, username, email, role, created_at,
+            display_name, bio, avatar_url, location, wurm_server,
+            show_in_members_list, show_email, show_location,
+            is_banned, ban_reason, banned_at, banned_by
+     FROM users ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`,
+    [limit, offset]
+  );
 
   return {
-    data: rows.map(dbRowToUser),
+    data: result.rows.map(dbRowToUser),
     total,
     page,
     limit,
@@ -335,25 +244,23 @@ export function getUsersPaginated(params?: { page?: number; limit?: number }): U
 }
 
 // Get visible members (opt-in and not banned)
-export function getVisibleMembers(): User[] {
-  const rows = getDb()
-    .prepare(`
-      SELECT id, username, email, role, created_at,
-             display_name, bio, avatar_url, location, wurm_server,
-             show_in_members_list, show_email, show_location,
-             is_banned, ban_reason, banned_at, banned_by
-      FROM users
-      WHERE show_in_members_list = 1 AND is_banned = 0
-      ORDER BY display_name ASC, username ASC
-    `)
-    .all() as UserDbRow[];
+export async function getVisibleMembers(): Promise<User[]> {
+  const result = await query<UserDbRow>(
+    `SELECT id, username, email, role, created_at,
+            display_name, bio, avatar_url, location, wurm_server,
+            show_in_members_list, show_email, show_location,
+            is_banned, ban_reason, banned_at, banned_by
+     FROM users
+     WHERE show_in_members_list = 1 AND is_banned = 0
+     ORDER BY display_name ASC, username ASC`
+  );
 
-  return rows.map(dbRowToUser);
+  return result.rows.map(dbRowToUser);
 }
 
 // Get public profile (respects visibility settings)
-export function getPublicProfile(userId: number): Partial<User> | null {
-  const user = getUserById(userId);
+export async function getPublicProfile(userId: number): Promise<Partial<User> | null> {
+  const user = await getUserById(userId);
   if (!user || user.is_banned) return null;
 
   const profile: Partial<User> = {
@@ -377,41 +284,39 @@ export function getPublicProfile(userId: number): Partial<User> | null {
   return profile;
 }
 
-export function updateUserRole(userId: number, role: "user" | "admin"): boolean {
-  const result = getDb()
-    .prepare("UPDATE users SET role = ? WHERE id = ?")
-    .run(role, userId);
-  return result.changes > 0;
+export async function updateUserRole(userId: number, role: "user" | "admin"): Promise<boolean> {
+  const result = await query(
+    "UPDATE users SET role = ? WHERE id = ?",
+    [role, userId]
+  );
+  return result.rowCount > 0;
 }
 
-export function deleteUser(userId: number): boolean {
-  const db = getDb();
+export async function deleteUser(userId: number): Promise<boolean> {
   // Delete sessions first
-  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+  await query("DELETE FROM sessions WHERE user_id = ?", [userId]);
   // Then delete user
-  const result = db.prepare("DELETE FROM users WHERE id = ?").run(userId);
-  return result.changes > 0;
+  const result = await query("DELETE FROM users WHERE id = ?", [userId]);
+  return result.rowCount > 0;
 }
 
 // ========== AUTHENTICATION FUNCTIONS ==========
 
-export function login(
+export async function login(
   usernameOrEmail: string,
   password: string
-): { success: true; user: User; sessionId: string } | { success: false; error: string } {
-  const db = getDb();
-
+): Promise<{ success: true; user: User; sessionId: string } | { success: false; error: string }> {
   // Find user by username or email
-  const row = db
-    .prepare("SELECT * FROM users WHERE username = ? OR email = ?")
-    .get(usernameOrEmail.toLowerCase(), usernameOrEmail.toLowerCase()) as (UserDbRow & {
-      password_hash: string;
-      salt: string;
-    }) | undefined;
+  const result = await query<UserDbRow>(
+    "SELECT * FROM users WHERE username = ? OR email = ?",
+    [usernameOrEmail.toLowerCase(), usernameOrEmail.toLowerCase()]
+  );
 
-  if (!row) {
+  if (result.rows.length === 0) {
     return { success: false, error: "Invalid credentials" };
   }
+
+  const row = result.rows[0];
 
   // Check if user is banned
   if (row.is_banned) {
@@ -419,7 +324,7 @@ export function login(
   }
 
   // Verify password
-  if (!verifyPassword(password, row.password_hash, row.salt)) {
+  if (!verifyPassword(password, row.password_hash!, row.salt!)) {
     return { success: false, error: "Invalid credentials" };
   }
 
@@ -427,71 +332,70 @@ export function login(
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
-  db.prepare(
-    "INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)"
-  ).run(sessionId, row.id, expiresAt);
+  await query(
+    "INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
+    [sessionId, row.id, expiresAt]
+  );
 
-  const user: User = dbRowToUser(row);
-
-  return { success: true, user, sessionId };
+  return { success: true, user: dbRowToUser(row), sessionId };
 }
 
-export function logout(sessionId: string): boolean {
-  const result = getDb()
-    .prepare("DELETE FROM sessions WHERE id = ?")
-    .run(sessionId);
-  return result.changes > 0;
+export async function logout(sessionId: string): Promise<boolean> {
+  const result = await query(
+    "DELETE FROM sessions WHERE id = ?",
+    [sessionId]
+  );
+  return result.rowCount > 0;
 }
 
-export function getSession(sessionId: string): { session: Session; user: User } | null {
-  const db = getDb();
-
+export async function getSession(sessionId: string): Promise<{ session: Session; user: User } | null> {
   // Clean up expired sessions first
-  db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(new Date().toISOString());
+  await query("DELETE FROM sessions WHERE expires_at < ?", [new Date().toISOString()]);
 
   // Get session with user
-  const row = db
-    .prepare(`
-      SELECT
-        s.id, s.user_id, s.expires_at, s.created_at,
-        u.username, u.email, u.role, u.created_at as user_created_at,
-        u.display_name, u.bio, u.avatar_url, u.location, u.wurm_server,
-        u.show_in_members_list, u.show_email, u.show_location,
-        u.is_banned, u.ban_reason, u.banned_at, u.banned_by
-      FROM sessions s
-      JOIN users u ON s.user_id = u.id
-      WHERE s.id = ? AND s.expires_at > ?
-    `)
-    .get(sessionId, new Date().toISOString()) as {
-      id: string;
-      user_id: number;
-      expires_at: string;
-      created_at: string;
-      username: string;
-      email: string;
-      role: string;
-      user_created_at: string;
-      display_name: string | null;
-      bio: string | null;
-      avatar_url: string | null;
-      location: string | null;
-      wurm_server: string | null;
-      show_in_members_list: number;
-      show_email: number;
-      show_location: number;
-      is_banned: number;
-      ban_reason: string | null;
-      banned_at: string | null;
-      banned_by: number | null;
-    } | undefined;
+  const result = await query<{
+    id: string;
+    user_id: number;
+    expires_at: string;
+    created_at: string;
+    username: string;
+    email: string;
+    role: string;
+    user_created_at: string;
+    display_name: string | null;
+    bio: string | null;
+    avatar_url: string | null;
+    location: string | null;
+    wurm_server: string | null;
+    show_in_members_list: number;
+    show_email: number;
+    show_location: number;
+    is_banned: number;
+    ban_reason: string | null;
+    banned_at: string | null;
+    banned_by: number | null;
+  }>(
+    `SELECT
+      s.id, s.user_id, s.expires_at, s.created_at,
+      u.username, u.email, u.role, u.created_at as user_created_at,
+      u.display_name, u.bio, u.avatar_url, u.location, u.wurm_server,
+      u.show_in_members_list, u.show_email, u.show_location,
+      u.is_banned, u.ban_reason, u.banned_at, u.banned_by
+    FROM sessions s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.id = ? AND s.expires_at > ?`,
+    [sessionId, new Date().toISOString()]
+  );
 
-  if (!row) {
+  if (result.rows.length === 0) {
     return null;
   }
 
+  const row = result.rows[0];
+
   // Check if user is banned - invalidate session
   if (row.is_banned) {
-    db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+    await query("DELETE FROM sessions WHERE id = ?", [sessionId]);
     return null;
   }
 
@@ -521,12 +425,13 @@ export function getSession(sessionId: string): { session: Session; user: User } 
   };
 }
 
-export function refreshSession(sessionId: string): boolean {
+export async function refreshSession(sessionId: string): Promise<boolean> {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  const result = getDb()
-    .prepare("UPDATE sessions SET expires_at = ? WHERE id = ?")
-    .run(expiresAt, sessionId);
-  return result.changes > 0;
+  const result = await query(
+    "UPDATE sessions SET expires_at = ? WHERE id = ?",
+    [expiresAt, sessionId]
+  );
+  return result.rowCount > 0;
 }
 
 // ========== AUTHORIZATION HELPERS ==========
@@ -543,14 +448,14 @@ export async function isAdminAsync(): Promise<boolean> {
   return session?.role === "admin";
 }
 
-export function requireAuth(sessionId: string | undefined): User | null {
+export async function requireAuth(sessionId: string | undefined): Promise<User | null> {
   if (!sessionId) return null;
-  const result = getSession(sessionId);
+  const result = await getSession(sessionId);
   return result?.user || null;
 }
 
-export function requireAdmin(sessionId: string | undefined): User | null {
-  const user = requireAuth(sessionId);
+export async function requireAdmin(sessionId: string | undefined): Promise<User | null> {
+  const user = await requireAuth(sessionId);
   if (!user || user.role !== "admin") return null;
   return user;
 }
@@ -571,7 +476,7 @@ export interface SettingsUpdateInput {
   show_location?: boolean;
 }
 
-export function updateUserProfile(userId: number, input: ProfileUpdateInput): boolean {
+export async function updateUserProfile(userId: number, input: ProfileUpdateInput): Promise<boolean> {
   const fields: string[] = [];
   const values: (string | null)[] = [];
 
@@ -599,14 +504,15 @@ export function updateUserProfile(userId: number, input: ProfileUpdateInput): bo
   if (fields.length === 0) return false;
 
   values.push(userId.toString());
-  const result = getDb()
-    .prepare(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`)
-    .run(...values.slice(0, -1), userId);
+  const result = await query(
+    `UPDATE users SET ${fields.join(", ")} WHERE id = ?`,
+    [...values.slice(0, -1), userId]
+  );
 
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
-export function updateUserSettings(userId: number, input: SettingsUpdateInput): boolean {
+export async function updateUserSettings(userId: number, input: SettingsUpdateInput): Promise<boolean> {
   const fields: string[] = [];
   const values: number[] = [];
 
@@ -625,51 +531,50 @@ export function updateUserSettings(userId: number, input: SettingsUpdateInput): 
 
   if (fields.length === 0) return false;
 
-  const result = getDb()
-    .prepare(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`)
-    .run(...values, userId);
+  const result = await query(
+    `UPDATE users SET ${fields.join(", ")} WHERE id = ?`,
+    [...values, userId]
+  );
 
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // ========== ADMIN USER MANAGEMENT ==========
 
-export function banUser(userId: number, adminId: number, reason: string): boolean {
-  const result = getDb()
-    .prepare(`
-      UPDATE users SET
-        is_banned = 1,
-        ban_reason = ?,
-        banned_at = datetime('now'),
-        banned_by = ?
-      WHERE id = ? AND role != 'admin'
-    `)
-    .run(reason, adminId, userId);
+export async function banUser(userId: number, adminId: number, reason: string): Promise<boolean> {
+  const result = await query(
+    `UPDATE users SET
+      is_banned = 1,
+      ban_reason = ?,
+      banned_at = NOW(),
+      banned_by = ?
+    WHERE id = ? AND role != 'admin'`,
+    [reason, adminId, userId]
+  );
 
   // Also invalidate all sessions for this user
-  if (result.changes > 0) {
-    getDb().prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+  if (result.rowCount > 0) {
+    await query("DELETE FROM sessions WHERE user_id = ?", [userId]);
   }
 
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
-export function unbanUser(userId: number): boolean {
-  const result = getDb()
-    .prepare(`
-      UPDATE users SET
-        is_banned = 0,
-        ban_reason = NULL,
-        banned_at = NULL,
-        banned_by = NULL
-      WHERE id = ?
-    `)
-    .run(userId);
+export async function unbanUser(userId: number): Promise<boolean> {
+  const result = await query(
+    `UPDATE users SET
+      is_banned = 0,
+      ban_reason = NULL,
+      banned_at = NULL,
+      banned_by = NULL
+    WHERE id = ?`,
+    [userId]
+  );
 
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
-export function adminUpdateUser(
+export async function adminUpdateUser(
   userId: number,
   input: {
     role?: "user" | "admin";
@@ -678,7 +583,7 @@ export function adminUpdateUser(
     location?: string;
     wurm_server?: string;
   }
-): boolean {
+): Promise<boolean> {
   const fields: string[] = [];
   const values: (string | null)[] = [];
 
@@ -705,31 +610,33 @@ export function adminUpdateUser(
 
   if (fields.length === 0) return false;
 
-  const result = getDb()
-    .prepare(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`)
-    .run(...values, userId);
+  const result = await query(
+    `UPDATE users SET ${fields.join(", ")} WHERE id = ?`,
+    [...values, userId]
+  );
 
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Get user statistics
-export function getUserStats(): {
+export async function getUserStats(): Promise<{
   total: number;
   visible: number;
   banned: number;
   admins: number;
-} {
-  const db = getDb();
-  const total = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
-  const visible = db.prepare("SELECT COUNT(*) as count FROM users WHERE show_in_members_list = 1 AND is_banned = 0").get() as { count: number };
-  const banned = db.prepare("SELECT COUNT(*) as count FROM users WHERE is_banned = 1").get() as { count: number };
-  const admins = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number };
+}> {
+  const [totalResult, visibleResult, bannedResult, adminsResult] = await Promise.all([
+    query<{ count: number }>("SELECT COUNT(*) as count FROM users"),
+    query<{ count: number }>("SELECT COUNT(*) as count FROM users WHERE show_in_members_list = 1 AND is_banned = 0"),
+    query<{ count: number }>("SELECT COUNT(*) as count FROM users WHERE is_banned = 1"),
+    query<{ count: number }>("SELECT COUNT(*) as count FROM users WHERE role = 'admin'"),
+  ]);
 
   return {
-    total: total.count,
-    visible: visible.count,
-    banned: banned.count,
-    admins: admins.count,
+    total: totalResult.rows[0]?.count || 0,
+    visible: visibleResult.rows[0]?.count || 0,
+    banned: bannedResult.rows[0]?.count || 0,
+    admins: adminsResult.rows[0]?.count || 0,
   };
 }
 
@@ -740,21 +647,22 @@ export interface ChangePasswordResult {
   error?: string;
 }
 
-export function changePassword(
+export async function changePassword(
   userId: number,
   currentPassword: string,
   newPassword: string
-): ChangePasswordResult {
-  const db = getDb();
-
+): Promise<ChangePasswordResult> {
   // Get current user's password hash and salt
-  const user = db
-    .prepare("SELECT password_hash, salt FROM users WHERE id = ?")
-    .get(userId) as { password_hash: string; salt: string } | undefined;
+  const result = await query<{ password_hash: string; salt: string }>(
+    "SELECT password_hash, salt FROM users WHERE id = ?",
+    [userId]
+  );
 
-  if (!user) {
+  if (result.rows.length === 0) {
     return { success: false, error: "User not found" };
   }
+
+  const user = result.rows[0];
 
   // Verify current password
   if (!verifyPassword(currentPassword, user.password_hash, user.salt)) {
@@ -775,31 +683,33 @@ export function changePassword(
   const newHash = hashPassword(newPassword, newSalt);
 
   // Update password
-  const result = db
-    .prepare("UPDATE users SET password_hash = ?, salt = ? WHERE id = ?")
-    .run(newHash, newSalt, userId);
+  const updateResult = await query(
+    "UPDATE users SET password_hash = ?, salt = ? WHERE id = ?",
+    [newHash, newSalt, userId]
+  );
 
-  if (result.changes === 0) {
+  if (updateResult.rowCount === 0) {
     return { success: false, error: "Failed to update password" };
   }
 
   // Invalidate all other sessions for this user (security measure)
-  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+  await query("DELETE FROM sessions WHERE user_id = ?", [userId]);
 
   return { success: true };
 }
 
-export function deleteAccount(userId: number, password: string): ChangePasswordResult {
-  const db = getDb();
-
+export async function deleteAccount(userId: number, password: string): Promise<ChangePasswordResult> {
   // Get current user's password hash and salt
-  const user = db
-    .prepare("SELECT password_hash, salt, role FROM users WHERE id = ?")
-    .get(userId) as { password_hash: string; salt: string; role: string } | undefined;
+  const result = await query<{ password_hash: string; salt: string; role: string }>(
+    "SELECT password_hash, salt, role FROM users WHERE id = ?",
+    [userId]
+  );
 
-  if (!user) {
+  if (result.rows.length === 0) {
     return { success: false, error: "User not found" };
   }
+
+  const user = result.rows[0];
 
   // Don't allow admins to delete their account this way
   if (user.role === "admin") {
@@ -812,52 +722,52 @@ export function deleteAccount(userId: number, password: string): ChangePasswordR
   }
 
   // Delete user data in order (respecting foreign keys)
-  const transaction = db.transaction(() => {
-    // Delete sessions
-    db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
-
-    // Delete prospects and prospect pages
-    db.prepare("DELETE FROM prospects WHERE user_id = ?").run(userId);
-    db.prepare("DELETE FROM prospect_pages WHERE user_id = ?").run(userId);
-
-    // Delete orders
-    db.prepare("DELETE FROM orders WHERE user_id = ?").run(userId);
-
-    // Delete merchants
-    db.prepare("DELETE FROM merchants WHERE user_id = ?").run(userId);
-
-    // Delete projects and project items
-    db.prepare(`
-      DELETE FROM project_items WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)
-    `).run(userId);
-    db.prepare("DELETE FROM projects WHERE user_id = ?").run(userId);
-
-    // Delete price alerts
-    db.prepare("DELETE FROM price_alerts WHERE user_id = ?").run(userId);
-
-    // Delete map locations
-    db.prepare("DELETE FROM map_locations WHERE user_id = ?").run(userId);
-
-    // Delete achievements and XP
-    db.prepare("DELETE FROM user_achievements WHERE user_id = ?").run(userId);
-    db.prepare("DELETE FROM user_xp WHERE user_id = ?").run(userId);
-
-    // Delete webhooks
-    db.prepare("DELETE FROM discord_webhooks WHERE user_id = ?").run(userId);
-
-    // Delete ratings (both given and received)
-    db.prepare("DELETE FROM user_ratings WHERE rater_id = ? OR rated_user_id = ?").run(userId, userId);
-
-    // Leave alliances
-    db.prepare("DELETE FROM alliance_members WHERE user_id = ?").run(userId);
-    db.prepare("DELETE FROM alliance_invites WHERE user_id = ?").run(userId);
-
-    // Finally delete user
-    db.prepare("DELETE FROM users WHERE id = ?").run(userId);
-  });
-
   try {
-    transaction();
+    await withTransaction(async (client) => {
+      // Delete sessions
+      await client.query("DELETE FROM sessions WHERE user_id = ?", [userId]);
+
+      // Delete prospects and prospect pages
+      await client.query("DELETE FROM prospects WHERE user_id = ?", [userId]);
+      await client.query("DELETE FROM prospect_pages WHERE user_id = ?", [userId]);
+
+      // Delete orders
+      await client.query("DELETE FROM orders WHERE user_id = ?", [userId]);
+
+      // Delete merchants
+      await client.query("DELETE FROM merchants WHERE user_id = ?", [userId]);
+
+      // Delete projects and project items
+      await client.query(
+        "DELETE FROM project_items WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)",
+        [userId]
+      );
+      await client.query("DELETE FROM projects WHERE user_id = ?", [userId]);
+
+      // Delete price alerts
+      await client.query("DELETE FROM price_alerts WHERE user_id = ?", [userId]);
+
+      // Delete map locations
+      await client.query("DELETE FROM map_locations WHERE user_id = ?", [userId]);
+
+      // Delete achievements and XP
+      await client.query("DELETE FROM user_achievements WHERE user_id = ?", [userId]);
+      await client.query("DELETE FROM user_xp WHERE user_id = ?", [userId]);
+
+      // Delete webhooks
+      await client.query("DELETE FROM discord_webhooks WHERE user_id = ?", [userId]);
+
+      // Delete ratings (both given and received)
+      await client.query("DELETE FROM user_ratings WHERE rater_id = ? OR rated_user_id = ?", [userId, userId]);
+
+      // Leave alliances
+      await client.query("DELETE FROM alliance_members WHERE user_id = ?", [userId]);
+      await client.query("DELETE FROM alliance_invites WHERE user_id = ?", [userId]);
+
+      // Finally delete user
+      await client.query("DELETE FROM users WHERE id = ?", [userId]);
+    });
+
     return { success: true };
   } catch {
     return { success: false, error: "Failed to delete account" };
@@ -890,7 +800,7 @@ export async function getSessionAsync(): Promise<AsyncSessionResult | null> {
       return null;
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return null;
     }
