@@ -939,3 +939,40 @@ export interface UpdateAttendanceInput {
   character_name?: string;
   notes?: string;
 }
+
+// ========== RECIPE SUBMISSIONS ==========
+
+export type RecipeSubmissionStatus = "pending" | "approved" | "rejected";
+
+export interface RecipeSubmission {
+  id: number;
+  user_id: number;
+  username?: string;
+  item_name: string;
+  ingredients: string; // JSON array of { name: string, quantity: number }
+  source_url?: string;
+  notes?: string;
+  status: RecipeSubmissionStatus;
+  admin_notes?: string;
+  reviewed_by?: number;
+  reviewed_by_username?: string;
+  created_at: string;
+  reviewed_at?: string;
+}
+
+export interface RecipeIngredientInput {
+  name: string;
+  quantity: number;
+}
+
+export interface CreateRecipeSubmissionInput {
+  item_name: string;
+  ingredients: RecipeIngredientInput[];
+  source_url?: string;
+  notes?: string;
+}
+
+export interface ReviewRecipeSubmissionInput {
+  status: "approved" | "rejected";
+  admin_notes?: string;
+}
