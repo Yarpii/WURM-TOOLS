@@ -1,5 +1,10 @@
 import Database from "better-sqlite3";
 import path from "path";
+
+// Re-export unified query functions from db/core
+export { query, getClient, withTransaction } from "./db/core";
+export type { QueryResult, DbClient } from "./db/core";
+
 import type {
   Item,
   Recipe,
@@ -69,6 +74,10 @@ import type {
   UpdateProspectPageInput,
   CreateProspectInput,
   UpdateProspectInput,
+  RecipeSubmission,
+  RecipeSubmissionStatus,
+  CreateRecipeSubmissionInput,
+  ReviewRecipeSubmissionInput,
 } from "./types";
 import {
   calculateSuccessChance,
@@ -565,6 +574,37 @@ function initDatabase(db: Database.Database): void {
       CREATE INDEX idx_prospects_status ON prospects(status);
       CREATE INDEX idx_prospects_priority ON prospects(priority);
       CREATE INDEX idx_prospects_quality ON prospects(quality_rating);
+    `);
+  }
+
+  // Initialize recipe_submissions table if it doesn't exist
+  const recipeSubmissionsTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='recipe_submissions'"
+    )
+    .get();
+
+  if (!recipeSubmissionsTableExists) {
+    db.exec(`
+      CREATE TABLE recipe_submissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        item_name TEXT NOT NULL,
+        ingredients TEXT NOT NULL,
+        source_url TEXT,
+        notes TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+        admin_notes TEXT,
+        reviewed_by INTEGER,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        reviewed_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+      );
+
+      CREATE INDEX idx_recipe_submissions_user ON recipe_submissions(user_id);
+      CREATE INDEX idx_recipe_submissions_status ON recipe_submissions(status);
+      CREATE INDEX idx_recipe_submissions_created ON recipe_submissions(created_at);
     `);
   }
 }
@@ -5122,4 +5162,219 @@ export function updateProspectLastContact(id: number, userId: number): boolean {
     .run(id);
 
   return result.changes > 0;
+}
+
+// ========== RECIPE SUBMISSION FUNCTIONS ==========
+
+interface RecipeSubmissionRow {
+  id: number;
+  user_id: number;
+  item_name: string;
+  ingredients: string;
+  source_url: string | null;
+  notes: string | null;
+  status: string;
+  admin_notes: string | null;
+  reviewed_by: number | null;
+  created_at: string;
+  reviewed_at: string | null;
+  username?: string;
+  reviewed_by_username?: string;
+}
+
+function mapRecipeSubmissionRow(row: RecipeSubmissionRow): RecipeSubmission {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    username: row.username,
+    item_name: row.item_name,
+    ingredients: row.ingredients,
+    source_url: row.source_url ?? undefined,
+    notes: row.notes ?? undefined,
+    status: row.status as RecipeSubmissionStatus,
+    admin_notes: row.admin_notes ?? undefined,
+    reviewed_by: row.reviewed_by ?? undefined,
+    reviewed_by_username: row.reviewed_by_username ?? undefined,
+    created_at: row.created_at,
+    reviewed_at: row.reviewed_at ?? undefined,
+  };
+}
+
+export function createRecipeSubmission(
+  userId: number,
+  input: CreateRecipeSubmissionInput
+): number {
+  const result = getDb()
+    .prepare(
+      `INSERT INTO recipe_submissions (user_id, item_name, ingredients, source_url, notes)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(
+      userId,
+      input.item_name.trim(),
+      JSON.stringify(input.ingredients),
+      input.source_url?.trim() || null,
+      input.notes?.trim() || null
+    );
+
+  return result.lastInsertRowid as number;
+}
+
+export function getRecipeSubmissionById(id: number): RecipeSubmission | null {
+  const row = getDb()
+    .prepare(
+      `SELECT rs.*, u.username, reviewer.username as reviewed_by_username
+       FROM recipe_submissions rs
+       JOIN users u ON rs.user_id = u.id
+       LEFT JOIN users reviewer ON rs.reviewed_by = reviewer.id
+       WHERE rs.id = ?`
+    )
+    .get(id) as RecipeSubmissionRow | undefined;
+
+  return row ? mapRecipeSubmissionRow(row) : null;
+}
+
+export function getUserRecipeSubmissions(userId: number): RecipeSubmission[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT rs.*, u.username, reviewer.username as reviewed_by_username
+       FROM recipe_submissions rs
+       JOIN users u ON rs.user_id = u.id
+       LEFT JOIN users reviewer ON rs.reviewed_by = reviewer.id
+       WHERE rs.user_id = ?
+       ORDER BY rs.created_at DESC`
+    )
+    .all(userId) as RecipeSubmissionRow[];
+
+  return rows.map(mapRecipeSubmissionRow);
+}
+
+export function getAllRecipeSubmissions(
+  status?: RecipeSubmissionStatus
+): RecipeSubmission[] {
+  let query = `
+    SELECT rs.*, u.username, reviewer.username as reviewed_by_username
+    FROM recipe_submissions rs
+    JOIN users u ON rs.user_id = u.id
+    LEFT JOIN users reviewer ON rs.reviewed_by = reviewer.id
+  `;
+  const params: string[] = [];
+
+  if (status) {
+    query += " WHERE rs.status = ?";
+    params.push(status);
+  }
+
+  query += " ORDER BY rs.created_at DESC";
+
+  const rows = getDb().prepare(query).all(...params) as RecipeSubmissionRow[];
+  return rows.map(mapRecipeSubmissionRow);
+}
+
+export function getPendingRecipeSubmissionsCount(): number {
+  const result = getDb()
+    .prepare("SELECT COUNT(*) as count FROM recipe_submissions WHERE status = 'pending'")
+    .get() as { count: number };
+
+  return result.count;
+}
+
+export function reviewRecipeSubmission(
+  submissionId: number,
+  adminId: number,
+  input: ReviewRecipeSubmissionInput
+): boolean {
+  const result = getDb()
+    .prepare(
+      `UPDATE recipe_submissions
+       SET status = ?, admin_notes = ?, reviewed_by = ?, reviewed_at = datetime('now')
+       WHERE id = ?`
+    )
+    .run(input.status, input.admin_notes || null, adminId, submissionId);
+
+  return result.changes > 0;
+}
+
+export function deleteRecipeSubmission(id: number, userId: number, isAdmin: boolean): boolean {
+  const submission = getRecipeSubmissionById(id);
+  if (!submission) return false;
+
+  // Only owner can delete pending submissions, admin can delete any
+  if (!isAdmin && (submission.user_id !== userId || submission.status !== "pending")) {
+    return false;
+  }
+
+  const result = getDb()
+    .prepare("DELETE FROM recipe_submissions WHERE id = ?")
+    .run(id);
+
+  return result.changes > 0;
+}
+
+export function approveAndAddRecipe(
+  submissionId: number,
+  adminId: number
+): { success: boolean; error?: string; itemsCreated?: number; recipesCreated?: number } {
+  const submission = getRecipeSubmissionById(submissionId);
+  if (!submission) {
+    return { success: false, error: "Submission not found" };
+  }
+
+  if (submission.status !== "pending") {
+    return { success: false, error: "Submission already reviewed" };
+  }
+
+  let ingredients: Array<{ name: string; quantity: number }>;
+  try {
+    ingredients = JSON.parse(submission.ingredients);
+  } catch {
+    return { success: false, error: "Invalid ingredients data" };
+  }
+
+  const db = getDb();
+  let itemsCreated = 0;
+  let recipesCreated = 0;
+
+  // First, ensure result item exists
+  let resultItem = getItemByName(submission.item_name);
+  if (!resultItem) {
+    addItem(submission.item_name, "misc", false, "Added via recipe submission");
+    resultItem = getItemByName(submission.item_name);
+    if (!resultItem) {
+      return { success: false, error: "Failed to create result item" };
+    }
+    itemsCreated++;
+  }
+
+  // Add each ingredient and recipe
+  for (const ingredient of ingredients) {
+    // Ensure ingredient item exists
+    let ingredientItem = getItemByName(ingredient.name);
+    if (!ingredientItem) {
+      addItem(ingredient.name, "misc", true, "Added via recipe submission");
+      ingredientItem = getItemByName(ingredient.name);
+      if (!ingredientItem) {
+        continue; // Skip if we can't create the item
+      }
+      itemsCreated++;
+    }
+
+    // Check if recipe already exists
+    const existingRecipes = getRecipe(resultItem.id);
+    const exists = existingRecipes.some(r => r.ingredient_item_id === ingredientItem!.id);
+    if (!exists) {
+      const recipeId = addRecipeIngredient(resultItem.id, ingredientItem.id, ingredient.quantity);
+      if (recipeId) {
+        recipesCreated++;
+      }
+    }
+  }
+
+  // Mark submission as approved
+  reviewRecipeSubmission(submissionId, adminId, {
+    status: "approved",
+    admin_notes: `Added ${itemsCreated} items and ${recipesCreated} recipes`,
+  });
+
+  return { success: true, itemsCreated, recipesCreated };
 }

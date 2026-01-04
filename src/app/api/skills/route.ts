@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSessionAsync as getSession } from "@/lib/auth";
 import { query, getClient } from "@/lib/database";
 import type { UserSkill, WurmSkill, CreateSkillInput, UpdateSkillInput } from "@/lib/types";
 
