@@ -5,7 +5,7 @@
 #
 # This script installs and configures:
 # - System updates and essential packages
-# - PostgreSQL 16
+# - MySQL 8.0
 # - Node.js 20 LTS
 # - PM2 Process Manager
 # - Caddy Web Server (reverse proxy + auto-SSL)
@@ -107,57 +107,75 @@ setup_system() {
 }
 
 #===============================================================================
-# PostgreSQL Setup
+# MySQL Setup
 #===============================================================================
 
-setup_postgresql() {
-    log_info "Installing PostgreSQL 16..."
+setup_mysql() {
+    log_info "Installing MySQL 8.0..."
 
-    # Add PostgreSQL APT repository
-    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-
+    # Install MySQL
     apt update
-    apt install -y postgresql-16 postgresql-contrib-16
+    apt install -y mysql-server mysql-client
 
-    # Start and enable PostgreSQL
-    systemctl start postgresql
-    systemctl enable postgresql
+    # Start and enable MySQL
+    systemctl start mysql
+    systemctl enable mysql
 
-    log_success "PostgreSQL 16 installed and running"
+    # Secure MySQL installation (non-interactive)
+    log_info "Securing MySQL installation..."
+
+    # Generate a random root password
+    MYSQL_ROOT_PASS=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 24)
+
+    # Set root password and secure installation
+    mysql <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_ROOT_PASS}';
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+EOF
+
+    # Save root password
+    mkdir -p /root/.wurm-tools
+    echo "MYSQL_ROOT_PASS=${MYSQL_ROOT_PASS}" > /root/.wurm-tools/mysql-root.txt
+    chmod 600 /root/.wurm-tools/mysql-root.txt
+
+    log_success "MySQL 8.0 installed and secured"
 }
 
 setup_database() {
     log_info "Setting up database..."
 
-    # Generate a random password
+    # Load root password
+    source /root/.wurm-tools/mysql-root.txt
+
+    # Generate a random password for app user
     DB_PASS=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 24)
 
     # Create user and database
-    sudo -u postgres psql <<EOF
--- Create user
-CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';
+    mysql -u root -p"${MYSQL_ROOT_PASS}" <<EOF
+-- Create database with proper charset
+CREATE DATABASE IF NOT EXISTS ${DB_NAME}
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
 
--- Create database
-CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};
+-- Create user
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
 
 -- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};
-
--- Connect and grant schema privileges
-\c ${DB_NAME}
-GRANT ALL ON SCHEMA public TO ${DB_USER};
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
 EOF
 
     # Save credentials
-    mkdir -p /root/.wurm-tools
     cat > /root/.wurm-tools/db-credentials.txt <<EOF
 # WURM-TOOLS Database Credentials
 # Generated: $(date)
 # KEEP THIS FILE SECURE!
 
-DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
+DATABASE_URL=mysql://${DB_USER}:${DB_PASS}@localhost:3306/${DB_NAME}
 DB_NAME=${DB_NAME}
 DB_USER=${DB_USER}
 DB_PASS=${DB_PASS}
@@ -284,7 +302,7 @@ print_summary() {
     echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}Installed Components:${NC}"
-    echo "  ✓ PostgreSQL 16"
+    echo "  ✓ MySQL 8.0"
     echo "  ✓ Node.js $(node --version)"
     echo "  ✓ PM2 Process Manager"
     echo "  ✓ Caddy Web Server"
@@ -301,6 +319,7 @@ print_summary() {
     echo "  1. Configure DNS: Point ${DOMAIN} to this server's IP"
     echo "  2. Run security script: sudo bash 02-security-setup.sh"
     echo "  3. Deploy the app: sudo bash 03-deploy-app.sh"
+    echo "  4. Import database schema: mysql -u ${DB_USER} -p ${DB_NAME} < scripts/schema-mysql.sql"
     echo ""
     echo -e "${YELLOW}Important Files:${NC}"
     echo "  Credentials: /root/.wurm-tools/db-credentials.txt"
@@ -321,7 +340,7 @@ main() {
     echo ""
 
     setup_system
-    setup_postgresql
+    setup_mysql
     setup_database
     setup_nodejs
     setup_pm2

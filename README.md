@@ -5,7 +5,7 @@
 ![BlackForge Tools](https://img.shields.io/badge/WURM-Online-orange?style=for-the-badge)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=for-the-badge&logo=typescript)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql)
+![MySQL](https://img.shields.io/badge/MySQL-8.0+-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 
 **The Ultimate Companion Tool for WURM Online**
 
@@ -146,8 +146,7 @@ Personal stats and activity overview
 | **Next.js** | 16 | React framework with App Router |
 | **React** | 19 | UI library |
 | **TypeScript** | 5.9 | Type-safe development |
-| **PostgreSQL** | 16 | Production database |
-| **SQLite** | - | Local development database |
+| **MySQL/MariaDB** | 8.0+ / 10.5+ | Database |
 | **Tailwind CSS** | 4 | Utility-first styling |
 | **PM2** | - | Process management |
 | **Caddy** | - | Reverse proxy with auto-SSL |
@@ -160,7 +159,7 @@ Personal stats and activity overview
 
 - Node.js 18+
 - npm or yarn
-- PostgreSQL 16 (for production)
+- MySQL 8.0+ or MariaDB 10.5+
 
 ### Local Development
 
@@ -172,7 +171,14 @@ cd WURM-TOOLS
 # Install dependencies
 npm install
 
-# Run development server (uses SQLite)
+# Setup database (see .env.example for configuration)
+cp .env.example .env.local
+# Edit .env.local with your MySQL credentials
+
+# Import database schema
+mysql -u your_user -p your_database < scripts/schema-mysql.sql
+
+# Run development server
 npm run dev
 ```
 
@@ -188,7 +194,7 @@ cd scripts/vps
 chmod +x *.sh
 
 # Run setup scripts
-sudo bash 01-initial-setup.sh    # PostgreSQL, Node.js, PM2, Caddy
+sudo bash 01-initial-setup.sh    # MySQL, Node.js, PM2, Caddy
 sudo bash 02-security-setup.sh   # Firewall, Fail2Ban, SSH hardening
 sudo bash 03-deploy-app.sh       # Deploy application
 
@@ -208,8 +214,8 @@ Create a `.env.local` file:
 # Environment
 NODE_ENV=production
 
-# Database (PostgreSQL for production)
-DATABASE_URL=postgresql://user:password@localhost:5432/wurmtools
+# Database (MySQL/MariaDB)
+DATABASE_URL=mysql://user:password@localhost:3306/wurmtools
 
 # Optional: SSL settings
 DATABASE_SSL=true
@@ -245,8 +251,9 @@ src/
 │   ├── register/           # Registration
 │   └── api/                # 42 API routes
 ├── lib/
-│   ├── database.ts         # SQLite database layer
-│   ├── database-pg.ts      # PostgreSQL database layer
+│   ├── database.ts         # Database interface
+│   ├── db/                 # MySQL database layer
+│   │   └── core.ts         # MySQL2 implementation
 │   ├── db-config.ts        # Database configuration
 │   ├── auth.ts             # Authentication logic
 │   ├── security.ts         # Security utilities
@@ -256,8 +263,7 @@ src/
 └── middleware.ts           # Rate limiting & security headers
 
 scripts/
-├── schema.sql              # PostgreSQL schema
-├── migrate-to-postgres.ts  # SQLite → PostgreSQL migration
+├── schema-mysql.sql        # MySQL database schema
 └── vps/                    # VPS deployment scripts
     ├── 01-initial-setup.sh
     ├── 02-security-setup.sh
@@ -266,7 +272,7 @@ scripts/
     └── 05-maintenance.sh
 
 docs/
-├── VPS-DATABASE-SETUP.md   # PostgreSQL setup guide
+├── VPS-DATABASE-SETUP.md   # MySQL setup guide
 └── DEPLOYMENT-OPTIONS.md   # Deployment architecture
 ```
 
@@ -392,13 +398,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [WURM Online](https://www.wurmonline.com/) - The game we love
 - [Next.js](https://nextjs.org/) - React framework
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [PostgreSQL](https://www.postgresql.org/) - Database
+- [MySQL](https://www.mysql.com/) - Database
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for the WURM Online Community**
+**Made with love for the WURM Online Community**
 
 [Website](https://blackforge.tools) · [GitHub](https://github.com/Yarpii/WURM-TOOLS)
 

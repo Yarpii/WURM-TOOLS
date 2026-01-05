@@ -36,5 +36,4 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
-wurmcalc.sqlite*
 next-env.d.ts

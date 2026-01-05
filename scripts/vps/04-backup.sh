@@ -4,7 +4,7 @@
 # For Ubuntu 22.04/24.04 LTS on OVH VPS
 #
 # This script creates:
-# - PostgreSQL database backup
+# - MySQL database backup
 # - Application files backup
 # - Configuration backup
 #
@@ -76,7 +76,7 @@ setup_backup_dir() {
 #===============================================================================
 
 backup_database() {
-    log_info "Backing up PostgreSQL database..."
+    log_info "Backing up MySQL database..."
 
     # Load database credentials
     if [ -f /root/.wurm-tools/db-credentials.txt ]; then
@@ -88,8 +88,8 @@ backup_database() {
 
     BACKUP_FILE="${BACKUP_DIR}/database/wurmtools_${TIMESTAMP}.sql.gz"
 
-    # Create backup using pg_dump
-    PGPASSWORD="${DB_PASS}" pg_dump -h localhost -U "${DB_USER}" "${DB_NAME}" | gzip > "${BACKUP_FILE}"
+    # Create backup using mysqldump
+    mysqldump -u "${DB_USER}" -p"${DB_PASS}" --single-transaction --routines --triggers "${DB_NAME}" | gzip > "${BACKUP_FILE}"
 
     # Verify backup
     if [ -s "${BACKUP_FILE}" ]; then
@@ -146,10 +146,10 @@ backup_config() {
     cp "${APP_DIR}/.env.local" "${TEMP_DIR}/" 2>/dev/null || true
     cp "${APP_DIR}/ecosystem.config.js" "${TEMP_DIR}/" 2>/dev/null || true
 
-    # PostgreSQL config
-    mkdir -p "${TEMP_DIR}/postgresql"
-    cp /etc/postgresql/*/main/postgresql.conf "${TEMP_DIR}/postgresql/" 2>/dev/null || true
-    cp /etc/postgresql/*/main/pg_hba.conf "${TEMP_DIR}/postgresql/" 2>/dev/null || true
+    # MySQL config
+    mkdir -p "${TEMP_DIR}/mysql"
+    cp /etc/mysql/mysql.conf.d/mysqld.cnf "${TEMP_DIR}/mysql/" 2>/dev/null || true
+    cp /etc/mysql/my.cnf "${TEMP_DIR}/mysql/" 2>/dev/null || true
 
     # Create archive
     tar -czf "${BACKUP_FILE}" -C "${TEMP_DIR}" .
@@ -265,7 +265,7 @@ restore_database() {
     pm2 stop wurm-tools 2>/dev/null || true
 
     # Restore database
-    gunzip -c "${BACKUP_FILE}" | PGPASSWORD="${DB_PASS}" psql -h localhost -U "${DB_USER}" "${DB_NAME}"
+    gunzip -c "${BACKUP_FILE}" | mysql -u "${DB_USER}" -p"${DB_PASS}" "${DB_NAME}"
 
     # Restart application
     pm2 start wurm-tools 2>/dev/null || true
