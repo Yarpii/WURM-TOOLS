@@ -8,14 +8,14 @@ export async function POST(request: NextRequest) {
     const { username, password } = body;
 
     // Create user (email is auto-generated for privacy)
-    const result = createUser(username, password);
+    const result = await createUser(username, password);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     // Auto-login after registration
-    const loginResult = login(username, password);
+    const loginResult = await login(username, password);
 
     if (!loginResult.success) {
       return NextResponse.json({ error: "Registration successful but login failed" }, { status: 500 });

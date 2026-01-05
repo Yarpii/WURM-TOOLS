@@ -1825,6 +1825,11 @@ export async function deleteLocation(id: number, userId: number, isAdmin: boolea
   return result.rowCount > 0;
 }
 
+export async function verifyLocation(id: number): Promise<boolean> {
+  const result = await query("UPDATE map_locations SET is_verified = 1 WHERE id = ?", [id]);
+  return result.rowCount > 0;
+}
+
 // ========== ACHIEVEMENTS ==========
 
 export async function getAchievements(): Promise<Achievement[]> {
