@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ authenticated: false, user: null });
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
 
     if (!result) {
       // Session expired or invalid, clear cookie
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Refresh session expiry
-    refreshSession(sessionId);
+    await refreshSession(sessionId);
 
     return NextResponse.json({
       authenticated: true,
