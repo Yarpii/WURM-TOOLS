@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // Get specific location
     if (locationId) {
-      const location = getLocationById(parseInt(locationId));
+      const location = await getLocationById(parseInt(locationId));
       if (!location) {
         return NextResponse.json(
           { error: "Location not found" },
@@ -30,10 +30,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all locations with optional filters
-    const locations = getMapLocations(
-      server || undefined,
-      locationType || undefined
-    );
+    const locations = await getMapLocations({
+      server: server || undefined,
+      type: locationType || undefined,
+    });
 
     return NextResponse.json(locations);
   } catch (error) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
           merchant_id,
         };
 
-        const id = createLocation(result.user.id, input);
+        const id = await createLocation(result.user.id, input);
         return NextResponse.json({ id, success: true });
       }
 
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         if (data.y !== undefined) updateInput.y = data.y;
         if (data.is_public !== undefined) updateInput.is_public = data.is_public;
 
-        const updated = updateLocation(
+        const updated = await updateLocation(
           location_id,
           result.user.id,
           updateInput,
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const deleted = deleteLocation(
+        const deleted = await deleteLocation(
           location_id,
           result.user.id,
           result.user.role === "admin"
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const verified = verifyLocation(location_id);
+        const verified = await verifyLocation(location_id);
         return NextResponse.json({ success: verified });
       }
 
