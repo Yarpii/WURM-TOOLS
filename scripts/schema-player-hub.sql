@@ -1,10 +1,39 @@
 -- WURM-TOOLS Player Hub Schema Extension (MySQL/MariaDB)
 -- Run this after schema-mysql.sql to add skill tracking, timers, and events
--- Dit bestand is compatibel met MySQL/MariaDB
+-- Dit bestand is compatibel met MySQL/MariaDB en kan veilig opnieuw worden gedraaid
 
 SET default_storage_engine=InnoDB;
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
+
+-- ========== HELPER PROCEDURE FOR SAFE INDEX CREATION ==========
+-- MySQL has no CREATE INDEX IF NOT EXISTS, so we use a procedure
+
+DROP PROCEDURE IF EXISTS create_index_if_not_exists;
+
+DELIMITER //
+CREATE PROCEDURE create_index_if_not_exists(
+    IN p_table_name VARCHAR(64),
+    IN p_index_name VARCHAR(64),
+    IN p_index_columns VARCHAR(255)
+)
+BEGIN
+    DECLARE index_exists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO index_exists
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = p_table_name
+      AND index_name = p_index_name;
+
+    IF index_exists = 0 THEN
+        SET @sql = CONCAT('CREATE INDEX ', p_index_name, ' ON ', p_table_name, '(', p_index_columns, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END //
+DELIMITER ;
 
 -- ========== SKILL TRACKING ==========
 
@@ -18,12 +47,22 @@ CREATE TABLE IF NOT EXISTS user_skills (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_user_skills_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY uk_user_skill (user_id, skill_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_user_skills_user ON user_skills(user_id);
-CREATE INDEX idx_user_skills_name ON user_skills(skill_name);
+-- Add foreign key only if it doesn't exist
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'user_skills'
+    AND CONSTRAINT_NAME = 'fk_user_skills_user' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE user_skills ADD CONSTRAINT fk_user_skills_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CALL create_index_if_not_exists('user_skills', 'idx_user_skills_user', 'user_id');
+CALL create_index_if_not_exists('user_skills', 'idx_user_skills_name', 'skill_name');
 
 -- Skill history for tracking progress over time
 CREATE TABLE IF NOT EXISTS skill_history (
@@ -31,13 +70,21 @@ CREATE TABLE IF NOT EXISTS skill_history (
     user_skill_id INT NOT NULL,
     old_level DECIMAL(10, 4) NOT NULL,
     new_level DECIMAL(10, 4) NOT NULL,
-    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_skill_history_skill FOREIGN KEY (user_skill_id) REFERENCES user_skills(id) ON DELETE CASCADE
+    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_skill_history_skill ON skill_history(user_skill_id);
-CREATE INDEX idx_skill_history_date ON skill_history(recorded_at);
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'skill_history'
+    AND CONSTRAINT_NAME = 'fk_skill_history_skill' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE skill_history ADD CONSTRAINT fk_skill_history_skill FOREIGN KEY (user_skill_id) REFERENCES user_skills(id) ON DELETE CASCADE',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CALL create_index_if_not_exists('skill_history', 'idx_skill_history_skill', 'user_skill_id');
+CALL create_index_if_not_exists('skill_history', 'idx_skill_history_date', 'recorded_at');
 
 -- ========== TIMERS ==========
 
@@ -58,17 +105,26 @@ CREATE TABLE IF NOT EXISTS user_timers (
     icon VARCHAR(50),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_user_timers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT chk_user_timers_type CHECK (timer_type IN (
         'sleep_bonus', 'fatigue', 'crop', 'animal', 'sermon',
         'meditation', 'custom', 'cooldown', 'bulk'
     ))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_user_timers_user ON user_timers(user_id);
-CREATE INDEX idx_user_timers_type ON user_timers(timer_type);
-CREATE INDEX idx_user_timers_end ON user_timers(end_time);
-CREATE INDEX idx_user_timers_active ON user_timers(is_active);
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'user_timers'
+    AND CONSTRAINT_NAME = 'fk_user_timers_user' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE user_timers ADD CONSTRAINT fk_user_timers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CALL create_index_if_not_exists('user_timers', 'idx_user_timers_user', 'user_id');
+CALL create_index_if_not_exists('user_timers', 'idx_user_timers_type', 'timer_type');
+CALL create_index_if_not_exists('user_timers', 'idx_user_timers_end', 'end_time');
+CALL create_index_if_not_exists('user_timers', 'idx_user_timers_active', 'is_active');
 
 -- Timer presets for quick timer creation
 CREATE TABLE IF NOT EXISTS timer_presets (
@@ -80,13 +136,21 @@ CREATE TABLE IF NOT EXISTS timer_presets (
     description TEXT,
     color VARCHAR(20) DEFAULT '#3b82f6',
     icon VARCHAR(50),
-    is_public BOOLEAN DEFAULT FALSE,
-
-    CONSTRAINT fk_timer_presets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    is_public BOOLEAN DEFAULT FALSE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_timer_presets_user ON timer_presets(user_id);
-CREATE INDEX idx_timer_presets_type ON timer_presets(timer_type);
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'timer_presets'
+    AND CONSTRAINT_NAME = 'fk_timer_presets_user' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE timer_presets ADD CONSTRAINT fk_timer_presets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CALL create_index_if_not_exists('timer_presets', 'idx_timer_presets_user', 'user_id');
+CALL create_index_if_not_exists('timer_presets', 'idx_timer_presets_type', 'timer_type');
 
 -- ========== EVENTS / CALENDAR ==========
 
@@ -111,19 +175,28 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT chk_events_type CHECK (event_type IN (
         'impalong', 'rift', 'unique', 'sermon_group', 'market',
         'pvp', 'community', 'personal', 'other'
     ))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_events_user ON events(user_id);
-CREATE INDEX idx_events_type ON events(event_type);
-CREATE INDEX idx_events_server ON events(server);
-CREATE INDEX idx_events_start ON events(start_date);
-CREATE INDEX idx_events_public ON events(is_public);
-CREATE INDEX idx_events_featured ON events(is_featured);
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'events'
+    AND CONSTRAINT_NAME = 'fk_events_user' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE events ADD CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CALL create_index_if_not_exists('events', 'idx_events_user', 'user_id');
+CALL create_index_if_not_exists('events', 'idx_events_type', 'event_type');
+CALL create_index_if_not_exists('events', 'idx_events_server', 'server');
+CALL create_index_if_not_exists('events', 'idx_events_start', 'start_date');
+CALL create_index_if_not_exists('events', 'idx_events_public', 'is_public');
+CALL create_index_if_not_exists('events', 'idx_events_featured', 'is_featured');
 
 -- Event attendance tracking
 CREATE TABLE IF NOT EXISTS event_attendees (
@@ -135,15 +208,33 @@ CREATE TABLE IF NOT EXISTS event_attendees (
     notes TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_event_attendees_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_event_attendees_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT chk_event_attendees_status CHECK (status IN ('interested', 'going', 'maybe', 'not_going')),
     UNIQUE KEY uk_event_attendee (event_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_event_attendees_event ON event_attendees(event_id);
-CREATE INDEX idx_event_attendees_user ON event_attendees(user_id);
-CREATE INDEX idx_event_attendees_status ON event_attendees(status);
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'event_attendees'
+    AND CONSTRAINT_NAME = 'fk_event_attendees_event' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE event_attendees ADD CONSTRAINT fk_event_attendees_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'event_attendees'
+    AND CONSTRAINT_NAME = 'fk_event_attendees_user' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE event_attendees ADD CONSTRAINT fk_event_attendees_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CALL create_index_if_not_exists('event_attendees', 'idx_event_attendees_event', 'event_id');
+CALL create_index_if_not_exists('event_attendees', 'idx_event_attendees_user', 'user_id');
+CALL create_index_if_not_exists('event_attendees', 'idx_event_attendees_status', 'status');
 
 -- ========== DEFAULT TIMER PRESETS ==========
 
@@ -170,8 +261,8 @@ CREATE TABLE IF NOT EXISTS wurm_skills (
     description TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_wurm_skills_category ON wurm_skills(category);
-CREATE INDEX idx_wurm_skills_parent ON wurm_skills(parent_skill);
+CALL create_index_if_not_exists('wurm_skills', 'idx_wurm_skills_category', 'category');
+CALL create_index_if_not_exists('wurm_skills', 'idx_wurm_skills_parent', 'parent_skill');
 
 INSERT IGNORE INTO wurm_skills (name, category, parent_skill, description) VALUES
     -- Main skills
@@ -290,3 +381,7 @@ INSERT IGNORE INTO wurm_skills (name, category, parent_skill, description) VALUE
     ('Climbing', 'misc', NULL, 'Climbing surfaces'),
     ('Stealing', 'misc', NULL, 'Theft skill'),
     ('Lock Picking', 'misc', 'Stealing', 'Opening locks');
+
+-- ========== CLEANUP ==========
+-- Remove helper procedure after use
+DROP PROCEDURE IF EXISTS create_index_if_not_exists;
