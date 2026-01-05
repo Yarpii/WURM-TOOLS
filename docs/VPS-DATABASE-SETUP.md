@@ -1,22 +1,24 @@
-# VPS Database Setup Guide - OVH + Cloudflare Pages
+# VPS Database Setup Guide - MySQL/MariaDB
 
-Deze guide helpt je om PostgreSQL op te zetten op je OVH VPS en te verbinden met je Cloudflare Pages deployment.
+Deze guide helpt je om MySQL/MariaDB op te zetten op je VPS voor WURM-TOOLS.
 
 ## Architectuur Overzicht
 
 ```
-┌─────────────────────────┐      ┌─────────────────────────┐
-│   Cloudflare Pages      │      │      OVH VPS            │
-│                         │      │                         │
-│  ┌─────────────────┐    │      │  ┌─────────────────┐    │
-│  │   Next.js App   │────┼──────┼──│   PostgreSQL    │    │
-│  │  (Edge/Worker)  │    │ SSL  │  │   Port 5432     │    │
-│  └─────────────────┘    │      │  └─────────────────┘    │
-│                         │      │                         │
-└─────────────────────────┘      └─────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                         OVH VPS                                  │
+│                                                                  │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐  │
+│  │   Caddy     │────│  Next.js    │────│   MySQL/MariaDB     │  │
+│  │  (Reverse   │    │  (PM2)      │    │   Port 3306         │  │
+│  │   Proxy)    │    │  Port 3000  │    │                     │  │
+│  └─────────────┘    └─────────────┘    └─────────────────────┘  │
+│        ↑                                                         │
+│   HTTPS:443                                                      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Stap 1: VPS Configuratie (op je OVH VPS)
+## Stap 1: VPS Configuratie
 
 ### 1.1 SSH naar je VPS
 
@@ -30,74 +32,57 @@ ssh root@jouw-vps-ip
 apt update && apt upgrade -y
 ```
 
-### 1.3 PostgreSQL installeren
+### 1.3 MySQL installeren
 
 ```bash
-# PostgreSQL 16 installeren (nieuwste stabiele versie)
-apt install -y postgresql postgresql-contrib
+# MySQL 8.0 installeren
+apt install -y mysql-server mysql-client
 
 # Controleer of het draait
-systemctl status postgresql
+systemctl status mysql
 ```
 
-### 1.4 Database en gebruiker aanmaken
+### 1.4 MySQL beveiligen
 
 ```bash
-# Schakel over naar postgres user
-sudo -u postgres psql
+# Beveiligingsscript uitvoeren
+mysql_secure_installation
+```
 
-# In PostgreSQL shell:
-CREATE USER wurmtools WITH PASSWORD 'VERVANG_MET_STERK_WACHTWOORD';
-CREATE DATABASE wurmtools OWNER wurmtools;
-GRANT ALL PRIVILEGES ON DATABASE wurmtools TO wurmtools;
+Beantwoord de vragen:
+- Validate password component: `Y`
+- Password strength: `MEDIUM` of `STRONG`
+- Remove anonymous users: `Y`
+- Disallow root login remotely: `Y`
+- Remove test database: `Y`
+- Reload privilege tables: `Y`
 
-# Geef schema rechten (belangrijk!)
-\c wurmtools
-GRANT ALL ON SCHEMA public TO wurmtools;
+### 1.5 Database en gebruiker aanmaken
+
+```bash
+# Login als root
+mysql -u root -p
+
+# In MySQL shell:
+CREATE DATABASE wurmtools
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'wurmtools'@'localhost' IDENTIFIED BY 'VERVANG_MET_STERK_WACHTWOORD';
+
+GRANT ALL PRIVILEGES ON wurmtools.* TO 'wurmtools'@'localhost';
+
+FLUSH PRIVILEGES;
 
 # Exit
-\q
+EXIT;
 ```
 
-### 1.5 PostgreSQL configureren voor remote verbindingen
+### 1.6 Schema importeren
 
 ```bash
-# Vind je PostgreSQL config locatie
-sudo -u postgres psql -c "SHOW config_file;"
-# Meestal: /etc/postgresql/16/main/postgresql.conf
-
-# Bewerk postgresql.conf
-nano /etc/postgresql/16/main/postgresql.conf
-```
-
-Zoek en wijzig:
-```conf
-# Luister op alle interfaces (niet alleen localhost)
-listen_addresses = '*'
-
-# SSL aanzetten (belangrijk voor productie!)
-ssl = on
-```
-
-### 1.6 Client authenticatie configureren
-
-```bash
-nano /etc/postgresql/16/main/pg_hba.conf
-```
-
-Voeg toe aan het einde:
-```conf
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
-
-# Sta verbindingen toe van overal (met wachtwoord + SSL)
-hostssl wurmtools       wurmtools       0.0.0.0/0               scram-sha-256
-hostssl wurmtools       wurmtools       ::/0                    scram-sha-256
-```
-
-### 1.7 PostgreSQL herstarten
-
-```bash
-systemctl restart postgresql
+# Importeer het database schema
+mysql -u wurmtools -p wurmtools < /var/www/wurm-tools/scripts/schema-mysql.sql
 ```
 
 ## Stap 2: Firewall Configuratie
@@ -115,8 +100,12 @@ ufw default allow outgoing
 # SSH toestaan (belangrijk!)
 ufw allow 22/tcp
 
-# PostgreSQL toestaan
-ufw allow 5432/tcp
+# HTTP/HTTPS toestaan
+ufw allow 80/tcp
+ufw allow 443/tcp
+
+# MySQL NIET openen naar buiten (alleen lokaal)
+# ufw allow 3306/tcp  # NIET DOEN
 
 # Firewall activeren
 ufw enable
@@ -125,180 +114,121 @@ ufw enable
 ufw status
 ```
 
-### 2.2 OVH Firewall (indien van toepassing)
+## Stap 3: Omgevingsvariabelen
 
-Ga naar je OVH Control Panel:
-1. Server > IP
-2. Klik op "..." naast je IP
-3. Firewall configureren
-4. Voeg regel toe: TCP poort 5432 toestaan
-
-## Stap 3: SSL Certificaat (Productie)
-
-### Optie A: Self-signed (voor testen)
-
-```bash
-# PostgreSQL heeft standaard self-signed certs in:
-# /var/lib/postgresql/16/main/server.crt
-# /var/lib/postgresql/16/main/server.key
-
-# Controleer of ze bestaan
-ls -la /var/lib/postgresql/16/main/server.*
-```
-
-### Optie B: Let's Encrypt (aanbevolen voor productie)
-
-```bash
-# Certbot installeren
-apt install -y certbot
-
-# Certificaat aanvragen (je hebt een domeinnaam nodig)
-certbot certonly --standalone -d db.jouwdomein.nl
-
-# Certificaten kopiëren naar PostgreSQL directory
-cp /etc/letsencrypt/live/db.jouwdomein.nl/fullchain.pem /var/lib/postgresql/16/main/server.crt
-cp /etc/letsencrypt/live/db.jouwdomein.nl/privkey.pem /var/lib/postgresql/16/main/server.key
-
-# Juiste permissies
-chown postgres:postgres /var/lib/postgresql/16/main/server.*
-chmod 600 /var/lib/postgresql/16/main/server.key
-
-# PostgreSQL herstarten
-systemctl restart postgresql
-```
-
-## Stap 4: Verbinding Testen
-
-### Vanaf je lokale machine
-
-```bash
-# psql client installeren (macOS)
-brew install libpq
-
-# Of Ubuntu/Debian
-apt install postgresql-client
-
-# Verbinden
-psql "host=jouw-vps-ip port=5432 dbname=wurmtools user=wurmtools sslmode=require"
-```
-
-### Test query
-
-```sql
-SELECT version();
-SELECT current_database();
-```
-
-## Stap 5: Omgevingsvariabelen
-
-### Voor lokale ontwikkeling (.env.local)
+### .env.local configureren
 
 ```env
-DATABASE_URL="postgresql://wurmtools:JOUW_WACHTWOORD@jouw-vps-ip:5432/wurmtools?sslmode=require"
+# Database (MySQL/MariaDB)
+DATABASE_URL=mysql://wurmtools:JOUW_WACHTWOORD@localhost:3306/wurmtools
+
+# Environment
+NODE_ENV=production
 ```
 
-### Voor Cloudflare Pages
-
-1. Ga naar Cloudflare Dashboard
-2. Pages > Jouw project > Settings > Environment variables
-3. Voeg toe:
-   - `DATABASE_URL` = `postgresql://wurmtools:JOUW_WACHTWOORD@jouw-vps-ip:5432/wurmtools?sslmode=require`
-
-## Stap 6: Database Backup (belangrijk!)
+## Stap 4: Database Backup
 
 ### Automatische dagelijkse backup
 
-```bash
-# Backup script maken
-nano /usr/local/bin/backup-wurmtools.sh
-```
+Het backup script is al geconfigureerd in `scripts/vps/04-backup.sh`:
 
 ```bash
-#!/bin/bash
-BACKUP_DIR="/var/backups/postgresql"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/wurmtools_$TIMESTAMP.sql.gz"
+# Installeer automatische backups
+sudo bash scripts/vps/04-backup.sh --install-cron
 
-mkdir -p $BACKUP_DIR
+# Handmatige backup
+sudo bash scripts/vps/04-backup.sh --full
 
-# Backup maken
-sudo -u postgres pg_dump wurmtools | gzip > $BACKUP_FILE
-
-# Oude backups verwijderen (ouder dan 7 dagen)
-find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
-
-echo "Backup gemaakt: $BACKUP_FILE"
+# Bekijk beschikbare backups
+sudo bash scripts/vps/04-backup.sh --list
 ```
 
-```bash
-# Uitvoerbaar maken
-chmod +x /usr/local/bin/backup-wurmtools.sh
+## Stap 5: Monitoring
 
-# Cron job toevoegen
-crontab -e
-```
-
-Voeg toe:
-```cron
-# Dagelijkse backup om 3:00
-0 3 * * * /usr/local/bin/backup-wurmtools.sh
-```
-
-## Stap 7: Monitoring
-
-### PostgreSQL logs bekijken
+### MySQL logs bekijken
 
 ```bash
 # Live logs volgen
-tail -f /var/log/postgresql/postgresql-16-main.log
+tail -f /var/log/mysql/error.log
 ```
 
 ### Actieve connecties zien
 
 ```sql
-SELECT * FROM pg_stat_activity WHERE datname = 'wurmtools';
+-- In MySQL shell
+SELECT * FROM information_schema.processlist WHERE DB = 'wurmtools';
+```
+
+### Database grootte checken
+
+```sql
+SELECT
+    table_schema AS 'Database',
+    ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)'
+FROM information_schema.tables
+WHERE table_schema = 'wurmtools'
+GROUP BY table_schema;
 ```
 
 ## Beveiliging Checklist
 
-- [ ] Sterk wachtwoord voor database user
-- [ ] SSL/TLS ingeschakeld
-- [ ] Firewall alleen noodzakelijke poorten open
-- [ ] Regelmatige backups geconfigureerd
-- [ ] PostgreSQL updates automatisch (unattended-upgrades)
-- [ ] Fail2ban voor SSH bescherming
-- [ ] Database user heeft alleen toegang tot eigen database
+- [x] Sterk wachtwoord voor database user
+- [x] MySQL alleen toegankelijk via localhost
+- [x] Firewall blokkeert port 3306 van buiten
+- [x] Regelmatige backups geconfigureerd
+- [x] MySQL updates automatisch (unattended-upgrades)
+- [x] Fail2ban voor SSH bescherming
+- [x] Database user heeft alleen toegang tot eigen database
 
 ## Troubleshooting
 
-### Kan niet verbinden
+### Kan niet verbinden met database
 
-1. Check of PostgreSQL draait: `systemctl status postgresql`
-2. Check firewall: `ufw status`
-3. Check pg_hba.conf configuratie
-4. Check of poort luistert: `netstat -tlnp | grep 5432`
-
-### SSL fouten
-
-1. Controleer certificaat permissies
-2. Check of ssl = on in postgresql.conf
-3. Gebruik `sslmode=require` in connection string
+1. Check of MySQL draait: `systemctl status mysql`
+2. Check credentials in `.env.local`
+3. Test verbinding: `mysql -u wurmtools -p wurmtools`
 
 ### Performance problemen
 
 ```sql
 -- Slow queries vinden
-SELECT query, calls, mean_exec_time, total_exec_time
-FROM pg_stat_statements
-ORDER BY mean_exec_time DESC
-LIMIT 10;
+SHOW PROCESSLIST;
+
+-- Query cache status
+SHOW STATUS LIKE 'Qcache%';
+
+-- Table status
+SHOW TABLE STATUS FROM wurmtools;
 ```
+
+### Database repareren
+
+```bash
+# Check en repareer tabellen
+mysqlcheck -u wurmtools -p --auto-repair wurmtools
+```
+
+## MariaDB Alternatief
+
+Als je liever MariaDB gebruikt:
+
+```bash
+# MariaDB installeren ipv MySQL
+apt install -y mariadb-server mariadb-client
+
+# Beveiligen
+mysql_secure_installation
+
+# Verder identiek aan MySQL setup
+```
+
+MariaDB is volledig compatibel met de WURM-TOOLS codebase.
 
 ## Volgende Stappen
 
 Na het voltooien van deze setup:
 
-1. Run de migratie script: `npm run db:migrate`
-2. Importeer bestaande data: `npm run db:import`
-3. Test de applicatie lokaal met de remote database
-4. Deploy naar Cloudflare Pages
+1. Importeer het schema: `mysql -u wurmtools -p wurmtools < scripts/schema-mysql.sql`
+2. Start de applicatie: `pm2 start npm --name "wurm-tools" -- start`
+3. Configureer Caddy voor HTTPS
+4. Setup automatische backups

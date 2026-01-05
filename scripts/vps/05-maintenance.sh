@@ -83,11 +83,11 @@ cmd_status() {
 
     echo -e "${BLUE}Service Status:${NC}"
 
-    # PostgreSQL
-    if systemctl is-active --quiet postgresql; then
-        log_success "PostgreSQL is running"
+    # MySQL
+    if systemctl is-active --quiet mysql; then
+        log_success "MySQL is running"
     else
-        log_error "PostgreSQL is NOT running"
+        log_error "MySQL is NOT running"
     fi
 
     # Caddy
@@ -147,8 +147,8 @@ cmd_status() {
     echo -e "${BLUE}Database Status:${NC}"
     if [ -f /root/.wurm-tools/db-credentials.txt ]; then
         source /root/.wurm-tools/db-credentials.txt
-        CONN_COUNT=$(PGPASSWORD="${DB_PASS}" psql -h localhost -U "${DB_USER}" -d "${DB_NAME}" -t -c "SELECT count(*) FROM pg_stat_activity WHERE datname = '${DB_NAME}';" 2>/dev/null | xargs)
-        TABLE_COUNT=$(PGPASSWORD="${DB_PASS}" psql -h localhost -U "${DB_USER}" -d "${DB_NAME}" -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs)
+        CONN_COUNT=$(mysql -u "${DB_USER}" -p"${DB_PASS}" -N -e "SELECT COUNT(*) FROM information_schema.processlist WHERE DB = '${DB_NAME}';" 2>/dev/null || echo "0")
+        TABLE_COUNT=$(mysql -u "${DB_USER}" -p"${DB_PASS}" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '${DB_NAME}';" 2>/dev/null || echo "0")
         log_success "Database connected (${CONN_COUNT} connections, ${TABLE_COUNT} tables)"
     else
         log_warning "Database credentials not found"
@@ -175,9 +175,9 @@ cmd_logs() {
                 journalctl -u caddy --no-pager -n 50
             fi
             ;;
-        postgresql|postgres|db)
-            print_header "PostgreSQL Logs"
-            tail -50 /var/log/postgresql/postgresql-*-main.log 2>/dev/null || journalctl -u postgresql --no-pager -n 50
+        mysql|db)
+            print_header "MySQL Logs"
+            tail -50 /var/log/mysql/error.log 2>/dev/null || journalctl -u mysql --no-pager -n 50
             ;;
         auth|security)
             print_header "Authentication Logs"
@@ -193,7 +193,7 @@ cmd_logs() {
             cmd_logs db
             ;;
         *)
-            echo "Usage: $0 logs [app|caddy|postgresql|auth|fail2ban|all]"
+            echo "Usage: $0 logs [app|caddy|mysql|auth|fail2ban|all]"
             ;;
     esac
 }
@@ -241,18 +241,18 @@ cmd_restart() {
             systemctl restart caddy
             log_success "Caddy restarted"
             ;;
-        postgresql|postgres|db)
-            log_info "Restarting PostgreSQL..."
-            systemctl restart postgresql
-            log_success "PostgreSQL restarted"
+        mysql|db)
+            log_info "Restarting MySQL..."
+            systemctl restart mysql
+            log_success "MySQL restarted"
             ;;
         all)
-            cmd_restart postgresql
+            cmd_restart mysql
             cmd_restart app
             cmd_restart caddy
             ;;
         *)
-            echo "Usage: $0 restart [app|caddy|postgresql|all]"
+            echo "Usage: $0 restart [app|caddy|mysql|all]"
             ;;
     esac
 }
@@ -299,12 +299,12 @@ cmd_health() {
 
     echo -e "${BLUE}Checking services...${NC}"
 
-    # Check PostgreSQL
-    if ! systemctl is-active --quiet postgresql; then
-        log_error "PostgreSQL is down!"
+    # Check MySQL
+    if ! systemctl is-active --quiet mysql; then
+        log_error "MySQL is down!"
         ERRORS=$((ERRORS + 1))
     else
-        log_success "PostgreSQL: OK"
+        log_success "MySQL: OK"
     fi
 
     # Check Caddy
@@ -379,7 +379,7 @@ cmd_health() {
     # Check database connectivity
     if [ -f /root/.wurm-tools/db-credentials.txt ]; then
         source /root/.wurm-tools/db-credentials.txt
-        if ! PGPASSWORD="${DB_PASS}" psql -h localhost -U "${DB_USER}" -d "${DB_NAME}" -c "SELECT 1;" &>/dev/null; then
+        if ! mysql -u "${DB_USER}" -p"${DB_PASS}" -e "SELECT 1;" "${DB_NAME}" &>/dev/null; then
             log_error "Database connection failed"
             ERRORS=$((ERRORS + 1))
         else
@@ -441,9 +441,9 @@ usage() {
     echo "Commands:"
     echo "  status              Show system and application status"
     echo "  health              Run health checks"
-    echo "  logs [type]         View logs (app|caddy|postgresql|auth|fail2ban|all)"
+    echo "  logs [type]         View logs (app|caddy|mysql|auth|fail2ban|all)"
     echo "  update              Pull latest code and rebuild"
-    echo "  restart [service]   Restart services (app|caddy|postgresql|all)"
+    echo "  restart [service]   Restart services (app|caddy|mysql|all)"
     echo "  clean               Clean up disk space"
     echo "  ssl                 Check SSL certificate status"
     echo ""

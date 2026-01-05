@@ -2,20 +2,20 @@
 
 ## Overzicht
 
-Er zijn twee hoofdbenaderingen om WURM-TOOLS te deployen met een remote database:
+WURM-TOOLS wordt gedeployed op een VPS met MySQL/MariaDB als database:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│                        OPTIE A (Aanbevolen)                        │
+│                        VPS Deployment                               │
 │                    Alles op de VPS                                  │
 ├────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │   ┌─────────────────────────────────────────────────────────────┐  │
 │   │                    OVH VPS                                   │  │
 │   │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐  │  │
-│   │  │   Caddy     │────│  Next.js    │────│  PostgreSQL     │  │  │
-│   │  │  (Reverse   │    │  (PM2)      │    │  (Database)     │  │  │
-│   │  │   Proxy)    │    │  Port 3000  │    │  Port 5432      │  │  │
+│   │  │   Caddy     │────│  Next.js    │────│     MySQL       │  │  │
+│   │  │  (Reverse   │    │  (PM2)      │    │   (Database)    │  │  │
+│   │  │   Proxy)    │    │  Port 3000  │    │   Port 3306     │  │  │
 │   │  └─────────────┘    └─────────────┘    └─────────────────┘  │  │
 │   │        ↑                                                     │  │
 │   │   HTTPS:443                                                  │  │
@@ -28,61 +28,12 @@ Er zijn twee hoofdbenaderingen om WURM-TOOLS te deployen met een remote database
 │   ✓ Werkt met alle Next.js features (SSR, API routes, etc.)        │
 │   ✓ Goedkoper (geen extra services)                                │
 │                                                                     │
-│   Nadelen:                                                          │
-│   - Geen CDN edge caching (tenzij je Cloudflare Proxy gebruikt)    │
-│   - Schalen vereist grotere VPS                                    │
-│                                                                     │
-└────────────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────────────┐
-│                           OPTIE B                                   │
-│              Cloudflare Pages + VPS Database                        │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ┌──────────────────────┐         ┌────────────────────────────┐  │
-│   │  Cloudflare Pages    │         │        OVH VPS             │  │
-│   │  ┌────────────────┐  │   TCP   │  ┌──────────────────────┐  │  │
-│   │  │   Next.js      │──┼─────────┼──│    PostgreSQL        │  │  │
-│   │  │   (Edge)       │  │  5432   │  │    (Database)        │  │  │
-│   │  └────────────────┘  │         │  └──────────────────────┘  │  │
-│   │         +            │         │                            │  │
-│   │  ┌────────────────┐  │         │                            │  │
-│   │  │   Hyperdrive   │  │         │                            │  │
-│   │  │ (Connection    │  │         │                            │  │
-│   │  │   Pooling)     │  │         │                            │  │
-│   │  └────────────────┘  │         │                            │  │
-│   └──────────────────────┘         └────────────────────────────┘  │
-│                                                                     │
-│   Voordelen:                                                        │
-│   ✓ Global CDN / Edge computing                                    │
-│   ✓ Automatische SSL                                               │
-│   ✓ DDoS bescherming                                               │
-│   ✓ Makkelijk schalen                                              │
-│                                                                     │
-│   Nadelen:                                                          │
-│   - Vereist Cloudflare Workers betaald plan ($5/maand)             │
-│   - Hyperdrive setup nodig                                          │
-│   - Latency tussen edge en database                                 │
-│   - Beperkte Node.js runtime (geen native modules)                  │
-│   - Complexere setup                                                │
-│                                                                     │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-## Aanbeveling
+## Volledige VPS Setup
 
-**Voor de meeste gebruikers: Optie A (Alles op VPS)**
-
-Waarom?
-1. WURM-TOOLS is geen high-traffic applicatie die edge computing nodig heeft
-2. De database calls zijn snel als alles op dezelfde server staat
-3. Je hebt volledige SSR ondersteuning
-4. Simpeler te onderhouden
-5. Je kunt nog steeds Cloudflare als DNS/proxy gebruiken voor CDN caching
-
-## Optie A: Volledige VPS Setup
-
-### Stap 1: PostgreSQL installeren
+### Stap 1: MySQL installeren
 
 Zie [VPS-DATABASE-SETUP.md](./VPS-DATABASE-SETUP.md)
 
@@ -123,7 +74,7 @@ npm run build
 # Maak .env.local
 cat > .env.local << 'EOF'
 NODE_ENV=production
-DATABASE_URL=postgresql://wurmtools:JOUW_WACHTWOORD@localhost:5432/wurmtools
+DATABASE_URL=mysql://wurmtools:JOUW_WACHTWOORD@localhost:3306/wurmtools
 EOF
 
 # Start met PM2
@@ -168,57 +119,9 @@ Nu is je app bereikbaar op `https://jouwdomein.nl`
 
 ---
 
-## Optie B: Cloudflare Pages + Hyperdrive
+## Cloudflare als Proxy (optioneel)
 
-### Vereisten
-- Cloudflare Workers betaald plan ($5/maand)
-- Hyperdrive toegang
-
-### Stap 1: PostgreSQL op VPS
-
-Zie [VPS-DATABASE-SETUP.md](./VPS-DATABASE-SETUP.md)
-
-### Stap 2: Hyperdrive configureren
-
-```bash
-# Wrangler CLI installeren
-npm install -g wrangler
-
-# Login bij Cloudflare
-wrangler login
-
-# Hyperdrive database maken
-wrangler hyperdrive create wurm-db \
-  --connection-string="postgresql://wurmtools:WACHTWOORD@jouw-vps-ip:5432/wurmtools"
-```
-
-### Stap 3: wrangler.toml configureren
-
-```toml
-name = "wurm-tools"
-compatibility_date = "2024-01-01"
-
-[[hyperdrive]]
-binding = "HYPERDRIVE"
-id = "je-hyperdrive-id"
-```
-
-### Stap 4: Code aanpassen voor Hyperdrive
-
-Zie de `src/lib/database-pg.ts` voor de Cloudflare-compatibele versie.
-
-### Stap 5: Deployen
-
-```bash
-npm run build
-wrangler pages deploy .next
-```
-
----
-
-## Cloudflare als Proxy (Optie A + CDN)
-
-Je kunt Optie A gebruiken EN toch Cloudflare's CDN/DDoS bescherming:
+Je kunt ook Cloudflare's CDN/DDoS bescherming gebruiken:
 
 1. Voeg je domein toe aan Cloudflare
 2. Zet DNS record naar je VPS IP
