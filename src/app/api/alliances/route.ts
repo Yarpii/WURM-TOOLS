@@ -8,22 +8,22 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Pagination parameters
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    // Pagination parameters with validation
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
     const paginate = searchParams.get("paginate") === "true";
 
     const sessionId = request.cookies.get("session")?.value;
-    const session = sessionId ? getSession(sessionId) : null;
+    const session = sessionId ? await getSession(sessionId) : null;
     const isAdmin = session?.user?.role === "admin";
 
     // SECURITY: Use paginated version for large datasets
     if (paginate) {
-      const result = getAlliancesPaginated(isAdmin, { page, limit });
+      const result = await getAlliancesPaginated({ page, limit }, isAdmin);
       return NextResponse.json(result);
     }
 
-    const alliances = getAllAlliances(isAdmin);
+    const alliances = await getAllAlliances(isAdmin);
     return NextResponse.json({ alliances });
   } catch (error) {
     return NextResponse.json(
@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
     // Check if user is already in an alliance
-    const existingAlliance = getUserAlliance(session.user.id);
+    const existingAlliance = await getUserAlliance(session.user.id);
     if (existingAlliance) {
       return NextResponse.json(
         { error: "You are already in an alliance. Leave your current alliance first." },
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const allianceId = createAlliance(session.user.id, {
+    const allianceId = await createAlliance(session.user.id, {
       name,
       description,
       tag,

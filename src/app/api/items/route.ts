@@ -11,35 +11,42 @@ import { getSession } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get("q");
-  const categoriesOnly = searchParams.get("categories");
+  try {
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get("q");
+    const categoriesOnly = searchParams.get("categories");
 
-  // Pagination parameters
-  const page = parseInt(searchParams.get("page") || "1", 10);
-  const limit = parseInt(searchParams.get("limit") || "50", 10);
-  const paginate = searchParams.get("paginate") === "true";
+    // Pagination parameters with validation
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
+    const paginate = searchParams.get("paginate") === "true";
 
-  if (categoriesOnly) {
-    const categories = getCategories();
-    return NextResponse.json(categories);
-  }
+    if (categoriesOnly) {
+      const categories = await getCategories();
+      return NextResponse.json(categories);
+    }
 
-  if (query) {
-    // Search results are typically smaller, no pagination needed
-    const items = searchItems(query);
+    if (query) {
+      // Search results are typically smaller, no pagination needed
+      const items = await searchItems(query);
+      return NextResponse.json(items);
+    }
+
+    // SECURITY: Use paginated version for large datasets
+    if (paginate) {
+      const result = await getItemsPaginated({ page, limit });
+      return NextResponse.json(result);
+    }
+
+    // Backwards compatible: return all items (but getAllItems is still bounded by database size)
+    const items = await getAllItems();
     return NextResponse.json(items);
+  } catch (error) {
+    return NextResponse.json(
+      { error: sanitizeError(error, "Fetch items") },
+      { status: 500 }
+    );
   }
-
-  // SECURITY: Use paginated version for large datasets
-  if (paginate) {
-    const result = getItemsPaginated({ page, limit });
-    return NextResponse.json(result);
-  }
-
-  // Backwards compatible: return all items (but getAllItems is still bounded by database size)
-  const items = getAllItems();
-  return NextResponse.json(items);
 }
 
 export async function POST(request: NextRequest) {
@@ -53,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionResult = getSession(sessionId);
+    const sessionResult = await getSession(sessionId);
     if (!sessionResult) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -81,7 +88,7 @@ export async function POST(request: NextRequest) {
     const sanitizedCategory = String(category || "misc").trim().slice(0, 50);
     const sanitizedDescription = String(description || "").trim().slice(0, 500);
 
-    const existing = getItemByName(sanitizedName);
+    const existing = await getItemByName(sanitizedName);
     if (existing) {
       return NextResponse.json(
         { error: "Item already exists" },
@@ -89,7 +96,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const id = addItem(
+    const id = await addItem(
       sanitizedName,
       sanitizedCategory,
       is_base_material || false,
