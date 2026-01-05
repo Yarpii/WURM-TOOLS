@@ -1,164 +1,179 @@
--- WURM-TOOLS Player Hub Schema Extension
--- Run this after schema.sql to add skill tracking, timers, and events
+-- WURM-TOOLS Player Hub Schema Extension (MySQL/MariaDB)
+-- Run this after schema-mysql.sql to add skill tracking, timers, and events
+-- Dit bestand is compatibel met MySQL/MariaDB
+
+SET default_storage_engine=InnoDB;
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
 
 -- ========== SKILL TRACKING ==========
 
 CREATE TABLE IF NOT EXISTS user_skills (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     skill_name VARCHAR(100) NOT NULL,
     current_level DECIMAL(10, 4) NOT NULL DEFAULT 1.0,
     target_level DECIMAL(10, 4),
     notes TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    UNIQUE(user_id, skill_name)
-);
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-CREATE INDEX IF NOT EXISTS idx_user_skills_user ON user_skills(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_skills_name ON user_skills(skill_name);
+    CONSTRAINT fk_user_skills_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_skill (user_id, skill_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_user_skills_user ON user_skills(user_id);
+CREATE INDEX idx_user_skills_name ON user_skills(skill_name);
 
 -- Skill history for tracking progress over time
 CREATE TABLE IF NOT EXISTS skill_history (
-    id SERIAL PRIMARY KEY,
-    user_skill_id INTEGER NOT NULL REFERENCES user_skills(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_skill_id INT NOT NULL,
     old_level DECIMAL(10, 4) NOT NULL,
     new_level DECIMAL(10, 4) NOT NULL,
-    recorded_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-CREATE INDEX IF NOT EXISTS idx_skill_history_skill ON skill_history(user_skill_id);
-CREATE INDEX IF NOT EXISTS idx_skill_history_date ON skill_history(recorded_at);
+    CONSTRAINT fk_skill_history_skill FOREIGN KEY (user_skill_id) REFERENCES user_skills(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_skill_history_skill ON skill_history(user_skill_id);
+CREATE INDEX idx_skill_history_date ON skill_history(recorded_at);
 
 -- ========== TIMERS ==========
 
 CREATE TABLE IF NOT EXISTS user_timers (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    timer_type VARCHAR(30) NOT NULL CHECK (timer_type IN (
-        'sleep_bonus', 'fatigue', 'crop', 'animal', 'sermon',
-        'meditation', 'custom', 'cooldown', 'bulk'
-    )),
-    duration_minutes INTEGER NOT NULL,
-    start_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    timer_type VARCHAR(30) NOT NULL,
+    duration_minutes INT NOT NULL,
+    start_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     end_time TIMESTAMP NOT NULL,
-    is_recurring BOOLEAN DEFAULT false,
-    recurrence_interval INTEGER, -- in minutes
-    notify_discord BOOLEAN DEFAULT false,
-    is_active BOOLEAN DEFAULT true,
+    is_recurring BOOLEAN DEFAULT FALSE,
+    recurrence_interval INT,
+    notify_discord BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
     color VARCHAR(20) DEFAULT '#3b82f6',
     icon VARCHAR(50),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-CREATE INDEX IF NOT EXISTS idx_user_timers_user ON user_timers(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_timers_type ON user_timers(timer_type);
-CREATE INDEX IF NOT EXISTS idx_user_timers_end ON user_timers(end_time);
-CREATE INDEX IF NOT EXISTS idx_user_timers_active ON user_timers(is_active);
+    CONSTRAINT fk_user_timers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_user_timers_type CHECK (timer_type IN (
+        'sleep_bonus', 'fatigue', 'crop', 'animal', 'sermon',
+        'meditation', 'custom', 'cooldown', 'bulk'
+    ))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_user_timers_user ON user_timers(user_id);
+CREATE INDEX idx_user_timers_type ON user_timers(timer_type);
+CREATE INDEX idx_user_timers_end ON user_timers(end_time);
+CREATE INDEX idx_user_timers_active ON user_timers(is_active);
 
 -- Timer presets for quick timer creation
 CREATE TABLE IF NOT EXISTS timer_presets (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- NULL = global preset
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
     name VARCHAR(100) NOT NULL,
     timer_type VARCHAR(30) NOT NULL,
-    duration_minutes INTEGER NOT NULL,
+    duration_minutes INT NOT NULL,
     description TEXT,
     color VARCHAR(20) DEFAULT '#3b82f6',
     icon VARCHAR(50),
-    is_public BOOLEAN DEFAULT false
-);
+    is_public BOOLEAN DEFAULT FALSE,
 
-CREATE INDEX IF NOT EXISTS idx_timer_presets_user ON timer_presets(user_id);
-CREATE INDEX IF NOT EXISTS idx_timer_presets_type ON timer_presets(timer_type);
+    CONSTRAINT fk_timer_presets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_timer_presets_user ON timer_presets(user_id);
+CREATE INDEX idx_timer_presets_type ON timer_presets(timer_type);
 
 -- ========== EVENTS / CALENDAR ==========
 
 CREATE TABLE IF NOT EXISTS events (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     title VARCHAR(200) NOT NULL,
     description TEXT,
-    event_type VARCHAR(30) NOT NULL CHECK (event_type IN (
-        'impalong', 'rift', 'unique', 'sermon_group', 'market',
-        'pvp', 'community', 'personal', 'other'
-    )),
+    event_type VARCHAR(30) NOT NULL,
     server VARCHAR(50),
     location VARCHAR(200),
     coordinates VARCHAR(50),
     start_date TIMESTAMP NOT NULL,
-    end_date TIMESTAMP,
-    is_all_day BOOLEAN DEFAULT false,
-    is_public BOOLEAN DEFAULT true,
-    is_featured BOOLEAN DEFAULT false,
-    max_attendees INTEGER,
+    end_date TIMESTAMP NULL,
+    is_all_day BOOLEAN DEFAULT FALSE,
+    is_public BOOLEAN DEFAULT TRUE,
+    is_featured BOOLEAN DEFAULT FALSE,
+    max_attendees INT,
     contact_info TEXT,
     external_link VARCHAR(500),
     image_url VARCHAR(500),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id);
-CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
-CREATE INDEX IF NOT EXISTS idx_events_server ON events(server);
-CREATE INDEX IF NOT EXISTS idx_events_start ON events(start_date);
-CREATE INDEX IF NOT EXISTS idx_events_public ON events(is_public);
-CREATE INDEX IF NOT EXISTS idx_events_featured ON events(is_featured);
+    CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_events_type CHECK (event_type IN (
+        'impalong', 'rift', 'unique', 'sermon_group', 'market',
+        'pvp', 'community', 'personal', 'other'
+    ))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_events_user ON events(user_id);
+CREATE INDEX idx_events_type ON events(event_type);
+CREATE INDEX idx_events_server ON events(server);
+CREATE INDEX idx_events_start ON events(start_date);
+CREATE INDEX idx_events_public ON events(is_public);
+CREATE INDEX idx_events_featured ON events(is_featured);
 
 -- Event attendance tracking
 CREATE TABLE IF NOT EXISTS event_attendees (
-    id SERIAL PRIMARY KEY,
-    event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status VARCHAR(20) NOT NULL DEFAULT 'interested' CHECK (status IN ('interested', 'going', 'maybe', 'not_going')),
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_id INT NOT NULL,
+    user_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'interested',
     character_name VARCHAR(100),
     notes TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    UNIQUE(event_id, user_id)
-);
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-CREATE INDEX IF NOT EXISTS idx_event_attendees_event ON event_attendees(event_id);
-CREATE INDEX IF NOT EXISTS idx_event_attendees_user ON event_attendees(user_id);
-CREATE INDEX IF NOT EXISTS idx_event_attendees_status ON event_attendees(status);
+    CONSTRAINT fk_event_attendees_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_event_attendees_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_event_attendees_status CHECK (status IN ('interested', 'going', 'maybe', 'not_going')),
+    UNIQUE KEY uk_event_attendee (event_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ========== TRIGGERS ==========
-
-CREATE TRIGGER update_user_skills_updated_at BEFORE UPDATE ON user_skills
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE INDEX idx_event_attendees_event ON event_attendees(event_id);
+CREATE INDEX idx_event_attendees_user ON event_attendees(user_id);
+CREATE INDEX idx_event_attendees_status ON event_attendees(status);
 
 -- ========== DEFAULT TIMER PRESETS ==========
 
-INSERT INTO timer_presets (user_id, name, timer_type, duration_minutes, description, color, icon, is_public) VALUES
-    (NULL, 'Sleep Bonus (5h)', 'sleep_bonus', 300, 'Standard sleep bonus duration', '#22c55e', 'moon', true),
-    (NULL, 'Fatigue Reset', 'fatigue', 1440, 'Daily fatigue reset (24h)', '#3b82f6', 'battery', true),
-    (NULL, 'Wheat Growth', 'crop', 1440, 'Wheat crop growth cycle', '#eab308', 'wheat', true),
-    (NULL, 'Corn Growth', 'crop', 2160, 'Corn crop growth cycle (36h)', '#eab308', 'corn', true),
-    (NULL, 'Horse Grooming', 'animal', 60, 'Horse grooming cooldown', '#a855f7', 'horse', true),
-    (NULL, 'Breeding Cooldown', 'animal', 2880, 'Animal breeding cooldown (48h)', '#a855f7', 'heart', true),
-    (NULL, 'Sermon Cooldown', 'sermon', 180, 'Sermon cooldown (3h)', '#ef4444', 'book', true),
-    (NULL, 'Meditation Tick', 'meditation', 30, 'Meditation path tick', '#6366f1', 'brain', true),
-    (NULL, 'Foraging/Botanizing', 'cooldown', 60, 'Tile foraging cooldown', '#14b8a6', 'leaf', true)
-ON CONFLICT DO NOTHING;
+INSERT IGNORE INTO timer_presets (user_id, name, timer_type, duration_minutes, description, color, icon, is_public) VALUES
+    (NULL, 'Sleep Bonus (5h)', 'sleep_bonus', 300, 'Standard sleep bonus duration', '#22c55e', 'moon', TRUE),
+    (NULL, 'Fatigue Reset', 'fatigue', 1440, 'Daily fatigue reset (24h)', '#3b82f6', 'battery', TRUE),
+    (NULL, 'Wheat Growth', 'crop', 1440, 'Wheat crop growth cycle', '#eab308', 'wheat', TRUE),
+    (NULL, 'Corn Growth', 'crop', 2160, 'Corn crop growth cycle (36h)', '#eab308', 'corn', TRUE),
+    (NULL, 'Horse Grooming', 'animal', 60, 'Horse grooming cooldown', '#a855f7', 'horse', TRUE),
+    (NULL, 'Breeding Cooldown', 'animal', 2880, 'Animal breeding cooldown (48h)', '#a855f7', 'heart', TRUE),
+    (NULL, 'Sermon Cooldown', 'sermon', 180, 'Sermon cooldown (3h)', '#ef4444', 'book', TRUE),
+    (NULL, 'Meditation Tick', 'meditation', 30, 'Meditation path tick', '#6366f1', 'brain', TRUE),
+    (NULL, 'Foraging/Botanizing', 'cooldown', 60, 'Tile foraging cooldown', '#14b8a6', 'leaf', TRUE);
 
 -- ========== WURM SKILL LIST ==========
 -- Reference table for all Wurm skills (optional, for autocomplete)
 
 CREATE TABLE IF NOT EXISTS wurm_skills (
-    id SERIAL PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     category VARCHAR(50) NOT NULL,
     parent_skill VARCHAR(100),
     max_level DECIMAL(5, 2) DEFAULT 100.00,
     description TEXT
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO wurm_skills (name, category, parent_skill, description) VALUES
+CREATE INDEX idx_wurm_skills_category ON wurm_skills(category);
+CREATE INDEX idx_wurm_skills_parent ON wurm_skills(parent_skill);
+
+INSERT IGNORE INTO wurm_skills (name, category, parent_skill, description) VALUES
     -- Main skills
     ('Body', 'characteristics', NULL, 'Physical body strength'),
     ('Body Strength', 'characteristics', 'Body', 'Raw physical strength'),
@@ -274,8 +289,4 @@ INSERT INTO wurm_skills (name, category, parent_skill, description) VALUES
     ('Trapping', 'misc', NULL, 'Setting traps'),
     ('Climbing', 'misc', NULL, 'Climbing surfaces'),
     ('Stealing', 'misc', NULL, 'Theft skill'),
-    ('Lock Picking', 'misc', 'Stealing', 'Opening locks')
-ON CONFLICT (name) DO NOTHING;
-
-CREATE INDEX IF NOT EXISTS idx_wurm_skills_category ON wurm_skills(category);
-CREATE INDEX IF NOT EXISTS idx_wurm_skills_parent ON wurm_skills(parent_skill);
+    ('Lock Picking', 'misc', 'Stealing', 'Opening locks');
