@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
-    const invites = getUserInvites(session.user.id);
-    const currentAlliance = getUserAlliance(session.user.id);
+    const invites = await getUserInvites(session.user.id);
+    const currentAlliance = await getUserAlliance(session.user.id);
 
     return NextResponse.json({
       invites,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const success = respondToInvite(invite_id, session.user.id, accept);
+    const success = await respondToInvite(invite_id, session.user.id, accept);
 
     if (!success) {
       return NextResponse.json(
@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const invites = getUserInvites(session.user.id);
-    const currentAlliance = getUserAlliance(session.user.id);
+    const invites = await getUserInvites(session.user.id);
+    const currentAlliance = await getUserAlliance(session.user.id);
 
     return NextResponse.json({
       success: true,

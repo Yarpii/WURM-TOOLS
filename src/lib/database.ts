@@ -1611,6 +1611,130 @@ export async function getAllianceMember(allianceId: number, userId: number): Pro
   return result.rows[0] || null;
 }
 
+// ========== ALLIANCE INVITES ==========
+
+export async function getUserInvites(userId: number): Promise<AllianceInvite[]> {
+  const result = await query<AllianceInvite>(
+    `SELECT ai.*, a.name as alliance_name, u.username as invited_by_username
+     FROM alliance_invites ai
+     JOIN alliances a ON ai.alliance_id = a.id
+     JOIN users u ON ai.invited_by = u.id
+     WHERE ai.user_id = ? AND ai.status = 'pending'
+     ORDER BY ai.created_at DESC`,
+    [userId]
+  );
+  return result.rows;
+}
+
+export async function getAllianceInvites(allianceId: number): Promise<AllianceInvite[]> {
+  const result = await query<AllianceInvite>(
+    `SELECT ai.*, u.username
+     FROM alliance_invites ai
+     JOIN users u ON ai.user_id = u.id
+     WHERE ai.alliance_id = ? AND ai.status = 'pending'
+     ORDER BY ai.created_at DESC`,
+    [allianceId]
+  );
+  return result.rows;
+}
+
+export async function createInvite(allianceId: number, userId: number, invitedBy: number): Promise<number | null> {
+  // Check if user is already in an alliance
+  const existingAlliance = await getUserAlliance(userId);
+  if (existingAlliance) return null;
+
+  // Check if user already has a pending invite from this alliance
+  const existingInvite = await query<AllianceInvite>(
+    "SELECT id FROM alliance_invites WHERE alliance_id = ? AND user_id = ? AND status = 'pending'",
+    [allianceId, userId]
+  );
+  if (existingInvite.rows.length > 0) return null;
+
+  // Check if alliance is full
+  const alliance = await getAllianceById(allianceId);
+  if (!alliance) return null;
+
+  const members = await getAllianceMembers(allianceId);
+  if (members.length >= alliance.max_members) return null;
+
+  const result = await query(
+    "INSERT INTO alliance_invites (alliance_id, user_id, invited_by, status) VALUES (?, ?, ?, 'pending')",
+    [allianceId, userId, invitedBy]
+  );
+  return result.insertId || null;
+}
+
+export async function respondToInvite(inviteId: number, userId: number, accept: boolean): Promise<boolean> {
+  // Get the invite
+  const inviteResult = await query<AllianceInvite>(
+    "SELECT * FROM alliance_invites WHERE id = ? AND user_id = ? AND status = 'pending'",
+    [inviteId, userId]
+  );
+  const invite = inviteResult.rows[0];
+  if (!invite) return false;
+
+  // Check if user is already in an alliance
+  const existingAlliance = await getUserAlliance(userId);
+  if (existingAlliance) return false;
+
+  if (accept) {
+    // Check if alliance is full
+    const alliance = await getAllianceById(invite.alliance_id);
+    if (!alliance) return false;
+
+    const members = await getAllianceMembers(invite.alliance_id);
+    if (members.length >= alliance.max_members) return false;
+
+    // Add user to alliance
+    await query(
+      "INSERT INTO alliance_members (alliance_id, user_id, role, invited_by) VALUES (?, ?, 'member', ?)",
+      [invite.alliance_id, userId, invite.invited_by]
+    );
+
+    // Update invite status
+    await query(
+      "UPDATE alliance_invites SET status = 'accepted' WHERE id = ?",
+      [inviteId]
+    );
+
+    // Decline all other pending invites for this user
+    await query(
+      "UPDATE alliance_invites SET status = 'declined' WHERE user_id = ? AND id != ? AND status = 'pending'",
+      [userId, inviteId]
+    );
+  } else {
+    // Decline the invite
+    await query(
+      "UPDATE alliance_invites SET status = 'declined' WHERE id = ?",
+      [inviteId]
+    );
+  }
+
+  return true;
+}
+
+export async function cancelInvite(inviteId: number, userId: number, isAdmin: boolean = false): Promise<boolean> {
+  // Get the invite
+  const inviteResult = await query<AllianceInvite>(
+    "SELECT ai.*, am.role as user_role FROM alliance_invites ai LEFT JOIN alliance_members am ON ai.alliance_id = am.alliance_id AND am.user_id = ? WHERE ai.id = ? AND ai.status = 'pending'",
+    [userId, inviteId]
+  );
+  const invite = inviteResult.rows[0];
+  if (!invite) return false;
+
+  // Check permission: must be admin, or officer/leader of the alliance
+  const userRole = (invite as AllianceInvite & { user_role?: string }).user_role;
+  if (!isAdmin && (!userRole || userRole === "member")) {
+    return false;
+  }
+
+  const result = await query(
+    "DELETE FROM alliance_invites WHERE id = ?",
+    [inviteId]
+  );
+  return result.rowCount > 0;
+}
+
 // ========== PRICE TRACKING ==========
 
 export async function recordPrice(
