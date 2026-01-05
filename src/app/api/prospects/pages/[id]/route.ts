@@ -20,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid page ID" }, { status: 400 });
     }
 
-    const page = getProspectPageById(pageId);
+    const page = await getProspectPageById(pageId);
 
     if (!page) {
       return NextResponse.json({ error: "Page not found" }, { status: 404 });
@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Get prospects for this page
-    const prospects = getProspectsByPage(pageId, session.user.id);
+    const prospects = await getProspectsByPage(pageId, session.user.id);
 
     return NextResponse.json({ page, prospects });
   } catch (error) {
@@ -67,7 +67,7 @@ export async function PUT(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -104,7 +104,7 @@ export async function PUT(
       );
     }
 
-    const success = updateProspectPage(pageId, session.user.id, body);
+    const success = await updateProspectPage(pageId, session.user.id, body);
 
     if (!success) {
       return NextResponse.json(
@@ -134,7 +134,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -146,7 +146,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid page ID" }, { status: 400 });
     }
 
-    const success = deleteProspectPage(pageId, session.user.id);
+    const success = await deleteProspectPage(pageId, session.user.id);
 
     if (!success) {
       return NextResponse.json(
