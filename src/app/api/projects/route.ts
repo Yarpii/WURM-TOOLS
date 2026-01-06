@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         // If sharing, get user's alliance
         let allianceId: number | undefined;
         if (is_shared) {
-          const alliance = getUserAlliance(result.user.id);
+          const alliance = await getUserAlliance(result.user.id);
           if (alliance) {
             allianceId = alliance.id;
           }
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
           priority: priority || 0,
         };
 
-        const itemId = await addProjectItem(project_id, result.user.id, itemInput);
+        const itemId = await addProjectItem(project_id, itemInput);
         if (itemId === null) {
           return NextResponse.json(
             { error: "Failed to add item" },

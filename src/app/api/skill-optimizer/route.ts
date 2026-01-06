@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
   const maxCreationQL = calculateMaxCreationQL(clampedSkill);
   const sweetSpotQL = calculateSweetSpotQL(clampedSkill);
 
-  // Find optimal training items
-  const optimalItems = findOptimalTrainingItem(clampedSkill, category);
+  // Find optimal training item
+  const optimalItem = await findOptimalTrainingItem(clampedSkill, category);
 
   // Generate skill path
   const skillPath = generateSkillPath(clampedSkill, targetSkill, toolQL);
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
   if (itemId) {
     const item = await getItem(itemId);
     if (item) {
-      itemSpecificPath = getSkillGrindingPath(itemId, clampedSkill, targetSkill, toolQL);
+      itemSpecificPath = await getSkillGrindingPath(targetSkill, clampedSkill, item.category);
     }
   }
 
@@ -107,15 +107,12 @@ export async function GET(request: NextRequest) {
       }
     },
 
-    // Optimal items for training
-    optimalItems: optimalItems.map(o => ({
-      id: o.item.id,
-      name: o.item.name,
-      category: o.item.category,
-      difficulty: o.difficulty,
-      successChance: Math.round(o.successChance),
-      isInSweetSpot: o.difficulty >= sweetSpotQL && o.difficulty <= sweetSpotQL + 10
-    })),
+    // Optimal item for training
+    optimalItem: optimalItem ? {
+      id: optimalItem.id,
+      name: optimalItem.name,
+      category: optimalItem.category
+    } : null,
 
     // General skill path
     skillPath: skillPath.map(step => ({
@@ -170,16 +167,16 @@ export async function POST(request: NextRequest) {
         const hasSleepBonus = body.hasSleepBonus || false;
 
         // Find best items for each skill range
-        const ranges: { from: number; to: number; item: ReturnType<typeof findOptimalTrainingItem>[0] | null }[] = [];
+        const ranges: { from: number; to: number; item: { id: number; name: string; category: string } | null }[] = [];
 
         for (let skill = currentSkill; skill < targetSkill; skill += 5) {
           const endSkill = Math.min(skill + 5, targetSkill);
-          const optimal = findOptimalTrainingItem(skill);
+          const optimal = await findOptimalTrainingItem(skill);
 
           ranges.push({
             from: skill,
             to: endSkill,
-            item: optimal[0] || null
+            item: optimal ? { id: optimal.id, name: optimal.name, category: optimal.category } : null
           });
         }
 
@@ -209,10 +206,9 @@ export async function POST(request: NextRequest) {
             ranges: ranges.map(r => ({
               skillRange: `${r.from} - ${r.to}`,
               recommendedItem: r.item ? {
-                id: r.item.item.id,
-                name: r.item.item.name,
-                difficulty: r.item.difficulty,
-                successChance: Math.round(r.item.successChance)
+                id: r.item.id,
+                name: r.item.name,
+                category: r.item.category
               } : null
             })),
 

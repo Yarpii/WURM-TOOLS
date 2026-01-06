@@ -283,7 +283,7 @@ export async function getMaterialsList(
         name: item.name,
         category: item.category,
         quantity: qty,
-        formatted_quantity: formatQuantity(qty),
+        formatted: formatQuantity(qty),
       });
     }
   }
@@ -307,7 +307,7 @@ export async function getDirectIngredients(
         name: item.name,
         category: item.category,
         quantity: qty,
-        formatted_quantity: formatQuantity(qty),
+        formatted: formatQuantity(qty),
       });
     }
   }
@@ -362,9 +362,7 @@ export async function findCraftableFrom(itemId: number): Promise<CraftableResult
     const item = await getItem(row.result_item_id);
     if (item) {
       craftable.push({
-        id: item.id,
-        name: item.name,
-        category: item.category,
+        item,
         quantity_needed: row.quantity,
       });
     }
@@ -383,10 +381,10 @@ export async function findAllCraftableFrom(
   const direct = await findCraftableFrom(itemId);
   const all: CraftableResult[] = [...direct];
 
-  for (const item of direct) {
-    const nested = await findAllCraftableFrom(item.id, visited);
+  for (const craftable of direct) {
+    const nested = await findAllCraftableFrom(craftable.item.id, visited);
     for (const nestedItem of nested) {
-      if (!all.some((a) => a.id === nestedItem.id)) {
+      if (!all.some((a) => a.item.id === nestedItem.item.id)) {
         all.push(nestedItem);
       }
     }
@@ -861,14 +859,20 @@ export async function calculateAdvancedMaterials(
   const advancedMaterials: AdvancedMaterialResult[] = [];
 
   for (const material of baseMaterials) {
-    const wasteMultiplier = calculateMaterialWaste(settings.skill, item.difficulty || 20);
-    const adjustedQuantity = material.quantity * (1 + wasteMultiplier);
+    // Calculate waste factor based on skill vs difficulty
+    const difficulty = item.difficulty || 20;
+    const skillDiff = settings.playerSkill - difficulty;
+    // Simplified waste calculation: higher skill = less waste
+    const wasteMultiplier = Math.max(0, Math.min(1, (50 - skillDiff) / 100));
+    const expectedQuantity = material.quantity * (1 + wasteMultiplier);
+    const worstCaseQuantity = material.quantity * (1 + wasteMultiplier * 1.5);
 
     advancedMaterials.push({
       ...material,
-      base_quantity: material.quantity,
-      adjusted_quantity: adjustedQuantity,
-      waste_factor: wasteMultiplier,
+      expectedQuantity,
+      expectedFormatted: formatQuantity(expectedQuantity),
+      worstCaseQuantity,
+      worstCaseFormatted: formatQuantity(worstCaseQuantity),
     });
   }
 

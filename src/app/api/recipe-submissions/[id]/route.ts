@@ -109,18 +109,14 @@ export async function PUT(
 
     // If approve_and_add is true, approve and add the recipe to the database
     if (approve_and_add) {
-      const approveResult = await approveAndAddRecipe(submissionId, result.user.id);
-      if (!approveResult.success) {
+      const success = await approveAndAddRecipe(submissionId, result.user.id);
+      if (!success) {
         return NextResponse.json(
-          { error: approveResult.error },
+          { error: "Failed to approve and add recipe" },
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        success: true,
-        itemsCreated: approveResult.itemsCreated,
-        recipesCreated: approveResult.recipesCreated,
-      });
+      return NextResponse.json({ success: true });
     }
 
     // Regular review (approve/reject without adding)

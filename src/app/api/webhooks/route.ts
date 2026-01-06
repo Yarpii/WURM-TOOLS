@@ -6,7 +6,6 @@ import {
   createWebhook,
   updateWebhook,
   deleteWebhook,
-  sendDiscordNotification,
 } from "@/lib/database";
 import type { CreateWebhookInput } from "@/lib/types";
 

@@ -81,10 +81,11 @@ export interface CraftableResult {
 
 export interface ImportStats {
   items_added: number;
-  items_skipped: number;
+  items_updated: number;
+  items_failed: number;
   recipes_added: number;
-  recipes_skipped: number;
-  errors: string[];
+  recipes_updated: number;
+  recipes_failed: number;
 }
 
 export interface CsvPreviewResult {
@@ -171,14 +172,20 @@ export interface SkillGrindStep {
 }
 
 export interface AdvancedCalculationResult {
-  // Basic materials (100% success assumption)
-  baseMaterials: MaterialResult[];
-  // Expected materials (with failure rate)
-  expectedMaterials: AdvancedMaterialResult[];
-  // Crafting tree
-  tree: CraftingNode;
-  // Predictions
-  prediction: CraftingPrediction;
+  // Advanced materials with waste calculations
+  materials: AdvancedMaterialResult[];
+  // Total crafting steps
+  totalCraftingSteps: number;
+  // Predictions per step
+  predictions: CraftingPrediction[];
+  // Summary statistics
+  summary: {
+    estimatedTime: number;
+    totalMaterials: number;
+    uniqueMaterials: number;
+    expectedWaste: number;
+    successProbability: number;
+  };
   // Skill grinding path (optional)
   skillPath?: SkillGrindStep[];
 }

@@ -197,11 +197,11 @@ export async function POST(request: NextRequest) {
             itemId,
             itemName: item?.name || "Unknown",
             result: result ? {
-              successChance: result.prediction.successChance,
-              averageQL: result.prediction.averageQL,
-              totalTime: result.prediction.totalTimeFormatted,
-              failureRate: result.prediction.failureRate,
-              totalSkillGain: result.prediction.totalSkillGain
+              successProbability: result.summary.successProbability,
+              estimatedTime: result.summary.estimatedTime,
+              totalMaterials: result.summary.totalMaterials,
+              expectedWaste: result.summary.expectedWaste,
+              craftingSteps: result.totalCraftingSteps
             } : null
           };
         }));
