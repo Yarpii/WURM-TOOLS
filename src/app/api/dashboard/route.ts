@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getDb } from "@/lib/database";
+import { query } from "@/lib/database";
 import { sanitizeError } from "@/lib/security";
 
 interface DashboardStats {
@@ -81,19 +81,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
-    const db = getDb();
     const userId = session.user.id;
 
     // Get user profile info
-    const user = db.prepare(`
-      SELECT username, display_name, avatar_url, bio, location, wurm_server, created_at
-      FROM users WHERE id = ?
-    `).get(userId) as {
+    const userResult = await query<{
       username: string;
       display_name: string | null;
       avatar_url: string | null;
@@ -101,7 +97,15 @@ export async function GET(request: NextRequest) {
       location: string | null;
       wurm_server: string | null;
       created_at: string;
-    };
+    }>(`
+      SELECT username, display_name, avatar_url, bio, location, wurm_server, created_at
+      FROM users WHERE id = ?
+    `, [userId]);
+    const user = userResult.rows[0];
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     // Calculate profile completeness
     const profileFields = [
@@ -116,93 +120,112 @@ export async function GET(request: NextRequest) {
     const missingFields = profileFields.filter(f => !f.filled).map(f => f.name);
 
     // Orders stats
-    const ordersTotal = db.prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ?").get(userId) as { count: number };
-    const ordersActive = db.prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'active'").get(userId) as { count: number };
-    const ordersCompleted = db.prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'completed'").get(userId) as { count: number };
-    const ordersBuy = db.prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND order_type = 'buy'").get(userId) as { count: number };
-    const ordersSell = db.prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND order_type = 'sell'").get(userId) as { count: number };
+    const [ordersTotal, ordersActive, ordersCompleted, ordersBuy, ordersSell] = await Promise.all([
+      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ?", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'active'", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'completed'", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND order_type = 'buy'", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND order_type = 'sell'", [userId]),
+    ]);
 
     // Projects stats
-    const projectsTotal = db.prepare("SELECT COUNT(*) as count FROM projects WHERE user_id = ?").get(userId) as { count: number };
-    const projectsInProgress = db.prepare("SELECT COUNT(*) as count FROM projects WHERE user_id = ? AND status = 'in_progress'").get(userId) as { count: number };
-    const projectsCompleted = db.prepare("SELECT COUNT(*) as count FROM projects WHERE user_id = ? AND status = 'completed'").get(userId) as { count: number };
-    const projectItems = db.prepare(`
-      SELECT COALESCE(SUM(pi.quantity), 0) as total
-      FROM project_items pi
-      JOIN projects p ON pi.project_id = p.id
-      WHERE p.user_id = ?
-    `).get(userId) as { total: number };
+    const [projectsTotal, projectsInProgress, projectsCompleted, projectItems] = await Promise.all([
+      query<{ count: number }>("SELECT COUNT(*) as count FROM projects WHERE user_id = ?", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM projects WHERE user_id = ? AND status = 'in_progress'", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM projects WHERE user_id = ? AND status = 'completed'", [userId]),
+      query<{ total: number }>(`
+        SELECT COALESCE(SUM(pi.quantity), 0) as total
+        FROM project_items pi
+        JOIN projects p ON pi.project_id = p.id
+        WHERE p.user_id = ?
+      `, [userId]),
+    ]);
 
     // Prospects stats
-    const prospectsTotal = db.prepare("SELECT COUNT(*) as count FROM prospects WHERE user_id = ?").get(userId) as { count: number };
-    const prospectPages = db.prepare("SELECT COUNT(*) as count FROM prospect_pages WHERE user_id = ?").get(userId) as { count: number };
-    const prospectsRecruited = db.prepare("SELECT COUNT(*) as count FROM prospects WHERE user_id = ? AND status = 'recruited'").get(userId) as { count: number };
-    const prospectsPending = db.prepare("SELECT COUNT(*) as count FROM prospects WHERE user_id = ? AND status IN ('potential', 'contacted', 'interested')").get(userId) as { count: number };
+    const [prospectsTotal, prospectPages, prospectsRecruited, prospectsPending] = await Promise.all([
+      query<{ count: number }>("SELECT COUNT(*) as count FROM prospects WHERE user_id = ?", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM prospect_pages WHERE user_id = ?", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM prospects WHERE user_id = ? AND status = 'recruited'", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM prospects WHERE user_id = ? AND status IN ('potential', 'contacted', 'interested')", [userId]),
+    ]);
 
     // Merchants stats
-    const merchantsTotal = db.prepare("SELECT COUNT(*) as count FROM merchants WHERE user_id = ?").get(userId) as { count: number };
-    const merchantsActive = db.prepare("SELECT COUNT(*) as count FROM merchants WHERE user_id = ? AND is_active = 1").get(userId) as { count: number };
+    const [merchantsTotal, merchantsActive] = await Promise.all([
+      query<{ count: number }>("SELECT COUNT(*) as count FROM merchants WHERE user_id = ?", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM merchants WHERE user_id = ? AND is_active = 1", [userId]),
+    ]);
 
     // Alliance stats
-    const allianceMembership = db.prepare(`
+    const allianceMembershipResult = await query<{ name: string; role: string }>(`
       SELECT a.name, am.role
       FROM alliance_members am
       JOIN alliances a ON am.alliance_id = a.id
       WHERE am.user_id = ?
-    `).get(userId) as { name: string; role: string } | undefined;
+    `, [userId]);
+    const allianceMembership = allianceMembershipResult.rows[0];
 
     // Trade matches stats
-    const tradesTotal = db.prepare(`
-      SELECT COUNT(*) as count FROM trade_matches
-      WHERE buyer_id = ? OR seller_id = ?
-    `).get(userId, userId) as { count: number };
-    const tradesCompleted = db.prepare(`
-      SELECT COUNT(*) as count FROM trade_matches
-      WHERE (buyer_id = ? OR seller_id = ?) AND status = 'completed'
-    `).get(userId, userId) as { count: number };
-    const tradesPending = db.prepare(`
-      SELECT COUNT(*) as count FROM trade_matches
-      WHERE (buyer_id = ? OR seller_id = ?) AND status = 'pending'
-    `).get(userId, userId) as { count: number };
+    const [tradesTotal, tradesCompleted, tradesPending] = await Promise.all([
+      query<{ count: number }>(`
+        SELECT COUNT(*) as count FROM trade_matches
+        WHERE buyer_id = ? OR seller_id = ?
+      `, [userId, userId]),
+      query<{ count: number }>(`
+        SELECT COUNT(*) as count FROM trade_matches
+        WHERE (buyer_id = ? OR seller_id = ?) AND status = 'completed'
+      `, [userId, userId]),
+      query<{ count: number }>(`
+        SELECT COUNT(*) as count FROM trade_matches
+        WHERE (buyer_id = ? OR seller_id = ?) AND status = 'pending'
+      `, [userId, userId]),
+    ]);
 
     // Reputation stats
-    const reputation = db.prepare(`
+    const reputationResult = await query<{ avg_rating: number | null; total_ratings: number }>(`
       SELECT AVG(rating) as avg_rating, COUNT(*) as total_ratings
       FROM user_ratings WHERE rated_user_id = ?
-    `).get(userId) as { avg_rating: number | null; total_ratings: number };
+    `, [userId]);
+    const reputation = reputationResult.rows[0] || { avg_rating: null, total_ratings: 0 };
 
     // Achievement stats
-    const achievements = db.prepare(`
+    const achievementsResult = await query<{ unlocked: number }>(`
       SELECT COUNT(*) as unlocked FROM user_achievements
       WHERE user_id = ? AND completed = 1
-    `).get(userId) as { unlocked: number };
-    const xp = db.prepare("SELECT total_xp, level FROM user_xp WHERE user_id = ?").get(userId) as { total_xp: number; level: number } | undefined;
+    `, [userId]);
+    const achievements = achievementsResult.rows[0] || { unlocked: 0 };
+
+    const xpResult = await query<{ total_xp: number; level: number }>(
+      "SELECT total_xp, level FROM user_xp WHERE user_id = ?", [userId]
+    );
+    const xp = xpResult.rows[0];
 
     // Recent activity - orders
-    const recentOrders = db.prepare(`
-      SELECT id, order_type, item_name, quantity, status, created_at
-      FROM orders WHERE user_id = ?
-      ORDER BY created_at DESC LIMIT 5
-    `).all(userId) as Array<{
+    const recentOrdersResult = await query<{
       id: number;
       order_type: string;
       item_name: string;
       quantity: number;
       status: string;
       created_at: string;
-    }>;
+    }>(`
+      SELECT id, order_type, item_name, quantity, status, created_at
+      FROM orders WHERE user_id = ?
+      ORDER BY created_at DESC LIMIT 5
+    `, [userId]);
+    const recentOrders = recentOrdersResult.rows;
 
     // Recent activity - prospects
-    const recentProspects = db.prepare(`
-      SELECT id, name, status, created_at
-      FROM prospects WHERE user_id = ?
-      ORDER BY created_at DESC LIMIT 5
-    `).all(userId) as Array<{
+    const recentProspectsResult = await query<{
       id: number;
       name: string;
       status: string;
       created_at: string;
-    }>;
+    }>(`
+      SELECT id, name, status, created_at
+      FROM prospects WHERE user_id = ?
+      ORDER BY created_at DESC LIMIT 5
+    `, [userId]);
+    const recentProspects = recentProspectsResult.rows;
 
     const stats: DashboardStats = {
       profile: {
@@ -214,27 +237,27 @@ export async function GET(request: NextRequest) {
         missing_fields: missingFields,
       },
       orders: {
-        total: ordersTotal.count,
-        active: ordersActive.count,
-        completed: ordersCompleted.count,
-        buy: ordersBuy.count,
-        sell: ordersSell.count,
+        total: ordersTotal.rows[0]?.count || 0,
+        active: ordersActive.rows[0]?.count || 0,
+        completed: ordersCompleted.rows[0]?.count || 0,
+        buy: ordersBuy.rows[0]?.count || 0,
+        sell: ordersSell.rows[0]?.count || 0,
       },
       projects: {
-        total: projectsTotal.count,
-        in_progress: projectsInProgress.count,
-        completed: projectsCompleted.count,
-        total_items: projectItems.total,
+        total: projectsTotal.rows[0]?.count || 0,
+        in_progress: projectsInProgress.rows[0]?.count || 0,
+        completed: projectsCompleted.rows[0]?.count || 0,
+        total_items: projectItems.rows[0]?.total || 0,
       },
       prospects: {
-        total: prospectsTotal.count,
-        pages: prospectPages.count,
-        recruited: prospectsRecruited.count,
-        pending: prospectsPending.count,
+        total: prospectsTotal.rows[0]?.count || 0,
+        pages: prospectPages.rows[0]?.count || 0,
+        recruited: prospectsRecruited.rows[0]?.count || 0,
+        pending: prospectsPending.rows[0]?.count || 0,
       },
       merchants: {
-        total: merchantsTotal.count,
-        active: merchantsActive.count,
+        total: merchantsTotal.rows[0]?.count || 0,
+        active: merchantsActive.rows[0]?.count || 0,
       },
       alliances: {
         member_of: allianceMembership ? 1 : 0,
@@ -242,9 +265,9 @@ export async function GET(request: NextRequest) {
         alliance_name: allianceMembership?.name || null,
       },
       trades: {
-        total_matches: tradesTotal.count,
-        completed: tradesCompleted.count,
-        pending: tradesPending.count,
+        total_matches: tradesTotal.rows[0]?.count || 0,
+        completed: tradesCompleted.rows[0]?.count || 0,
+        pending: tradesPending.rows[0]?.count || 0,
       },
       reputation: {
         avg_rating: reputation.avg_rating ? Math.round(reputation.avg_rating * 10) / 10 : 0,

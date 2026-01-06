@@ -59,26 +59,25 @@ export async function GET(request: NextRequest) {
 
     if (servers_only) {
       // Return available servers (existing + WURM default servers)
-      const existingServers = getServers();
+      const existingServers = await getServers();
       const allServers = [...new Set([...WURM_SERVERS, ...existingServers])].sort();
       return NextResponse.json(allServers);
     }
 
     const filters = {
-      is_active: true,
+      active: true,
       category: category || undefined,
       server: server || undefined,
-      search: search || undefined,
-      user_id: user_id ? parseInt(user_id) : undefined,
+      userId: user_id ? parseInt(user_id) : undefined,
     };
 
     // SECURITY: Use paginated version for large datasets
     if (paginate) {
-      const result = getMerchantsPaginated(filters, { page, limit });
+      const result = await getMerchantsPaginated({ page, limit }, filters);
       return NextResponse.json(result);
     }
 
-    const merchants = getAllMerchants(filters);
+    const merchants = await getAllMerchants(filters);
     return NextResponse.json(merchants);
   } catch (error) {
     return NextResponse.json(
@@ -98,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -163,7 +162,7 @@ export async function POST(request: NextRequest) {
       stock_list: stock_list.trim(),
     };
 
-    const merchantId = createMerchant(result.user.id, input);
+    const merchantId = await createMerchant(result.user.id, input);
 
     return NextResponse.json({ id: merchantId, success: true });
   } catch (error) {

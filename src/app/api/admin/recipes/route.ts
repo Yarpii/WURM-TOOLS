@@ -9,14 +9,14 @@ import { getSession } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
 
 // Helper to verify admin authentication
-function verifyAdmin(request: NextRequest): { error?: NextResponse; session?: ReturnType<typeof getSession> } {
+async function verifyAdmin(request: NextRequest): Promise<{ error?: NextResponse; session?: Awaited<ReturnType<typeof getSession>> }> {
   const sessionId = request.cookies.get("session")?.value;
 
   if (!sessionId) {
     return { error: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
   }
 
-  const session = getSession(sessionId);
+  const session = await getSession(sessionId);
   if (!session) {
     return { error: NextResponse.json({ error: "Session expired" }, { status: 401 }) };
   }
@@ -30,10 +30,10 @@ function verifyAdmin(request: NextRequest): { error?: NextResponse; session?: Re
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = verifyAdmin(request);
+    const auth = await verifyAdmin(request);
     if (auth.error) return auth.error;
 
-    const recipes = getAllRecipes();
+    const recipes = await getAllRecipes();
     return NextResponse.json(recipes);
   } catch (error) {
     return NextResponse.json({ error: sanitizeError(error, "Fetch recipes") }, { status: 500 });
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = verifyAdmin(request);
+    const auth = await verifyAdmin(request);
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const id = addRecipeIngredient(
+    const id = await addRecipeIngredient(
       result_item_id,
       ingredient_item_id,
       quantity || 1
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = verifyAdmin(request);
+    const auth = await verifyAdmin(request);
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -96,7 +96,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const success = updateRecipeIngredient(id, quantity);
+    const success = await updateRecipeIngredient(id, quantity);
     return NextResponse.json({ success });
   } catch (error) {
     return NextResponse.json({ error: sanitizeError(error, "Update recipe") }, { status: 500 });
@@ -105,7 +105,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = verifyAdmin(request);
+    const auth = await verifyAdmin(request);
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -118,7 +118,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const success = deleteRecipeIngredient(id);
+    const success = await deleteRecipeIngredient(id);
     return NextResponse.json({ success });
   } catch (error) {
     return NextResponse.json({ error: sanitizeError(error, "Delete recipe") }, { status: 500 });

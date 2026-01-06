@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       expires_days: expires_days || 30, // Default 30 days
     };
 
-    const orderId = createOrder(result.user.id, input);
+    const orderId = await createOrder(result.user.id, input);
 
     return NextResponse.json({ id: orderId, success: true });
   } catch (error) {

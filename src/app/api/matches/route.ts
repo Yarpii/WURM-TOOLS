@@ -22,12 +22,12 @@ export async function GET(request: NextRequest) {
 
     // Public endpoints
     if (action === "reputation" && userId) {
-      const reputation = getUserReputation(parseInt(userId));
+      const reputation = await getUserReputation(parseInt(userId));
       return NextResponse.json(reputation || { error: "User not found" });
     }
 
     if (action === "ratings" && userId) {
-      const ratings = getUserRatings(parseInt(userId));
+      const ratings = await getUserRatings(parseInt(userId));
       return NextResponse.json(ratings);
     }
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
     switch (action) {
       case "my-matches":
         // Expire old matches first
-        expireOldMatches();
-        const matches = getUserMatches(result.user.id);
+        await expireOldMatches();
+        const matches = await getUserMatches(result.user.id);
         return NextResponse.json(matches);
 
       case "details":
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        const match = getMatchById(parseInt(matchId));
+        const match = await getMatchById(parseInt(matchId));
         if (!match) {
           return NextResponse.json(
             { error: "Match not found" },
@@ -79,32 +79,31 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(match);
 
       case "suggestions":
-        const suggestions = getBarterSuggestions(result.user.id);
+        const suggestions = await getBarterSuggestions(result.user.id);
         return NextResponse.json(suggestions);
 
       case "my-reputation":
-        const myReputation = getUserReputation(result.user.id);
+        const myReputation = await getUserReputation(result.user.id);
         return NextResponse.json(myReputation);
 
       case "my-ratings":
-        const myRatings = getUserRatings(result.user.id);
+        const myRatings = await getUserRatings(result.user.id);
         return NextResponse.json(myRatings);
 
       case "find":
         // Find new matches (can be called periodically)
-        const newMatches = findMatches();
+        const matchCount = await findMatches();
         return NextResponse.json({
-          found: newMatches.length,
-          matches: newMatches,
+          found: matchCount,
         });
 
       default:
         // Return user's matches and suggestions
-        expireOldMatches();
+        await expireOldMatches();
         return NextResponse.json({
-          matches: getUserMatches(result.user.id),
-          suggestions: getBarterSuggestions(result.user.id),
-          reputation: getUserReputation(result.user.id),
+          matches: await getUserMatches(result.user.id),
+          suggestions: await getBarterSuggestions(result.user.id),
+          reputation: await getUserReputation(result.user.id),
         });
     }
   } catch (error) {
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -153,7 +152,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const updated = updateMatchStatus(match_id, result.user.id, status);
+        const updated = await updateMatchStatus(match_id, result.user.id, status);
         return NextResponse.json({ success: updated });
       }
 
@@ -187,7 +186,7 @@ export async function POST(request: NextRequest) {
         };
 
         try {
-          const ratingId = createRating(result.user.id, ratingInput);
+          const ratingId = await createRating(result.user.id, ratingInput);
           return NextResponse.json({ id: ratingId, success: true });
         } catch (error) {
           return NextResponse.json(
@@ -199,10 +198,9 @@ export async function POST(request: NextRequest) {
 
       case "find-matches": {
         // Trigger match finding
-        const newMatches = findMatches();
+        const foundCount = await findMatches();
         return NextResponse.json({
-          found: newMatches.length,
-          matches: newMatches,
+          found: foundCount,
         });
       }
 

@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const item = getItem(parseInt(id));
+  const item = await getItem(parseInt(id));
 
   if (!item) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
@@ -31,7 +31,7 @@ export async function PUT(
       );
     }
 
-    const sessionResult = getSession(sessionId);
+    const sessionResult = await getSession(sessionId);
     if (!sessionResult) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -59,7 +59,7 @@ export async function PUT(
     const sanitizedCategory = String(category || "misc").trim().slice(0, 50);
     const sanitizedDescription = String(description || "").trim().slice(0, 500);
 
-    const existing = getItemByName(sanitizedName);
+    const existing = await getItemByName(sanitizedName);
     if (existing && existing.id !== parseInt(id)) {
       return NextResponse.json(
         { error: "Another item with this name exists" },
@@ -67,7 +67,7 @@ export async function PUT(
       );
     }
 
-    const success = updateItem(
+    const success = await updateItem(
       parseInt(id),
       sanitizedName,
       sanitizedCategory,
@@ -95,7 +95,7 @@ export async function DELETE(
       );
     }
 
-    const sessionResult = getSession(sessionId);
+    const sessionResult = await getSession(sessionId);
     if (!sessionResult) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -111,7 +111,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const success = deleteItem(parseInt(id));
+    const success = await deleteItem(parseInt(id));
     return NextResponse.json({ success });
   } catch (error) {
     return NextResponse.json({ error: sanitizeError(error, "Delete item") }, { status: 500 });

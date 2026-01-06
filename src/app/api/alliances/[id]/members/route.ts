@@ -22,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid alliance ID" }, { status: 400 });
     }
 
-    const alliance = getAllianceById(allianceId);
+    const alliance = await getAllianceById(allianceId);
     if (!alliance) {
       return NextResponse.json({ error: "Alliance not found" }, { status: 404 });
     }
@@ -30,21 +30,21 @@ export async function GET(
     // Check if user has permission to view private alliance members
     if (!alliance.is_public) {
       const sessionId = request.cookies.get("session")?.value;
-      const session = sessionId ? getSession(sessionId) : null;
+      const session = sessionId ? await getSession(sessionId) : null;
 
       if (!session) {
         return NextResponse.json({ error: "Alliance not found" }, { status: 404 });
       }
 
       const isAdmin = session.user.role === "admin";
-      const isMember = getAllianceMember(allianceId, session.user.id);
+      const isMember = await getAllianceMember(allianceId, session.user.id);
 
       if (!isAdmin && !isMember) {
         return NextResponse.json({ error: "Alliance not found" }, { status: 404 });
       }
     }
 
-    const members = getAllianceMembers(allianceId);
+    const members = await getAllianceMembers(allianceId);
 
     return NextResponse.json({ members });
   } catch (error) {
@@ -67,7 +67,7 @@ export async function PUT(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -90,7 +90,7 @@ export async function PUT(
 
     if (transfer_leadership) {
       // Transfer leadership
-      const success = transferLeadership(allianceId, session.user.id, user_id);
+      const success = await transferLeadership(allianceId, session.user.id, user_id);
 
       if (!success) {
         return NextResponse.json(
@@ -107,7 +107,7 @@ export async function PUT(
         );
       }
 
-      const success = updateMemberRole(allianceId, user_id, role, session.user.id, isAdmin);
+      const success = await updateMemberRole(allianceId, user_id, role, session.user.id, isAdmin);
 
       if (!success) {
         return NextResponse.json(
@@ -117,7 +117,7 @@ export async function PUT(
       }
     }
 
-    const members = getAllianceMembers(allianceId);
+    const members = await getAllianceMembers(allianceId);
 
     return NextResponse.json({
       success: true,
@@ -143,7 +143,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -164,7 +164,7 @@ export async function DELETE(
     }
 
     const isAdmin = session.user.role === "admin";
-    const success = removeMember(allianceId, userIdToRemove, session.user.id, isAdmin);
+    const success = await removeMember(allianceId, userIdToRemove, session.user.id, isAdmin);
 
     if (!success) {
       return NextResponse.json(

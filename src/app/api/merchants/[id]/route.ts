@@ -65,7 +65,7 @@ export async function PUT(
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -86,11 +86,10 @@ export async function PUT(
     const body = await request.json();
 
     // Check if this is a toggle active request
-    if (body.is_active !== undefined) {
-      const success = toggleMerchantActive(
+    if (body.toggle_active !== undefined) {
+      const success = await toggleMerchantActive(
         merchantId,
         result.user.id,
-        body.is_active,
         result.user.role === "admin"
       );
 
@@ -113,7 +112,7 @@ export async function PUT(
     }
 
     // Regular update
-    const success = updateMerchant(
+    const success = await updateMerchant(
       merchantId,
       result.user.id,
       body,
@@ -149,7 +148,7 @@ export async function DELETE(
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -167,7 +166,7 @@ export async function DELETE(
       );
     }
 
-    const success = deleteMerchant(
+    const success = await deleteMerchant(
       merchantId,
       result.user.id,
       result.user.role === "admin"

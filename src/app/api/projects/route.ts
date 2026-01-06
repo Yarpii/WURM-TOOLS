@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Get specific project
     if (projectId) {
-      const project = getProjectById(parseInt(projectId));
+      const project = await getProjectById(parseInt(projectId));
       if (!project) {
         return NextResponse.json(
           { error: "Project not found" },
@@ -58,12 +58,12 @@ export async function GET(request: NextRequest) {
       }
 
       if (action === "items") {
-        const items = getProjectItems(parseInt(projectId));
+        const items = await getProjectItems(parseInt(projectId));
         return NextResponse.json(items);
       }
 
       if (action === "materials") {
-        const materials = getProjectMaterials(parseInt(projectId));
+        const materials = await getProjectMaterials(parseInt(projectId));
         return NextResponse.json(materials);
       }
 
@@ -72,12 +72,12 @@ export async function GET(request: NextRequest) {
 
     // Get shared alliance projects
     if (allianceId) {
-      const projects = getSharedProjects(parseInt(allianceId));
+      const projects = await getSharedProjects(parseInt(allianceId));
       return NextResponse.json(projects);
     }
 
     // Get user's own projects
-    const projects = getUserProjects(result.user.id);
+    const projects = await getUserProjects(result.user.id);
     return NextResponse.json(projects);
   } catch (error) {
     return NextResponse.json(
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
           alliance_id: allianceId,
         };
 
-        const projectId = createProject(result.user.id, input);
+        const projectId = await createProject(result.user.id, input);
         return NextResponse.json({ id: projectId, success: true });
       }
 
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         if (data.status !== undefined) updateInput.status = data.status;
         if (data.is_shared !== undefined) updateInput.is_shared = data.is_shared;
 
-        const updated = updateProject(project_id, result.user.id, updateInput);
+        const updated = await updateProject(project_id, result.user.id, updateInput);
         return NextResponse.json({ success: updated });
       }
 
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const deleted = deleteProject(project_id, result.user.id);
+        const deleted = await deleteProject(project_id, result.user.id);
         return NextResponse.json({ success: deleted });
       }
 
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
           priority: priority || 0,
         };
 
-        const itemId = addProjectItem(project_id, result.user.id, itemInput);
+        const itemId = await addProjectItem(project_id, result.user.id, itemInput);
         if (itemId === null) {
           return NextResponse.json(
             { error: "Failed to add item" },
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const updated = updateProjectItemProgress(
+        const updated = await updateProjectItemProgress(
           item_id,
           project_id,
           result.user.id,
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const removed = removeProjectItem(item_id, project_id, result.user.id);
+        const removed = await removeProjectItem(item_id, project_id, result.user.id);
         return NextResponse.json({ success: removed });
       }
 

@@ -15,13 +15,13 @@ import { getSession } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
 
 // SECURITY: Helper function to verify admin authentication
-function verifyAdminAuth(request: NextRequest): { error: string; status: number } | null {
+async function verifyAdminAuth(request: NextRequest): Promise<{ error: string; status: number } | null> {
   const sessionId = request.cookies.get("session")?.value;
   if (!sessionId) {
     return { error: "Authentication required", status: 401 };
   }
 
-  const sessionResult = getSession(sessionId);
+  const sessionResult = await getSession(sessionId);
   if (!sessionResult) {
     return { error: "Invalid session", status: 401 };
   }
@@ -38,12 +38,12 @@ export async function GET(request: Request) {
   const action = searchParams.get("action");
 
   if (action === "export") {
-    const data = exportToJson();
+    const data = await exportToJson();
     return NextResponse.json(data);
   }
 
   if (action === "stats") {
-    const stats = getStats();
+    const stats = await getStats();
     return NextResponse.json(stats);
   }
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     // SECURITY: Dangerous operations require admin authentication
     const dangerousActions = ["import", "clear", "csv-import", "reload-extended"];
     if (dangerousActions.includes(action)) {
-      const authError = verifyAdminAuth(request);
+      const authError = await verifyAdminAuth(request);
       if (authError) {
         return NextResponse.json({ error: authError.error }, { status: authError.status });
       }
@@ -72,12 +72,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const stats = importFromJson(data, replace || false);
+      const stats = await importFromJson(data);
       return NextResponse.json(stats);
     }
 
     if (action === "clear") {
-      clearAllData();
+      await clearAllData();
       return NextResponse.json({ success: true });
     }
 
@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
       }
 
       if (csvType === "items") {
-        const result = parseItemsCsv(csvContent);
+        const result = await parseItemsCsv(csvContent);
         return NextResponse.json(result);
       } else if (csvType === "recipes") {
-        const result = parseRecipesCsv(csvContent);
+        const result = await parseRecipesCsv(csvContent);
         return NextResponse.json(result);
       }
 
@@ -107,10 +107,10 @@ export async function POST(request: NextRequest) {
     // CSV import - actually import the validated data
     if (action === "csv-import") {
       if (csvType === "items" && items) {
-        const result = importItemsFromCsv(items);
+        const result = await importItemsFromCsv(items);
         return NextResponse.json(result);
       } else if (csvType === "recipes" && recipes) {
-        const result = importRecipesFromCsv(recipes);
+        const result = await importRecipesFromCsv(recipes);
         return NextResponse.json(result);
       }
 
@@ -125,15 +125,15 @@ export async function POST(request: NextRequest) {
       try {
         const filePath = join(process.cwd(), "data", "wurm-extended-data.json");
         const fileContent = readFileSync(filePath, "utf-8");
-        const data = JSON.parse(fileContent);
+        const extData = JSON.parse(fileContent);
 
         // Import the data (updates existing items with new extended fields)
-        const stats = importFromJson(data, false); // false = don't replace, just update
+        const stats = await importFromJson(extData);
 
         return NextResponse.json({
           success: true,
           message: "Extended data reloaded successfully",
-          version: data.version,
+          version: extData.version,
           stats,
         });
       } catch (error) {

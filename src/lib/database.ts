@@ -1849,9 +1849,9 @@ export async function getProjectItems(projectId: number): Promise<ProjectItem[]>
 
 export async function addProjectItem(projectId: number, input: AddProjectItemInput): Promise<number> {
   await query(
-    `INSERT INTO project_items (project_id, item_id, item_name, quantity_needed, quantity_completed)
-     VALUES (?, ?, ?, ?, 0)`,
-    [projectId, input.item_id, input.item_name, input.quantity_needed]
+    `INSERT INTO project_items (project_id, item_id, quantity, completed_quantity)
+     VALUES (?, ?, ?, 0)`,
+    [projectId, input.item_id, input.quantity]
   );
 
   const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
@@ -1990,15 +1990,16 @@ export async function getWebhookById(id: number): Promise<DiscordWebhook | null>
 
 export async function createWebhook(userId: number, input: CreateWebhookInput): Promise<number> {
   await query(
-    `INSERT INTO discord_webhooks (user_id, name, webhook_url, notify_orders, notify_prices, notify_alliances)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO discord_webhooks (user_id, name, webhook_url, notify_trades, notify_matches, notify_price_alerts, notify_alliance)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       input.name,
       input.webhook_url,
-      input.notify_orders ? 1 : 0,
-      input.notify_prices ? 1 : 0,
-      input.notify_alliances ? 1 : 0,
+      input.notify_trades ? 1 : 0,
+      input.notify_matches ? 1 : 0,
+      input.notify_price_alerts ? 1 : 0,
+      input.notify_alliance ? 1 : 0,
     ]
   );
 
@@ -2031,9 +2032,9 @@ export async function getProspectPageById(id: number): Promise<ProspectPage | nu
 
 export async function createProspectPage(userId: number, input: CreateProspectPageInput): Promise<number> {
   await query(
-    `INSERT INTO prospect_pages (user_id, name, description, server, grid_ref)
+    `INSERT INTO prospect_pages (user_id, name, description, color, icon)
      VALUES (?, ?, ?, ?, ?)`,
-    [userId, input.name, input.description || null, input.server || null, input.grid_ref || null]
+    [userId, input.name, input.description || null, input.color || '#3b82f6', input.icon || 'folder']
   );
 
   const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
@@ -2375,9 +2376,9 @@ export async function createRecipeSubmission(
   input: CreateRecipeSubmissionInput
 ): Promise<number> {
   await query(
-    `INSERT INTO recipe_submissions (user_id, result_name, ingredients, notes)
+    `INSERT INTO recipe_submissions (user_id, item_name, ingredients, notes)
      VALUES (?, ?, ?, ?)`,
-    [userId, input.result_name, JSON.stringify(input.ingredients), input.notes || null]
+    [userId, input.item_name, JSON.stringify(input.ingredients), input.notes || null]
   );
 
   const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
@@ -2428,9 +2429,9 @@ export async function reviewRecipeSubmission(
 ): Promise<boolean> {
   const result = await query(
     `UPDATE recipe_submissions
-     SET status = ?, reviewed_by = ?, reviewed_at = NOW(), review_notes = ?
+     SET status = ?, reviewed_by = ?, reviewed_at = NOW(), admin_notes = ?
      WHERE id = ?`,
-    [input.status, reviewerId, input.review_notes || null, id]
+    [input.status, reviewerId, input.admin_notes || null, id]
   );
   return result.rowCount > 0;
 }
@@ -2442,4 +2443,960 @@ export async function deleteRecipeSubmission(id: number, userId: number, isAdmin
 
   const result = await query("DELETE FROM recipe_submissions WHERE id = ?", [id]);
   return result.rowCount > 0;
+}
+
+// ========== ALLIANCE MANAGEMENT ==========
+
+export async function removeMember(
+  allianceId: number,
+  userIdToRemove: number,
+  requesterId: number,
+  isAdmin: boolean = false
+): Promise<boolean> {
+  const alliance = await getAllianceById(allianceId);
+  if (!alliance) return false;
+
+  // Check permission: must be admin, or alliance leader/officer
+  if (!isAdmin && alliance.leader_id !== requesterId) {
+    const requesterMember = await getAllianceMember(allianceId, requesterId);
+    if (!requesterMember || requesterMember.role === "member") return false;
+  }
+
+  // Cannot remove the leader
+  if (alliance.leader_id === userIdToRemove) return false;
+
+  const result = await query(
+    "DELETE FROM alliance_members WHERE alliance_id = ? AND user_id = ?",
+    [allianceId, userIdToRemove]
+  );
+  return result.rowCount > 0;
+}
+
+export async function updateMemberRole(
+  allianceId: number,
+  userId: number,
+  role: AllianceRole,
+  requesterId: number,
+  isAdmin: boolean = false
+): Promise<boolean> {
+  const alliance = await getAllianceById(allianceId);
+  if (!alliance) return false;
+
+  // Only leader or admin can change roles
+  if (!isAdmin && alliance.leader_id !== requesterId) return false;
+
+  // Cannot change leader's role (must use transferLeadership)
+  if (alliance.leader_id === userId) return false;
+
+  const result = await query(
+    "UPDATE alliance_members SET role = ? WHERE alliance_id = ? AND user_id = ?",
+    [role, allianceId, userId]
+  );
+  return result.rowCount > 0;
+}
+
+export async function transferLeadership(
+  allianceId: number,
+  currentLeaderId: number,
+  newLeaderId: number
+): Promise<boolean> {
+  const alliance = await getAllianceById(allianceId);
+  if (!alliance) return false;
+
+  // Verify current user is the leader
+  if (alliance.leader_id !== currentLeaderId) return false;
+
+  // Verify new leader is a member
+  const newLeader = await getAllianceMember(allianceId, newLeaderId);
+  if (!newLeader) return false;
+
+  // Update alliance leader
+  await query("UPDATE alliances SET leader_id = ? WHERE id = ?", [newLeaderId, allianceId]);
+
+  // Update roles: new leader to leader, old leader to officer
+  await query(
+    "UPDATE alliance_members SET role = 'leader' WHERE alliance_id = ? AND user_id = ?",
+    [allianceId, newLeaderId]
+  );
+  await query(
+    "UPDATE alliance_members SET role = 'officer' WHERE alliance_id = ? AND user_id = ?",
+    [allianceId, currentLeaderId]
+  );
+
+  return true;
+}
+
+// ========== PRICE ANALYTICS ==========
+
+export async function getPriceAnalytics(itemName: string): Promise<PriceAnalytics | null> {
+  // Get price stats for the item
+  const statsResult = await query<{
+    avg_price: number;
+    min_price: number;
+    max_price: number;
+    total_orders: number;
+    buy_orders: number;
+    sell_orders: number;
+  }>(
+    `SELECT
+      AVG(price) as avg_price,
+      MIN(price) as min_price,
+      MAX(price) as max_price,
+      COUNT(*) as total_orders,
+      SUM(CASE WHEN order_type = 'buy' THEN 1 ELSE 0 END) as buy_orders,
+      SUM(CASE WHEN order_type = 'sell' THEN 1 ELSE 0 END) as sell_orders
+    FROM price_history
+    WHERE item_name = ?`,
+    [itemName]
+  );
+
+  if (statsResult.rows.length === 0 || !statsResult.rows[0].avg_price) return null;
+
+  const stats = statsResult.rows[0];
+
+  // Get price change for last 24h
+  const day24Result = await query<{ avg_price: number }>(
+    `SELECT AVG(price) as avg_price
+    FROM price_history
+    WHERE item_name = ? AND recorded_at > DATE_SUB(NOW(), INTERVAL 1 DAY)`,
+    [itemName]
+  );
+  const price24h = day24Result.rows[0]?.avg_price || stats.avg_price;
+
+  // Get price change for last 7 days
+  const day7Result = await query<{ avg_price: number }>(
+    `SELECT AVG(price) as avg_price
+    FROM price_history
+    WHERE item_name = ? AND recorded_at > DATE_SUB(NOW(), INTERVAL 7 DAY)`,
+    [itemName]
+  );
+  const price7d = day7Result.rows[0]?.avg_price || stats.avg_price;
+
+  return {
+    item_name: itemName,
+    avg_price: stats.avg_price,
+    min_price: stats.min_price,
+    max_price: stats.max_price,
+    price_change_24h: ((stats.avg_price - price24h) / price24h) * 100,
+    price_change_7d: ((stats.avg_price - price7d) / price7d) * 100,
+    total_orders: stats.total_orders,
+    buy_orders: stats.buy_orders,
+    sell_orders: stats.sell_orders,
+  };
+}
+
+export async function getTrendingItems(limit: number = 10): Promise<TrendingItem[]> {
+  const result = await query<{
+    item_name: string;
+    order_count: number;
+    total_quantity: number;
+    avg_price: number;
+    recent_avg: number;
+    old_avg: number;
+  }>(
+    `SELECT
+      o.item_name,
+      COUNT(*) as order_count,
+      SUM(o.quantity) as total_quantity,
+      AVG(ph.price) as avg_price,
+      (SELECT AVG(price) FROM price_history WHERE item_name = o.item_name AND recorded_at > DATE_SUB(NOW(), INTERVAL 3 DAY)) as recent_avg,
+      (SELECT AVG(price) FROM price_history WHERE item_name = o.item_name AND recorded_at BETWEEN DATE_SUB(NOW(), INTERVAL 7 DAY) AND DATE_SUB(NOW(), INTERVAL 3 DAY)) as old_avg
+    FROM orders o
+    LEFT JOIN price_history ph ON o.item_name = ph.item_name
+    WHERE o.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
+    GROUP BY o.item_name
+    ORDER BY order_count DESC
+    LIMIT ?`,
+    [limit]
+  );
+
+  return result.rows.map((row) => {
+    const recentAvg = row.recent_avg || row.avg_price;
+    const oldAvg = row.old_avg || row.avg_price;
+    const change = oldAvg > 0 ? ((recentAvg - oldAvg) / oldAvg) * 100 : 0;
+
+    let trend: "up" | "down" | "stable" = "stable";
+    if (change > 5) trend = "up";
+    else if (change < -5) trend = "down";
+
+    return {
+      item_name: row.item_name,
+      order_count: row.order_count,
+      total_quantity: row.total_quantity,
+      avg_price: row.avg_price || 0,
+      trend,
+      trend_percentage: change,
+    };
+  });
+}
+
+export async function getBestDeals(limit: number = 10): Promise<MarketOrder[]> {
+  // Find sell orders with prices below average
+  const result = await query<MarketOrder>(
+    `SELECT o.*, u.username
+    FROM orders o
+    LEFT JOIN users u ON o.user_id = u.id
+    WHERE o.status = 'active'
+      AND o.order_type = 'sell'
+      AND o.price IS NOT NULL
+      AND o.price < (
+        SELECT AVG(price) * 0.9
+        FROM price_history ph
+        WHERE ph.item_name = o.item_name
+          AND ph.recorded_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+      )
+    ORDER BY (
+      SELECT AVG(price) FROM price_history ph
+      WHERE ph.item_name = o.item_name
+    ) / o.price DESC
+    LIMIT ?`,
+    [limit]
+  );
+
+  return result.rows;
+}
+
+export async function getUserPriceAlerts(userId: number): Promise<PriceAlert[]> {
+  const result = await query<PriceAlert>(
+    "SELECT * FROM price_alerts WHERE user_id = ? ORDER BY created_at DESC",
+    [userId]
+  );
+  return result.rows;
+}
+
+export async function createPriceAlert(
+  userId: number,
+  input: CreatePriceAlertInput
+): Promise<number> {
+  await query(
+    `INSERT INTO price_alerts (user_id, item_name, target_price, \`condition\`)
+     VALUES (?, ?, ?, ?)`,
+    [userId, input.item_name, input.target_price, input.condition]
+  );
+
+  const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
+  return idResult.rows[0]?.id || 0;
+}
+
+export async function deletePriceAlert(alertId: number, userId: number): Promise<boolean> {
+  const result = await query(
+    "DELETE FROM price_alerts WHERE id = ? AND user_id = ?",
+    [alertId, userId]
+  );
+  return result.rowCount > 0;
+}
+
+export async function checkPriceAlerts(): Promise<number> {
+  // Get all active alerts
+  const alerts = await query<PriceAlert>(
+    "SELECT * FROM price_alerts WHERE is_active = 1 AND triggered_at IS NULL"
+  );
+
+  let triggeredCount = 0;
+
+  for (const alert of alerts.rows) {
+    // Get recent average price
+    const priceResult = await query<{ avg_price: number }>(
+      `SELECT AVG(price) as avg_price
+      FROM price_history
+      WHERE item_name = ? AND recorded_at > DATE_SUB(NOW(), INTERVAL 1 DAY)`,
+      [alert.item_name]
+    );
+
+    const avgPrice = priceResult.rows[0]?.avg_price;
+    if (!avgPrice) continue;
+
+    let triggered = false;
+    if (alert.condition === "above" && avgPrice >= alert.target_price) {
+      triggered = true;
+    } else if (alert.condition === "below" && avgPrice <= alert.target_price) {
+      triggered = true;
+    }
+
+    if (triggered) {
+      await query(
+        "UPDATE price_alerts SET triggered_at = NOW(), is_active = 0 WHERE id = ?",
+        [alert.id]
+      );
+      triggeredCount++;
+    }
+  }
+
+  return triggeredCount;
+}
+
+// ========== TRADE MATCHING ==========
+
+export async function findMatches(): Promise<number> {
+  // Find matching buy and sell orders
+  const matches = await query<{
+    buy_order_id: number;
+    sell_order_id: number;
+    buyer_id: number;
+    seller_id: number;
+    item_name: string;
+    buy_quantity: number;
+    sell_quantity: number;
+    buy_price: number;
+    sell_price: number;
+  }>(
+    `SELECT
+      bo.id as buy_order_id,
+      so.id as sell_order_id,
+      bo.user_id as buyer_id,
+      so.user_id as seller_id,
+      bo.item_name,
+      bo.quantity as buy_quantity,
+      so.quantity as sell_quantity,
+      bo.price as buy_price,
+      so.price as sell_price
+    FROM orders bo
+    JOIN orders so ON LOWER(bo.item_name) = LOWER(so.item_name)
+    WHERE bo.status = 'active'
+      AND so.status = 'active'
+      AND bo.order_type = 'buy'
+      AND so.order_type = 'sell'
+      AND bo.user_id != so.user_id
+      AND NOT EXISTS (
+        SELECT 1 FROM trade_matches tm
+        WHERE tm.buy_order_id = bo.id AND tm.sell_order_id = so.id
+      )`
+  );
+
+  let matchCount = 0;
+
+  for (const match of matches.rows) {
+    const quantity = Math.min(match.buy_quantity, match.sell_quantity);
+    let matchScore = 50;
+
+    // Score based on price compatibility
+    if (match.buy_price && match.sell_price) {
+      if (match.buy_price >= match.sell_price) {
+        matchScore += 30;
+      } else {
+        matchScore += Math.floor((match.buy_price / match.sell_price) * 30);
+      }
+    }
+
+    // Score based on quantity match
+    const qtyRatio = quantity / Math.max(match.buy_quantity, match.sell_quantity);
+    matchScore += Math.floor(qtyRatio * 20);
+
+    await query(
+      `INSERT INTO trade_matches (buy_order_id, sell_order_id, buyer_id, seller_id, item_name, quantity, buy_price, sell_price, match_score)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        match.buy_order_id,
+        match.sell_order_id,
+        match.buyer_id,
+        match.seller_id,
+        match.item_name,
+        quantity,
+        match.buy_price,
+        match.sell_price,
+        matchScore,
+      ]
+    );
+    matchCount++;
+  }
+
+  return matchCount;
+}
+
+export async function getUserMatches(userId: number): Promise<TradeMatch[]> {
+  const result = await query<TradeMatch>(
+    `SELECT tm.*,
+      bu.username as buyer_username,
+      su.username as seller_username
+    FROM trade_matches tm
+    JOIN users bu ON tm.buyer_id = bu.id
+    JOIN users su ON tm.seller_id = su.id
+    WHERE (tm.buyer_id = ? OR tm.seller_id = ?)
+      AND tm.status != 'expired'
+    ORDER BY tm.created_at DESC`,
+    [userId, userId]
+  );
+  return result.rows;
+}
+
+export async function getMatchById(matchId: number): Promise<TradeMatch | null> {
+  const result = await query<TradeMatch>(
+    `SELECT tm.*,
+      bu.username as buyer_username,
+      su.username as seller_username
+    FROM trade_matches tm
+    JOIN users bu ON tm.buyer_id = bu.id
+    JOIN users su ON tm.seller_id = su.id
+    WHERE tm.id = ?`,
+    [matchId]
+  );
+  return result.rows[0] || null;
+}
+
+export async function updateMatchStatus(
+  matchId: number,
+  userId: number,
+  status: MatchStatus
+): Promise<boolean> {
+  const match = await getMatchById(matchId);
+  if (!match) return false;
+
+  // Only buyer or seller can update status
+  if (match.buyer_id !== userId && match.seller_id !== userId) return false;
+
+  const updates: string[] = ["status = ?"];
+  const params: (string | number)[] = [status];
+
+  if (status === "contacted") {
+    updates.push("contacted_at = NOW()");
+  }
+
+  params.push(matchId);
+  const result = await query(
+    `UPDATE trade_matches SET ${updates.join(", ")} WHERE id = ?`,
+    params
+  );
+  return result.rowCount > 0;
+}
+
+export async function expireOldMatches(): Promise<number> {
+  const result = await query(
+    `UPDATE trade_matches
+     SET status = 'expired'
+     WHERE status = 'pending'
+       AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)`
+  );
+  return result.rowCount;
+}
+
+export async function getBarterSuggestions(userId: number): Promise<BarterSuggestion[]> {
+  // Find potential barter matches: user's sell orders vs others' sell orders where items might be tradeable
+  const userOrders = await query<MarketOrder>(
+    `SELECT * FROM orders
+     WHERE user_id = ?
+       AND status = 'active'
+       AND (order_type = 'trade' OR trade_for IS NOT NULL)`,
+    [userId]
+  );
+
+  const suggestions: BarterSuggestion[] = [];
+
+  for (const userOrder of userOrders.rows) {
+    // Find matching orders
+    const matches = await query<MarketOrder>(
+      `SELECT o.*, u.username
+       FROM orders o
+       LEFT JOIN users u ON o.user_id = u.id
+       WHERE o.user_id != ?
+         AND o.status = 'active'
+         AND (o.order_type = 'trade' OR o.trade_for IS NOT NULL)
+         AND (
+           LOWER(o.item_name) LIKE LOWER(?)
+           OR LOWER(o.trade_for) LIKE LOWER(?)
+         )
+       LIMIT 10`,
+      [userId, `%${userOrder.trade_for || ""}%`, `%${userOrder.item_name}%`]
+    );
+
+    for (const match of matches.rows) {
+      let score = 50;
+      let reason = "Potential barter match";
+
+      // Check if items match each other's trade_for
+      if (
+        userOrder.trade_for &&
+        match.item_name.toLowerCase().includes(userOrder.trade_for.toLowerCase())
+      ) {
+        score += 30;
+        reason = `They have ${match.item_name} which you're looking for`;
+      }
+
+      if (
+        match.trade_for &&
+        userOrder.item_name.toLowerCase().includes(match.trade_for.toLowerCase())
+      ) {
+        score += 20;
+        reason += `, and you have ${userOrder.item_name} which they're looking for`;
+      }
+
+      suggestions.push({
+        your_order: userOrder,
+        their_order: match,
+        match_reason: reason,
+        compatibility_score: score,
+      });
+    }
+  }
+
+  // Sort by score
+  return suggestions.sort((a, b) => b.compatibility_score - a.compatibility_score).slice(0, 20);
+}
+
+// ========== USER RATINGS ==========
+
+export async function createRating(raterId: number, input: CreateRatingInput): Promise<number> {
+  // Prevent self-rating
+  if (raterId === input.rated_user_id) {
+    throw new Error("Cannot rate yourself");
+  }
+
+  // Check if already rated for this trade
+  if (input.trade_match_id) {
+    const existing = await query<{ id: number }>(
+      "SELECT id FROM user_ratings WHERE rater_id = ? AND trade_match_id = ?",
+      [raterId, input.trade_match_id]
+    );
+    if (existing.rows.length > 0) {
+      throw new Error("Already rated this trade");
+    }
+  }
+
+  await query(
+    `INSERT INTO user_ratings (rater_id, rated_user_id, rating, comment, trade_match_id)
+     VALUES (?, ?, ?, ?, ?)`,
+    [raterId, input.rated_user_id, input.rating, input.comment || null, input.trade_match_id || null]
+  );
+
+  const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
+  return idResult.rows[0]?.id || 0;
+}
+
+export async function getUserRatings(userId: number): Promise<UserRating[]> {
+  const result = await query<UserRating>(
+    `SELECT r.*,
+      ru.username as rater_username,
+      u.username as rated_username
+    FROM user_ratings r
+    JOIN users ru ON r.rater_id = ru.id
+    JOIN users u ON r.rated_user_id = u.id
+    WHERE r.rated_user_id = ?
+    ORDER BY r.created_at DESC`,
+    [userId]
+  );
+  return result.rows;
+}
+
+export async function getUserReputation(userId: number): Promise<UserReputation | null> {
+  const ratingsResult = await query<{
+    avg_rating: number;
+    total_ratings: number;
+  }>(
+    `SELECT
+      AVG(rating) as avg_rating,
+      COUNT(*) as total_ratings
+    FROM user_ratings
+    WHERE rated_user_id = ?`,
+    [userId]
+  );
+
+  const tradesResult = await query<{
+    completed_trades: number;
+    successful_matches: number;
+  }>(
+    `SELECT
+      COUNT(DISTINCT CASE WHEN status = 'completed' THEN id END) as completed_trades,
+      COUNT(DISTINCT CASE WHEN status IN ('completed', 'contacted') THEN id END) as successful_matches
+    FROM trade_matches
+    WHERE buyer_id = ? OR seller_id = ?`,
+    [userId, userId]
+  );
+
+  const userResult = await query<{ username: string }>(
+    "SELECT username FROM users WHERE id = ?",
+    [userId]
+  );
+
+  if (!userResult.rows[0]) return null;
+
+  return {
+    user_id: userId,
+    username: userResult.rows[0].username,
+    avg_rating: ratingsResult.rows[0]?.avg_rating || 0,
+    total_ratings: ratingsResult.rows[0]?.total_ratings || 0,
+    completed_trades: tradesResult.rows[0]?.completed_trades || 0,
+    successful_matches: tradesResult.rows[0]?.successful_matches || 0,
+  };
+}
+
+// ========== ACHIEVEMENTS & XP ==========
+
+// Achievements definitions (can be extended)
+const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: "first_order",
+    name: "First Trade",
+    description: "Create your first market order",
+    category: "trading",
+    icon: "shopping-cart",
+    xp_reward: 10,
+    requirement_type: "orders_created",
+    requirement_value: 1,
+    is_hidden: false,
+  },
+  {
+    id: "trader_10",
+    name: "Active Trader",
+    description: "Create 10 market orders",
+    category: "trading",
+    icon: "trending-up",
+    xp_reward: 50,
+    requirement_type: "orders_created",
+    requirement_value: 10,
+    is_hidden: false,
+  },
+  {
+    id: "merchant",
+    name: "Merchant",
+    description: "Create your first merchant",
+    category: "trading",
+    icon: "store",
+    xp_reward: 25,
+    requirement_type: "merchants_created",
+    requirement_value: 1,
+    is_hidden: false,
+  },
+  {
+    id: "crafter",
+    name: "Crafter",
+    description: "Use the crafting calculator 10 times",
+    category: "crafting",
+    icon: "hammer",
+    xp_reward: 30,
+    requirement_type: "calculations_made",
+    requirement_value: 10,
+    is_hidden: false,
+  },
+  {
+    id: "alliance_leader",
+    name: "Alliance Leader",
+    description: "Create an alliance",
+    category: "community",
+    icon: "users",
+    xp_reward: 50,
+    requirement_type: "alliances_created",
+    requirement_value: 1,
+    is_hidden: false,
+  },
+  {
+    id: "social_butterfly",
+    name: "Social Butterfly",
+    description: "Join an alliance",
+    category: "community",
+    icon: "user-plus",
+    xp_reward: 20,
+    requirement_type: "alliances_joined",
+    requirement_value: 1,
+    is_hidden: false,
+  },
+];
+
+export async function checkAndUpdateAchievements(userId: number): Promise<string[]> {
+  const newAchievements: string[] = [];
+
+  // Get user stats
+  const ordersCount = await query<{ count: number }>(
+    "SELECT COUNT(*) as count FROM orders WHERE user_id = ?",
+    [userId]
+  );
+  const merchantsCount = await query<{ count: number }>(
+    "SELECT COUNT(*) as count FROM merchants WHERE user_id = ?",
+    [userId]
+  );
+  const alliancesCreated = await query<{ count: number }>(
+    "SELECT COUNT(*) as count FROM alliances WHERE leader_id = ?",
+    [userId]
+  );
+  const alliancesJoined = await query<{ count: number }>(
+    "SELECT COUNT(*) as count FROM alliance_members WHERE user_id = ?",
+    [userId]
+  );
+
+  const stats: Record<string, number> = {
+    orders_created: ordersCount.rows[0]?.count || 0,
+    merchants_created: merchantsCount.rows[0]?.count || 0,
+    alliances_created: alliancesCreated.rows[0]?.count || 0,
+    alliances_joined: alliancesJoined.rows[0]?.count || 0,
+  };
+
+  // Check each achievement
+  for (const achievement of ACHIEVEMENTS) {
+    // Check if already completed
+    const existing = await query<UserAchievement>(
+      "SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?",
+      [userId, achievement.id]
+    );
+
+    const userStat = stats[achievement.requirement_type] || 0;
+    const progress = Math.min(userStat, achievement.requirement_value);
+    const completed = userStat >= achievement.requirement_value;
+
+    if (existing.rows.length === 0) {
+      // Create new achievement record
+      await query(
+        `INSERT INTO user_achievements (user_id, achievement_id, progress, completed, completed_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [userId, achievement.id, progress, completed ? 1 : 0, completed ? new Date().toISOString() : null]
+      );
+
+      if (completed) {
+        // Award XP
+        await query(
+          "INSERT INTO user_xp (user_id, total_xp) VALUES (?, ?) ON DUPLICATE KEY UPDATE total_xp = total_xp + ?",
+          [userId, achievement.xp_reward, achievement.xp_reward]
+        );
+        newAchievements.push(achievement.id);
+      }
+    } else if (!existing.rows[0].completed && completed) {
+      // Update to completed
+      await query(
+        "UPDATE user_achievements SET progress = ?, completed = 1, completed_at = NOW() WHERE user_id = ? AND achievement_id = ?",
+        [progress, userId, achievement.id]
+      );
+
+      // Award XP
+      await query(
+        "INSERT INTO user_xp (user_id, total_xp) VALUES (?, ?) ON DUPLICATE KEY UPDATE total_xp = total_xp + ?",
+        [userId, achievement.xp_reward, achievement.xp_reward]
+      );
+      newAchievements.push(achievement.id);
+    } else if (!existing.rows[0].completed) {
+      // Update progress
+      await query(
+        "UPDATE user_achievements SET progress = ? WHERE user_id = ? AND achievement_id = ?",
+        [progress, userId, achievement.id]
+      );
+    }
+  }
+
+  return newAchievements;
+}
+
+export async function getCompletedAchievements(userId: number): Promise<UserAchievement[]> {
+  const result = await query<UserAchievement>(
+    "SELECT * FROM user_achievements WHERE user_id = ? AND completed = 1 ORDER BY completed_at DESC",
+    [userId]
+  );
+  return result.rows;
+}
+
+export async function getUserXP(userId: number): Promise<UserXP | null> {
+  const xpResult = await query<{ total_xp: number }>(
+    "SELECT total_xp FROM user_xp WHERE user_id = ?",
+    [userId]
+  );
+
+  const userResult = await query<{ username: string }>(
+    "SELECT username FROM users WHERE id = ?",
+    [userId]
+  );
+
+  if (!userResult.rows[0]) return null;
+
+  const totalXp = xpResult.rows[0]?.total_xp || 0;
+  const level = Math.floor(Math.sqrt(totalXp / 100)) + 1;
+  const xpForCurrentLevel = (level - 1) * (level - 1) * 100;
+  const xpForNextLevel = level * level * 100;
+  const xpToNextLevel = xpForNextLevel - totalXp;
+
+  return {
+    user_id: userId,
+    username: userResult.rows[0].username,
+    total_xp: totalXp,
+    level,
+    xp_to_next_level: xpToNextLevel,
+  };
+}
+
+export async function getLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+  const result = await query<LeaderboardEntry>(
+    `SELECT
+      ux.user_id,
+      u.username,
+      u.display_name,
+      u.avatar_url,
+      ux.total_xp,
+      (SELECT COUNT(*) FROM user_achievements WHERE user_id = ux.user_id AND completed = 1) as achievements_count
+    FROM user_xp ux
+    JOIN users u ON ux.user_id = u.id
+    WHERE u.is_banned = 0
+    ORDER BY ux.total_xp DESC
+    LIMIT ?`,
+    [limit]
+  );
+
+  return result.rows.map((row, index) => {
+    const level = Math.floor(Math.sqrt(row.total_xp / 100)) + 1;
+    return {
+      rank: index + 1,
+      user_id: row.user_id,
+      username: row.username,
+      display_name: row.display_name,
+      total_xp: row.total_xp,
+      level,
+      achievements_count: row.achievements_count,
+      avatar_url: row.avatar_url,
+    };
+  });
+}
+
+// ========== PROJECT MATERIALS ==========
+
+export async function getProjectMaterials(projectId: number): Promise<ProjectMaterial[]> {
+  const items = await getProjectItems(projectId);
+  const materialMap = new Map<number, ProjectMaterial>();
+
+  for (const item of items) {
+    const itemData = await getItem(item.item_id);
+    if (!itemData) continue;
+
+    // Get base materials for this item
+    const baseMaterials = await calculateBaseMaterials(item.item_id, item.quantity);
+
+    for (const [matId, quantity] of baseMaterials) {
+      const material = await getItem(matId);
+      if (!material) continue;
+
+      const existing = materialMap.get(matId);
+      if (existing) {
+        existing.required_quantity += quantity;
+        existing.remaining_quantity = existing.required_quantity - existing.completed_quantity;
+      } else {
+        materialMap.set(matId, {
+          item_id: matId,
+          item_name: material.name,
+          category: material.category,
+          required_quantity: quantity,
+          completed_quantity: 0,
+          remaining_quantity: quantity,
+        });
+      }
+    }
+  }
+
+  return Array.from(materialMap.values()).sort((a, b) => a.item_name.localeCompare(b.item_name));
+}
+
+export async function removeProjectItem(
+  itemId: number,
+  projectId: number,
+  userId: number
+): Promise<boolean> {
+  const project = await getProjectById(projectId);
+  if (!project || project.user_id !== userId) return false;
+
+  const result = await query("DELETE FROM project_items WHERE id = ? AND project_id = ?", [
+    itemId,
+    projectId,
+  ]);
+  return result.rowCount > 0;
+}
+
+export async function updateProjectItemProgress(
+  itemId: number,
+  projectId: number,
+  userId: number,
+  completedQty: number
+): Promise<boolean> {
+  const project = await getProjectById(projectId);
+  if (!project || project.user_id !== userId) return false;
+
+  const result = await query(
+    "UPDATE project_items SET quantity_completed = ? WHERE id = ? AND project_id = ?",
+    [completedQty, itemId, projectId]
+  );
+  return result.rowCount > 0;
+}
+
+// ========== WEBHOOKS ==========
+
+export async function updateWebhook(
+  webhookId: number,
+  userId: number,
+  updates: Partial<CreateWebhookInput>
+): Promise<boolean> {
+  const webhook = await getWebhookById(webhookId);
+  if (!webhook || webhook.user_id !== userId) return false;
+
+  const fields: string[] = [];
+  const values: (string | number)[] = [];
+
+  if (updates.name !== undefined) {
+    fields.push("name = ?");
+    values.push(updates.name);
+  }
+  if (updates.webhook_url !== undefined) {
+    fields.push("webhook_url = ?");
+    values.push(updates.webhook_url);
+  }
+  if (updates.notify_trades !== undefined) {
+    fields.push("notify_trades = ?");
+    values.push(updates.notify_trades ? 1 : 0);
+  }
+  if (updates.notify_matches !== undefined) {
+    fields.push("notify_matches = ?");
+    values.push(updates.notify_matches ? 1 : 0);
+  }
+  if (updates.notify_price_alerts !== undefined) {
+    fields.push("notify_price_alerts = ?");
+    values.push(updates.notify_price_alerts ? 1 : 0);
+  }
+  if (updates.notify_alliance !== undefined) {
+    fields.push("notify_alliance = ?");
+    values.push(updates.notify_alliance ? 1 : 0);
+  }
+
+  if (fields.length === 0) return false;
+
+  values.push(webhookId);
+  const result = await query(`UPDATE discord_webhooks SET ${fields.join(", ")} WHERE id = ?`, values);
+  return result.rowCount > 0;
+}
+
+// ========== RECIPE SUBMISSIONS ==========
+
+export async function approveAndAddRecipe(submissionId: number, reviewerId: number): Promise<boolean> {
+  const submission = await getRecipeSubmissionById(submissionId);
+  if (!submission) return false;
+  if (submission.status !== "pending") return false;
+
+  try {
+    let ingredients: { name: string; quantity: number }[] = [];
+    try {
+      ingredients = JSON.parse(submission.ingredients);
+    } catch {
+      return false;
+    }
+
+    // Check or create result item
+    let resultItem = await getItemByName(submission.item_name);
+    if (!resultItem) {
+      const resultId = await addItem(submission.item_name, "misc", false, `Added from recipe submission #${submissionId}`);
+      resultItem = await getItem(resultId);
+      if (!resultItem) return false;
+    }
+
+    // Add each ingredient to the recipe
+    for (const ing of ingredients) {
+      let ingredientItem = await getItemByName(ing.name);
+      if (!ingredientItem) {
+        // Create missing ingredient as base material
+        const ingId = await addItem(ing.name, "material", true, `Added from recipe submission #${submissionId}`);
+        ingredientItem = await getItem(ingId);
+        if (!ingredientItem) continue;
+      }
+
+      await addRecipeIngredient(resultItem.id, ingredientItem.id, ing.quantity);
+    }
+
+    // Mark submission as approved
+    await reviewRecipeSubmission(submissionId, reviewerId, {
+      status: "approved",
+      admin_notes: "Recipe approved and added to database",
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error approving recipe:", error);
+    return false;
+  }
 }

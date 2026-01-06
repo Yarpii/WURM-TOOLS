@@ -11,7 +11,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -34,7 +34,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const result = deleteAccount(session.user.id, password);
+    const result = await deleteAccount(session.user.id, password);
 
     if (!result.success) {
       return NextResponse.json(

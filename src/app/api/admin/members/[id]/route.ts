@@ -20,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -36,7 +36,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
-    const user = getUserById(userId);
+    const user = await getUserById(userId);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -63,7 +63,7 @@ export async function PUT(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -110,7 +110,7 @@ export async function PUT(
       );
     }
 
-    const updatedUser = getUserById(userId);
+    const updatedUser = await getUserById(userId);
 
     return NextResponse.json({
       success: true,
@@ -136,7 +136,7 @@ export async function POST(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -179,9 +179,9 @@ export async function POST(
           { status: 400 }
         );
       }
-      success = banUser(userId, session.user.id, reason);
+      success = await banUser(userId, session.user.id, reason);
     } else {
-      success = unbanUser(userId);
+      success = await unbanUser(userId);
     }
 
     if (!success) {
@@ -191,7 +191,7 @@ export async function POST(
       );
     }
 
-    const updatedUser = getUserById(userId);
+    const updatedUser = await getUserById(userId);
 
     return NextResponse.json({
       success: true,
@@ -217,7 +217,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -242,7 +242,7 @@ export async function DELETE(
     }
 
     // Check if user is admin
-    const targetUser = getUserById(userId);
+    const targetUser = await getUserById(userId);
     if (targetUser?.role === "admin") {
       return NextResponse.json(
         { error: "Cannot delete an admin account" },

@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
   // If specific item requested, get detailed path
   let itemSpecificPath = null;
   if (itemId) {
-    const item = getItem(itemId);
+    const item = await getItem(itemId);
     if (item) {
       itemSpecificPath = getSkillGrindingPath(itemId, clampedSkill, targetSkill, toolQL);
     }
