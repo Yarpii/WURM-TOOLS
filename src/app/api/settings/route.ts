@@ -10,12 +10,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
-    const user = getUserById(session.user.id);
+    const user = await getUserById(session.user.id);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { show_in_members_list, show_email, show_location } = body;
 
-    const success = updateUserSettings(session.user.id, {
+    const success = await updateUserSettings(session.user.id, {
       show_in_members_list,
       show_email,
       show_location,
@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const updatedUser = getUserById(session.user.id);
+    const updatedUser = await getUserById(session.user.id);
 
     return NextResponse.json({
       success: true,

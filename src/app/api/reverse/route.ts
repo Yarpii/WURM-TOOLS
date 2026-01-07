@@ -18,8 +18,8 @@ export async function GET(request: Request) {
   }
 
   const craftable = includeAll
-    ? findAllCraftableFrom(itemId)
-    : findCraftableFrom(itemId);
+    ? await findAllCraftableFrom(itemId)
+    : await findCraftableFrom(itemId);
 
   const results = craftable.map((c) => ({
     id: c.item.id,

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -41,12 +41,12 @@ export async function GET(request: NextRequest) {
 
     // Admin can view all submissions
     if (viewAll && result.user.role === "admin") {
-      const submissions = getAllRecipeSubmissions(status || undefined);
+      const submissions = await getAllRecipeSubmissions(status || undefined);
       return NextResponse.json(submissions);
     }
 
     // Regular users see only their own submissions
-    const submissions = getUserRecipeSubmissions(result.user.id);
+    const submissions = await getUserRecipeSubmissions(result.user.id);
     return NextResponse.json(submissions);
   } catch (error) {
     return NextResponse.json(
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       notes: notes?.trim() || undefined,
     };
 
-    const submissionId = createRecipeSubmission(result.user.id, input);
+    const submissionId = await createRecipeSubmission(result.user.id, input);
 
     return NextResponse.json({ id: submissionId, success: true });
   } catch (error) {

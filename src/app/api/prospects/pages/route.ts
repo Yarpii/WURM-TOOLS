@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
-    const pages = getProspectPagesByUser(session.user.id);
+    const pages = await getProspectPagesByUser(session.user.id);
     return NextResponse.json({ pages });
   } catch (error) {
     return NextResponse.json(
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pageId = createProspectPage(session.user.id, {
+    const pageId = await createProspectPage(session.user.id, {
       name,
       description,
       color,

@@ -53,7 +53,7 @@ export async function PUT(
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -101,7 +101,7 @@ export async function PUT(
     }
 
     // Regular update
-    const success = updateOrder(orderId, result.user.id, body);
+    const success = await updateOrder(orderId, result.user.id, body);
 
     if (!success) {
       return NextResponse.json(
@@ -132,7 +132,7 @@ export async function DELETE(
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -150,7 +150,7 @@ export async function DELETE(
       );
     }
 
-    const success = deleteOrder(
+    const success = await deleteOrder(
       orderId,
       result.user.id,
       result.user.role === "admin"

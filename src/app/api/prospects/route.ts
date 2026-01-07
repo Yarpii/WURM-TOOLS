@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // If search query or filters provided, use search function
     if (query || status || priority || pageId || minQuality) {
-      const prospects = searchProspects(session.user.id, query, {
+      const prospects = await searchProspects(session.user.id, query, {
         status: status || undefined,
         priority: priority || undefined,
         pageId: pageId ? parseInt(pageId, 10) : undefined,
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Otherwise return all user's prospects
-    const prospects = getProspectsByUser(session.user.id, limit, offset);
+    const prospects = await getProspectsByUser(session.user.id, limit, offset);
     return NextResponse.json({ prospects });
   } catch (error) {
     return NextResponse.json(
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prospectId = createProspect(session.user.id, {
+    const prospectId = await createProspect(session.user.id, {
       page_id,
       name,
       character_name,

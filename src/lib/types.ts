@@ -81,10 +81,11 @@ export interface CraftableResult {
 
 export interface ImportStats {
   items_added: number;
-  items_skipped: number;
+  items_updated: number;
+  items_failed: number;
   recipes_added: number;
-  recipes_skipped: number;
-  errors: string[];
+  recipes_updated: number;
+  recipes_failed: number;
 }
 
 export interface CsvPreviewResult {
@@ -128,57 +129,39 @@ export interface AdvancedMaterialResult extends MaterialResult {
 }
 
 export interface CraftingPrediction {
-  // Success info
+  itemName: string;
+  quantity: number;
   successChance: number;
-  successLabel: string;
-  successColor: string;
-
-  // Quality prediction
-  averageQL: number;
-  minQL: number;
-  maxQL: number;
-
-  // Time estimates
-  timePerItem: number;
-  totalTime: number;
-  totalTimeFormatted: string;
-
-  // Material waste
-  failureRate: number;
-  wasteMultiplier: number;
-
-  // Tool wear
-  toolDamagePerAction: number;
-  repairsNeeded: number;
-
-  // Skill gain
-  skillGainPerAction: number;
-  totalSkillGain: number;
-  newSkillLevel: number;
-  actionsToNextLevel: number;
-  isOptimalDifficulty: boolean;
+  qualityPrediction: number;
+  estimatedTime: number;
+  expectedAttempts: number;
 }
 
 export interface SkillGrindStep {
-  skillFrom: number;
-  skillTo: number;
-  targetQL: number;
-  actionsNeeded: number;
-  successRate: number;
-  description: string;
-  materialsNeeded: number;
-  timeEstimate: string;
+  itemName: string;
+  itemId: number;
+  startSkill: number;
+  targetSkill: number;
+  estimatedItems: number;
+  skillGainPerItem: number;
+  difficulty: number;
 }
 
 export interface AdvancedCalculationResult {
-  // Basic materials (100% success assumption)
-  baseMaterials: MaterialResult[];
-  // Expected materials (with failure rate)
-  expectedMaterials: AdvancedMaterialResult[];
-  // Crafting tree
-  tree: CraftingNode;
-  // Predictions
-  prediction: CraftingPrediction;
+  // Advanced materials with waste calculations
+  materials: AdvancedMaterialResult[];
+  // Total crafting steps
+  totalCraftingSteps: number;
+  // Predictions per step
+  predictions: CraftingPrediction[];
+  // Summary statistics
+  summary: {
+    estimatedTime: number;
+    totalMaterials: number;
+    uniqueMaterials: number;
+    expectedWaste: number;
+    successProbability: number;
+  };
   // Skill grinding path (optional)
   skillPath?: SkillGrindStep[];
 }

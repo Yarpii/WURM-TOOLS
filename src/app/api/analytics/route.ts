@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        const history = getPriceHistory(itemName, days);
+        const history = await getPriceHistory(itemName, days);
         return NextResponse.json(history);
 
       case "analytics":
@@ -37,15 +37,15 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        const analytics = getPriceAnalytics(itemName);
+        const analytics = await getPriceAnalytics(itemName);
         return NextResponse.json(analytics || { error: "No data found" });
 
       case "trending":
-        const trending = getTrendingItems(limit);
+        const trending = await getTrendingItems(limit);
         return NextResponse.json(trending);
 
       case "deals":
-        const deals = getBestDeals(limit);
+        const deals = await getBestDeals(limit);
         return NextResponse.json(deals);
 
       case "alerts":
@@ -56,18 +56,18 @@ export async function GET(request: NextRequest) {
             { status: 401 }
           );
         }
-        const result = getSession(sessionId);
+        const result = await getSession(sessionId);
         if (!result) {
           return NextResponse.json(
             { error: "Invalid session" },
             { status: 401 }
           );
         }
-        const alerts = getUserPriceAlerts(result.user.id);
+        const alerts = await getUserPriceAlerts(result.user.id);
         return NextResponse.json(alerts);
 
       case "check-alerts":
-        const triggered = checkPriceAlerts();
+        const triggered = await checkPriceAlerts();
         return NextResponse.json({ triggered });
 
       default:
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const alertId = createPriceAlert(result.user.id, {
+      const alertId = await createPriceAlert(result.user.id, {
         item_name,
         target_price,
         condition,
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const deleted = deletePriceAlert(alert_id, result.user.id);
+      const deleted = await deletePriceAlert(alert_id, result.user.id);
       return NextResponse.json({ success: deleted });
     }
 

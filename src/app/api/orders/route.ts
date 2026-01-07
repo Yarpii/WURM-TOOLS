@@ -28,24 +28,24 @@ export async function GET(request: NextRequest) {
     const paginate = searchParams.get("paginate") === "true";
 
     if (stats_only) {
-      const stats = getOrderStats();
+      const stats = await getOrderStats();
       return NextResponse.json(stats);
     }
 
     const filters = {
       status: status || undefined,
-      order_type: order_type || undefined,
-      item_name: item_name || undefined,
-      user_id: user_id ? parseInt(user_id) : undefined,
+      type: order_type || undefined,
+      item: item_name || undefined,
+      userId: user_id ? parseInt(user_id) : undefined,
     };
 
     // SECURITY: Use paginated version for large datasets
     if (paginate) {
-      const result = getOrdersPaginated(filters, { page, limit });
+      const result = await getOrdersPaginated({ page, limit }, filters);
       return NextResponse.json(result);
     }
 
-    const orders = getAllOrders(filters);
+    const orders = await getAllOrders(filters);
     return NextResponse.json(orders);
   } catch (error) {
     return NextResponse.json(
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       expires_days: expires_days || 30, // Default 30 days
     };
 
-    const orderId = createOrder(result.user.id, input);
+    const orderId = await createOrder(result.user.id, input);
 
     return NextResponse.json({ id: orderId, success: true });
   } catch (error) {

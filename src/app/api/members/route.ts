@@ -4,7 +4,7 @@ import { getVisibleMembers } from "@/lib/auth";
 // GET /api/members - Get list of visible members (opt-in)
 export async function GET() {
   try {
-    const members = getVisibleMembers();
+    const members = await getVisibleMembers();
 
     // Return public info only
     const publicMembers = members.map((member) => ({

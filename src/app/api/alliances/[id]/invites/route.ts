@@ -20,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -33,7 +33,7 @@ export async function GET(
     }
 
     // Check if user has permission to view invites
-    const member = getAllianceMember(allianceId, session.user.id);
+    const member = await getAllianceMember(allianceId, session.user.id);
     const isAdmin = session.user.role === "admin";
 
     if (!isAdmin && (!member || member.role === "member")) {
@@ -43,7 +43,7 @@ export async function GET(
       );
     }
 
-    const invites = getAllianceInvites(allianceId);
+    const invites = await getAllianceInvites(allianceId);
 
     return NextResponse.json({ invites });
   } catch (error) {
@@ -66,7 +66,7 @@ export async function POST(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -89,7 +89,7 @@ export async function POST(
     }
 
     // Find target user
-    const targetUser = getUserByUsername(username);
+    const targetUser = await getUserByUsername(username);
     if (!targetUser) {
       return NextResponse.json(
         { error: "User not found" },
@@ -97,7 +97,7 @@ export async function POST(
       );
     }
 
-    const inviteId = createInvite(allianceId, targetUser.id, session.user.id);
+    const inviteId = await createInvite(allianceId, targetUser.id, session.user.id);
 
     if (inviteId === null) {
       return NextResponse.json(
@@ -106,7 +106,7 @@ export async function POST(
       );
     }
 
-    const invites = getAllianceInvites(allianceId);
+    const invites = await getAllianceInvites(allianceId);
 
     return NextResponse.json({
       success: true,
@@ -133,7 +133,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -154,7 +154,7 @@ export async function DELETE(
     }
 
     const isAdmin = session.user.role === "admin";
-    const success = cancelInvite(inviteId, session.user.id, isAdmin);
+    const success = await cancelInvite(inviteId, session.user.id, isAdmin);
 
     if (!success) {
       return NextResponse.json(

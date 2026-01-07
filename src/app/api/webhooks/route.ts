@@ -6,7 +6,6 @@ import {
   createWebhook,
   updateWebhook,
   deleteWebhook,
-  sendDiscordNotification,
 } from "@/lib/database";
 import type { CreateWebhookInput } from "@/lib/types";
 
@@ -20,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
     const webhookId = searchParams.get("id");
 
     if (webhookId) {
-      const webhook = getWebhookById(parseInt(webhookId));
+      const webhook = await getWebhookById(parseInt(webhookId));
       if (!webhook || webhook.user_id !== result.user.id) {
         return NextResponse.json(
           { error: "Webhook not found" },
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(webhook);
     }
 
-    const webhooks = getUserWebhooks(result.user.id);
+    const webhooks = await getUserWebhooks(result.user.id);
     return NextResponse.json(webhooks);
   } catch (error) {
     return NextResponse.json(
@@ -62,7 +61,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest) {
           notify_alliance: notify_alliance || false,
         };
 
-        const id = createWebhook(result.user.id, input);
+        const id = await createWebhook(result.user.id, input);
         return NextResponse.json({ id, success: true });
       }
 
@@ -123,7 +122,7 @@ export async function POST(request: NextRequest) {
         if (data.notify_price_alerts !== undefined) updates.notify_price_alerts = data.notify_price_alerts;
         if (data.notify_alliance !== undefined) updates.notify_alliance = data.notify_alliance;
 
-        const updated = updateWebhook(webhook_id, result.user.id, updates);
+        const updated = await updateWebhook(webhook_id, result.user.id, updates);
         return NextResponse.json({ success: updated });
       }
 
@@ -135,7 +134,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const deleted = deleteWebhook(webhook_id, result.user.id);
+        const deleted = await deleteWebhook(webhook_id, result.user.id);
         return NextResponse.json({ success: deleted });
       }
 
@@ -147,7 +146,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const webhook = getWebhookById(webhook_id);
+        const webhook = await getWebhookById(webhook_id);
         if (!webhook || webhook.user_id !== result.user.id) {
           return NextResponse.json(
             { error: "Webhook not found" },

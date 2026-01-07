@@ -12,12 +12,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
-    const stats = getProspectStats(session.user.id);
+    const stats = await getProspectStats(session.user.id);
     return NextResponse.json({ stats });
   } catch (error) {
     return NextResponse.json(

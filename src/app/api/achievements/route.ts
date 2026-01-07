@@ -19,11 +19,11 @@ export async function GET(request: NextRequest) {
     switch (action) {
       case "all":
         // Get all available achievements
-        return NextResponse.json(getAchievements());
+        return NextResponse.json(await getAchievements());
 
       case "leaderboard":
         // Get public leaderboard
-        return NextResponse.json(getLeaderboard(limit));
+        return NextResponse.json(await getLeaderboard(limit));
 
       case "user-xp":
         if (!userId) {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        const xp = getUserXP(parseInt(userId));
+        const xp = await getUserXP(parseInt(userId));
         return NextResponse.json(xp || { error: "User not found" });
 
       case "user-achievements":
@@ -42,14 +42,14 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        const achievements = getCompletedAchievements(parseInt(userId));
+        const achievements = await getCompletedAchievements(parseInt(userId));
         return NextResponse.json(achievements);
 
       default:
         // Default: return achievements list and leaderboard
         return NextResponse.json({
-          achievements: getAchievements(),
-          leaderboard: getLeaderboard(10),
+          achievements: await getAchievements(),
+          leaderboard: await getLeaderboard(10),
         });
     }
   } catch (error) {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "check": {
         // Check and update achievements for current user
-        const newlyCompleted = checkAndUpdateAchievements(result.user.id);
-        const userXP = getUserXP(result.user.id);
-        const userAchievements = getUserAchievements(result.user.id);
+        const newlyCompleted = await checkAndUpdateAchievements(result.user.id);
+        const userXP = await getUserXP(result.user.id);
+        const userAchievements = await getUserAchievements(result.user.id);
 
         return NextResponse.json({
           newly_completed: newlyCompleted,
@@ -97,10 +97,10 @@ export async function POST(request: NextRequest) {
 
       case "my-progress": {
         // Get current user's progress
-        const xp = getUserXP(result.user.id);
-        const achievements = getUserAchievements(result.user.id);
-        const completed = getCompletedAchievements(result.user.id);
-        const allAchievements = getAchievements();
+        const xp = await getUserXP(result.user.id);
+        const achievements = await getUserAchievements(result.user.id);
+        const completed = await getCompletedAchievements(result.user.id);
+        const allAchievements = await getAchievements();
 
         return NextResponse.json({
           xp,

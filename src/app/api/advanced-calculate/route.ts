@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if item exists
-  const item = getItem(itemId);
+  const item = await getItem(itemId);
   if (!item) {
     return NextResponse.json(
       { error: "Item not found" },
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   };
 
   // Calculate advanced materials
-  const result = calculateAdvancedMaterials(itemId, quantity, settings);
+  const result = await calculateAdvancedMaterials(itemId, quantity, settings as CraftingSettings);
 
   if (!result) {
     return NextResponse.json(
@@ -79,11 +79,10 @@ export async function GET(request: NextRequest) {
       parseFloat(searchParams.get("targetSkill") || String((settings.playerSkill || 50) + 20))
     );
 
-    result.skillPath = getSkillGrindingPath(
-      itemId,
-      settings.playerSkill || 50,
+    result.skillPath = await getSkillGrindingPath(
       targetSkill,
-      settings.toolQL || 50
+      settings.playerSkill || 50,
+      item.category
     );
   }
 
@@ -123,29 +122,26 @@ export async function POST(request: NextRequest) {
       case "optimal-training": {
         const skill = Math.max(1, Math.min(100, body.skill || 50));
         const category = body.category || undefined;
-        const results = findOptimalTrainingItem(skill, category);
+        const optimalItem = await findOptimalTrainingItem(skill, category);
 
         return NextResponse.json({
           action: "optimal-training",
           skill,
           category,
-          recommendations: results.map(r => ({
+          recommendation: optimalItem ? {
             item: {
-              id: r.item.id,
-              name: r.item.name,
-              category: r.item.category
+              id: optimalItem.id,
+              name: optimalItem.name,
+              category: optimalItem.category
             },
-            difficulty: r.difficulty,
-            successChance: r.successChance,
-            isOptimal: Math.abs(r.successChance - 50) <= 10
-          }))
+            isOptimal: true
+          } : null
         });
       }
 
       case "batch-efficiency": {
         const itemId = body.itemId;
         const batchSize = Math.max(1, Math.min(1000, body.batchSize || 10));
-        const inventorySlots = Math.max(10, Math.min(100, body.inventorySlots || 30));
 
         if (!itemId) {
           return NextResponse.json(
@@ -154,13 +150,23 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const efficiency = calculateBatchEfficiency(itemId, batchSize, inventorySlots);
+        const batchSettings: CraftingSettings = {
+          playerSkill: Math.max(1, Math.min(100, body.skill || 50)),
+          toolQL: Math.max(1, Math.min(100, body.toolQL || 50)),
+          materialQL: Math.max(1, Math.min(100, body.materialQL || 50)),
+          hasSleepBonus: body.sleepBonus === true,
+          parentSkill: Math.max(0, Math.min(100, body.parentSkill || 0)),
+          windOfAges: Math.max(0, Math.min(100, body.woa || 0)),
+          circleOfCunning: Math.max(0, Math.min(100, body.coc || 0)),
+        };
+
+        const efficiency = await calculateBatchEfficiency(itemId, batchSize, batchSettings);
 
         return NextResponse.json({
           action: "batch-efficiency",
           itemId,
           batchSize,
-          inventorySlots,
+          settings: batchSettings,
           ...efficiency
         });
       }
@@ -183,22 +189,22 @@ export async function POST(request: NextRequest) {
           materialQL: body.materialQL || 50
         };
 
-        const comparisons = items.map(itemId => {
-          const result = calculateAdvancedMaterials(itemId, quantity, settings);
-          const item = getItem(itemId);
+        const comparisons = await Promise.all(items.map(async (itemId) => {
+          const result = await calculateAdvancedMaterials(itemId, quantity, settings as CraftingSettings);
+          const item = await getItem(itemId);
 
           return {
             itemId,
             itemName: item?.name || "Unknown",
             result: result ? {
-              successChance: result.prediction.successChance,
-              averageQL: result.prediction.averageQL,
-              totalTime: result.prediction.totalTimeFormatted,
-              failureRate: result.prediction.failureRate,
-              totalSkillGain: result.prediction.totalSkillGain
+              successProbability: result.summary.successProbability,
+              estimatedTime: result.summary.estimatedTime,
+              totalMaterials: result.summary.totalMaterials,
+              expectedWaste: result.summary.expectedWaste,
+              craftingSteps: result.totalCraftingSteps
             } : null
           };
-        });
+        }));
 
         return NextResponse.json({
           action: "compare-items",

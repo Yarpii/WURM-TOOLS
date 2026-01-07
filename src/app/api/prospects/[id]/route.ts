@@ -20,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid prospect ID" }, { status: 400 });
     }
 
-    const prospect = getProspectById(prospectId);
+    const prospect = await getProspectById(prospectId);
 
     if (!prospect) {
       return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
@@ -64,7 +64,7 @@ export async function PUT(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -121,7 +121,7 @@ export async function PUT(
       );
     }
 
-    const success = updateProspect(prospectId, session.user.id, body);
+    const success = await updateProspect(prospectId, session.user.id, body);
 
     if (!success) {
       return NextResponse.json(
@@ -151,7 +151,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
@@ -163,7 +163,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid prospect ID" }, { status: 400 });
     }
 
-    const success = deleteProspect(prospectId, session.user.id);
+    const success = await deleteProspect(prospectId, session.user.id);
 
     if (!success) {
       return NextResponse.json(

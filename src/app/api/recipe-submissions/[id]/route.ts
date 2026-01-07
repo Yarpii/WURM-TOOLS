@@ -23,7 +23,7 @@ export async function GET(
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -40,7 +40,7 @@ export async function GET(
       );
     }
 
-    const submission = getRecipeSubmissionById(submissionId);
+    const submission = await getRecipeSubmissionById(submissionId);
     if (!submission) {
       return NextResponse.json(
         { error: "Submission not found" },
@@ -79,7 +79,7 @@ export async function PUT(
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
@@ -109,18 +109,14 @@ export async function PUT(
 
     // If approve_and_add is true, approve and add the recipe to the database
     if (approve_and_add) {
-      const approveResult = approveAndAddRecipe(submissionId, result.user.id);
-      if (!approveResult.success) {
+      const success = await approveAndAddRecipe(submissionId, result.user.id);
+      if (!success) {
         return NextResponse.json(
-          { error: approveResult.error },
+          { error: "Failed to approve and add recipe" },
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        success: true,
-        itemsCreated: approveResult.itemsCreated,
-        recipesCreated: approveResult.recipesCreated,
-      });
+      return NextResponse.json({ success: true });
     }
 
     // Regular review (approve/reject without adding)
@@ -136,7 +132,7 @@ export async function PUT(
       admin_notes: admin_notes || undefined,
     };
 
-    const success = reviewRecipeSubmission(submissionId, result.user.id, input);
+    const success = await reviewRecipeSubmission(submissionId, result.user.id, input);
     if (!success) {
       return NextResponse.json(
         { error: "Failed to update submission" },
@@ -167,7 +163,7 @@ export async function DELETE(
       );
     }
 
-    const result = getSession(sessionId);
+    const result = await getSession(sessionId);
     if (!result) {
       return NextResponse.json(
         { error: "Invalid session" },
