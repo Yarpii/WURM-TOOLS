@@ -7,7 +7,7 @@ import {
   getMerchantStats,
   getServers,
 } from "@/lib/database";
-import { sanitizeError } from "@/lib/security";
+import { sanitizeError, validateStringFields, INPUT_LIMITS } from "@/lib/security";
 import type { MerchantCategory, CreateMerchantInput } from "@/lib/types";
 
 const VALID_CATEGORIES: MerchantCategory[] = [
@@ -130,38 +130,23 @@ export async function POST(request: NextRequest) {
       stock_list,
     } = body;
 
-    // Validate required fields
-    if (!name || name.trim() === "") {
-      return NextResponse.json(
-        { error: "Merchant name is required" },
-        { status: 400 }
-      );
-    }
+    // Validate string field lengths
+    const validationError = validateStringFields([
+      { value: name, name: "Merchant name", limits: INPUT_LIMITS.name, required: true },
+      { value: location, name: "Location", limits: INPUT_LIMITS.location, required: true },
+      { value: server, name: "Server", limits: INPUT_LIMITS.server, required: true },
+      { value: description, name: "Description", limits: INPUT_LIMITS.description },
+      { value: coordinates, name: "Coordinates", limits: INPUT_LIMITS.coordinates },
+      { value: stock_list, name: "Stock list", limits: INPUT_LIMITS.stockList, required: true },
+    ]);
 
-    if (!location || location.trim() === "") {
-      return NextResponse.json(
-        { error: "Location is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!server || server.trim() === "") {
-      return NextResponse.json(
-        { error: "Server is required" },
-        { status: 400 }
-      );
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     if (!category || !VALID_CATEGORIES.includes(category)) {
       return NextResponse.json(
         { error: "Invalid category" },
-        { status: 400 }
-      );
-    }
-
-    if (!stock_list || stock_list.trim() === "") {
-      return NextResponse.json(
-        { error: "Stock list is required" },
         { status: 400 }
       );
     }

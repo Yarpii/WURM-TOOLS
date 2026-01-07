@@ -7,7 +7,7 @@ import {
   getOrderStats,
   expireOldOrders,
 } from "@/lib/database";
-import { sanitizeError } from "@/lib/security";
+import { sanitizeError, validateStringFields, INPUT_LIMITS } from "@/lib/security";
 import type { OrderType, OrderStatus, CreateOrderInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -95,16 +95,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!item_name || item_name.trim() === "") {
-      return NextResponse.json(
-        { error: "Item name is required" },
-        { status: 400 }
-      );
+    // Validate string field lengths
+    const validationError = validateStringFields([
+      { value: item_name, name: "Item name", limits: INPUT_LIMITS.itemName, required: true },
+      { value: trade_for, name: "Trade for", limits: INPUT_LIMITS.tradeFor },
+      { value: location, name: "Location", limits: INPUT_LIMITS.location },
+      { value: notes, name: "Notes", limits: INPUT_LIMITS.notes },
+    ]);
+
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    if (!quantity || quantity < 1) {
+    if (!quantity || quantity < 1 || quantity > 1000000) {
       return NextResponse.json(
-        { error: "Quantity must be at least 1" },
+        { error: "Quantity must be between 1 and 1,000,000" },
         { status: 400 }
       );
     }
@@ -113,6 +118,22 @@ export async function POST(request: NextRequest) {
     if (order_type === "trade" && (!trade_for || trade_for.trim() === "")) {
       return NextResponse.json(
         { error: "Trade orders require specifying what you want to trade for" },
+        { status: 400 }
+      );
+    }
+
+    // Validate price if provided
+    if (price !== undefined && (price < 0 || price > 100000000)) {
+      return NextResponse.json(
+        { error: "Price must be between 0 and 100,000,000" },
+        { status: 400 }
+      );
+    }
+
+    // Validate expires_days
+    if (expires_days !== undefined && (expires_days < 1 || expires_days > 365)) {
+      return NextResponse.json(
+        { error: "Expiry must be between 1 and 365 days" },
         { status: 400 }
       );
     }
