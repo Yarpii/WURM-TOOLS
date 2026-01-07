@@ -8,13 +8,15 @@ import {
   getUserXP,
   getLeaderboard,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const userId = searchParams.get("user_id");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limitParam = parseInt(searchParams.get("limit") || "20");
+    const limit = isNaN(limitParam) ? 20 : Math.min(Math.max(limitParam, 1), 100);
 
     switch (action) {
       case "all":
@@ -32,7 +34,14 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        const xp = await getUserXP(parseInt(userId));
+        const parsedUserIdXp = parseInt(userId);
+        if (isNaN(parsedUserIdXp)) {
+          return NextResponse.json(
+            { error: "Invalid user ID" },
+            { status: 400 }
+          );
+        }
+        const xp = await getUserXP(parsedUserIdXp);
         return NextResponse.json(xp || { error: "User not found" });
 
       case "user-achievements":
@@ -42,7 +51,14 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        const achievements = await getCompletedAchievements(parseInt(userId));
+        const parsedUserIdAch = parseInt(userId);
+        if (isNaN(parsedUserIdAch)) {
+          return NextResponse.json(
+            { error: "Invalid user ID" },
+            { status: 400 }
+          );
+        }
+        const achievements = await getCompletedAchievements(parsedUserIdAch);
         return NextResponse.json(achievements);
 
       default:
@@ -54,7 +70,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch achievements: " + String(error) },
+      { error: sanitizeError(error, "Fetch achievements") },
       { status: 500 }
     );
   }
@@ -118,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to process request: " + String(error) },
+      { error: sanitizeError(error, "Process achievements") },
       { status: 500 }
     );
   }

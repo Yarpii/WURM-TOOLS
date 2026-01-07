@@ -6,6 +6,7 @@ import {
   deleteMerchant,
   toggleMerchantActive,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { MerchantCategory } from "@/lib/types";
 
 const VALID_CATEGORIES: MerchantCategory[] = [
@@ -35,7 +36,7 @@ export async function GET(
       );
     }
 
-    const merchant = getMerchantById(merchantId);
+    const merchant = await getMerchantById(merchantId);
     if (!merchant) {
       return NextResponse.json(
         { error: "Merchant not found" },
@@ -46,7 +47,7 @@ export async function GET(
     return NextResponse.json(merchant);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch merchant: " + String(error) },
+      { error: sanitizeError(error, "Fetch merchant") },
       { status: 500 }
     );
   }
@@ -129,7 +130,7 @@ export async function PUT(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update merchant: " + String(error) },
+      { error: sanitizeError(error, "Update merchant") },
       { status: 500 }
     );
   }
@@ -182,7 +183,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to delete merchant: " + String(error) },
+      { error: sanitizeError(error, "Delete merchant") },
       { status: 500 }
     );
   }

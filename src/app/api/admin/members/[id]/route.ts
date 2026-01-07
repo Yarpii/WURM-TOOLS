@@ -7,6 +7,7 @@ import {
   unbanUser,
   deleteUser,
 } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/admin/members/[id] - Get user details (admin only)
 export async function GET(
@@ -45,7 +46,7 @@ export async function GET(
     return NextResponse.json({ user });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch user: " + String(error) },
+      { error: sanitizeError(error, "Fetch user") },
       { status: 500 }
     );
   }
@@ -95,7 +96,7 @@ export async function PUT(
       );
     }
 
-    const success = adminUpdateUser(userId, {
+    const success = await adminUpdateUser(userId, {
       role,
       display_name,
       bio,
@@ -118,7 +119,7 @@ export async function PUT(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update user: " + String(error) },
+      { error: sanitizeError(error, "Update user") },
       { status: 500 }
     );
   }
@@ -199,7 +200,7 @@ export async function POST(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update ban status: " + String(error) },
+      { error: sanitizeError(error, "Update ban status") },
       { status: 500 }
     );
   }
@@ -250,7 +251,7 @@ export async function DELETE(
       );
     }
 
-    const success = deleteUser(userId);
+    const success = await deleteUser(userId);
 
     if (!success) {
       return NextResponse.json(
@@ -262,7 +263,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to delete user: " + String(error) },
+      { error: sanitizeError(error, "Delete user") },
       { status: 500 }
     );
   }

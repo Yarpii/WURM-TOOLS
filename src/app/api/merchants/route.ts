@@ -47,13 +47,15 @@ export async function GET(request: NextRequest) {
     const stats_only = searchParams.get("stats");
     const servers_only = searchParams.get("servers");
 
-    // Pagination parameters
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    // Pagination parameters with validation
+    const pageParam = parseInt(searchParams.get("page") || "1", 10);
+    const limitParam = parseInt(searchParams.get("limit") || "50", 10);
+    const page = isNaN(pageParam) ? 1 : Math.max(pageParam, 1);
+    const limit = isNaN(limitParam) ? 50 : Math.min(Math.max(limitParam, 1), 100);
     const paginate = searchParams.get("paginate") === "true";
 
     if (stats_only) {
-      const stats = getMerchantStats();
+      const stats = await getMerchantStats();
       return NextResponse.json(stats);
     }
 
@@ -64,11 +66,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(allServers);
     }
 
+    // Validate user_id if provided
+    let parsedUserId: number | undefined;
+    if (user_id) {
+      parsedUserId = parseInt(user_id);
+      if (isNaN(parsedUserId)) {
+        return NextResponse.json(
+          { error: "Invalid user ID" },
+          { status: 400 }
+        );
+      }
+    }
+
     const filters = {
       active: true,
       category: category || undefined,
       server: server || undefined,
-      userId: user_id ? parseInt(user_id) : undefined,
+      userId: parsedUserId,
     };
 
     // SECURITY: Use paginated version for large datasets
