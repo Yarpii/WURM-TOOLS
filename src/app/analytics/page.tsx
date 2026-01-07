@@ -36,8 +36,8 @@ export default function AnalyticsPage() {
     try {
       const res = await fetch("/api/analytics");
       const data = await res.json();
-      if (data.trending) setTrending(data.trending);
-      if (data.deals) setDeals(data.deals);
+      if (Array.isArray(data.trending)) setTrending(data.trending);
+      if (Array.isArray(data.deals)) setDeals(data.deals);
     } catch (err) {
       console.error("Failed to fetch analytics:", err);
     }

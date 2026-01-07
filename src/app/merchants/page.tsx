@@ -77,7 +77,7 @@ export default function MerchantsPage() {
 
       const res = await fetch(`/api/merchants?${params}`);
       const data = await res.json();
-      setMerchants(data);
+      setMerchants(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch merchants:", err);
     }
@@ -88,7 +88,7 @@ export default function MerchantsPage() {
     try {
       const res = await fetch(`/api/merchants?user_id=${user.id}`);
       const data = await res.json();
-      setMyMerchants(data);
+      setMyMerchants(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch my merchants:", err);
     }
@@ -98,7 +98,7 @@ export default function MerchantsPage() {
     try {
       const res = await fetch("/api/merchants?servers=1");
       const data = await res.json();
-      setServers(data);
+      setServers(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch servers:", err);
     }
@@ -108,7 +108,11 @@ export default function MerchantsPage() {
     try {
       const res = await fetch("/api/merchants?stats=1");
       const data = await res.json();
-      setStats(data);
+      setStats({
+        active: data?.active ?? 0,
+        by_category: data?.by_category ?? {},
+        by_server: data?.by_server ?? {},
+      });
     } catch (err) {
       console.error("Failed to fetch stats:", err);
     }
