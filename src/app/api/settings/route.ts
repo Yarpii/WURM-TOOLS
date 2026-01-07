@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, getUserById, updateUserSettings } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/settings - Get current user's settings
 export async function GET(request: NextRequest) {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch settings: " + String(error) },
+      { error: sanitizeError(error, "Fetch settings") },
       { status: 500 }
     );
   }
@@ -77,7 +78,7 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update settings: " + String(error) },
+      { error: sanitizeError(error, "Update settings") },
       { status: 500 }
     );
   }

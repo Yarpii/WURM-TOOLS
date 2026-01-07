@@ -7,6 +7,7 @@ import {
   createInvite,
   cancelInvite,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/alliances/[id]/invites - Get pending invites for alliance
 export async function GET(
@@ -48,7 +49,7 @@ export async function GET(
     return NextResponse.json({ invites });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch invites: " + String(error) },
+      { error: sanitizeError(error, "Fetch alliance invites") },
       { status: 500 }
     );
   }
@@ -115,7 +116,7 @@ export async function POST(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to create invite: " + String(error) },
+      { error: sanitizeError(error, "Create alliance invite") },
       { status: 500 }
     );
   }
@@ -166,7 +167,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to cancel invite: " + String(error) },
+      { error: sanitizeError(error, "Cancel alliance invite") },
       { status: 500 }
     );
   }

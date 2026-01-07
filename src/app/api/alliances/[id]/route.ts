@@ -6,6 +6,7 @@ import {
   deleteAlliance,
   getAllianceMember,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/alliances/[id] - Get alliance details
 export async function GET(
@@ -46,7 +47,7 @@ export async function GET(
     return NextResponse.json({ alliance });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch alliance: " + String(error) },
+      { error: sanitizeError(error, "Fetch alliance") },
       { status: 500 }
     );
   }
@@ -122,7 +123,7 @@ export async function PUT(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update alliance: " + String(error) },
+      { error: sanitizeError(error, "Update alliance") },
       { status: 500 }
     );
   }
@@ -165,7 +166,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to delete alliance: " + String(error) },
+      { error: sanitizeError(error, "Delete alliance") },
       { status: 500 }
     );
   }

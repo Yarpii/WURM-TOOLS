@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getUserInvites, respondToInvite, getUserAlliance } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/invites - Get current user's pending invites
 export async function GET(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch invites: " + String(error) },
+      { error: sanitizeError(error, "Fetch invites") },
       { status: 500 }
     );
   }
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to respond to invite: " + String(error) },
+      { error: sanitizeError(error, "Respond to invite") },
       { status: 500 }
     );
   }
