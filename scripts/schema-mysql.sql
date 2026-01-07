@@ -332,6 +332,33 @@ CREATE TABLE IF NOT EXISTS user_xp (
     CONSTRAINT fk_user_xp_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS achievements (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    category ENUM('trading', 'crafting', 'community', 'exploration', 'special') NOT NULL,
+    icon VARCHAR(50) NOT NULL DEFAULT '🏆',
+    xp_reward INT NOT NULL DEFAULT 0,
+    requirement_type VARCHAR(50) NOT NULL,
+    requirement_value INT NOT NULL DEFAULT 1,
+    is_hidden BOOLEAN NOT NULL DEFAULT FALSE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_achievements_category ON achievements(category);
+
+-- Default achievements
+INSERT IGNORE INTO achievements (id, name, description, category, icon, xp_reward, requirement_type, requirement_value, is_hidden) VALUES
+('first_trade', 'First Trade', 'Complete your first trade', 'trading', '🤝', 100, 'trades_completed', 1, FALSE),
+('trader_10', 'Active Trader', 'Complete 10 trades', 'trading', '📦', 250, 'trades_completed', 10, FALSE),
+('trader_50', 'Master Trader', 'Complete 50 trades', 'trading', '💰', 500, 'trades_completed', 50, FALSE),
+('first_order', 'Market Debut', 'Create your first market order', 'trading', '📝', 50, 'orders_created', 1, FALSE),
+('crafter_items', 'Crafter', 'Add 10 items to your crafting projects', 'crafting', '🔨', 150, 'items_crafted', 10, FALSE),
+('community_member', 'Community Member', 'Join your first alliance', 'community', '👥', 200, 'alliances_joined', 1, FALSE),
+('explorer', 'Explorer', 'Add 5 map locations', 'exploration', '🗺️', 150, 'locations_added', 5, FALSE),
+('merchant_owner', 'Merchant Owner', 'Register your first merchant', 'trading', '🏪', 100, 'merchants_created', 1, FALSE),
+('helpful', 'Helpful', 'Receive 5 positive ratings', 'community', '⭐', 300, 'positive_ratings', 5, FALSE),
+('veteran', 'Veteran', 'Be a member for 30 days', 'special', '🎖️', 500, 'days_member', 30, TRUE);
+
 CREATE TABLE IF NOT EXISTS user_achievements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
