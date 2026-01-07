@@ -1026,7 +1026,9 @@ export async function calculateBatchEfficiency(
   }
 
   const baseTime = item.base_time || 10;
-  const singleItemTime = calculateCraftingTime(baseTime, settings.skill, settings.toolQuality);
+  // Simplified time calculation based on skill
+  const skillMod = Math.max(0.5, 1 - (settings.playerSkill / 200));
+  const singleItemTime = baseTime * skillMod;
   const batchTime = singleItemTime * batchSize * 0.95;
 
   const materialsPerItem = await getMaterialsList(itemId, 1);
@@ -1042,10 +1044,6 @@ export async function calculateBatchEfficiency(
 }
 
 // ========== MARKET ORDERS ==========
-
-interface OrderWithUsername extends MarketOrder {
-  username?: string;
-}
 
 export async function getAllOrders(filters?: {
   type?: OrderType;
@@ -1080,7 +1078,7 @@ export async function getAllOrders(filters?: {
 
   sql += " ORDER BY o.created_at DESC";
 
-  const result = await query<OrderWithUsername>(sql, params);
+  const result = await query<MarketOrder>(sql, params);
   return result.rows;
 }
 
@@ -1135,7 +1133,7 @@ export async function getOrdersPaginated(
 
   const [countResult, dataResult] = await Promise.all([
     query<{ count: number }>(countSql, countParams),
-    query<OrderWithUsername>(dataSql, dataParams),
+    query<MarketOrder>(dataSql, dataParams),
   ]);
 
   return {
@@ -1148,7 +1146,7 @@ export async function getOrdersPaginated(
 }
 
 export async function getOrderById(id: number): Promise<MarketOrder | null> {
-  const result = await query<OrderWithUsername>(
+  const result = await query<MarketOrder>(
     `SELECT o.*, u.username
      FROM orders o
      LEFT JOIN users u ON o.user_id = u.id
@@ -1304,10 +1302,6 @@ export async function getOrderStats(): Promise<{
 
 // ========== MERCHANTS ==========
 
-interface MerchantWithUsername extends Merchant {
-  username?: string;
-}
-
 export async function getAllMerchants(filters?: {
   category?: MerchantCategory;
   active?: boolean;
@@ -1341,7 +1335,7 @@ export async function getAllMerchants(filters?: {
 
   sql += " ORDER BY m.name";
 
-  const result = await query<MerchantWithUsername>(sql, params);
+  const result = await query<Merchant>(sql, params);
   return result.rows;
 }
 
@@ -1364,7 +1358,7 @@ export async function getMerchantsPaginated(
 }
 
 export async function getMerchantById(id: number): Promise<Merchant | null> {
-  const result = await query<MerchantWithUsername>(
+  const result = await query<Merchant>(
     `SELECT m.*, u.username
      FROM merchants m
      LEFT JOIN users u ON m.user_id = u.id
@@ -1384,7 +1378,7 @@ export async function getUserMerchants(userId: number): Promise<Merchant[]> {
 
 export async function createMerchant(userId: number, input: CreateMerchantInput): Promise<number> {
   await query(
-    `INSERT INTO merchants (user_id, name, category, location, server, description, contact_info)
+    `INSERT INTO merchants (user_id, name, category, location, server, description, stock_list)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
@@ -1393,7 +1387,7 @@ export async function createMerchant(userId: number, input: CreateMerchantInput)
       input.location || null,
       input.server || null,
       input.description || null,
-      input.contact_info || null,
+      input.stock_list || null,
     ]
   );
 
@@ -1434,9 +1428,9 @@ export async function updateMerchant(
     fields.push("description = ?");
     values.push(input.description);
   }
-  if (input.contact_info !== undefined) {
-    fields.push("contact_info = ?");
-    values.push(input.contact_info);
+  if (input.stock_list !== undefined) {
+    fields.push("stock_list = ?");
+    values.push(input.stock_list);
   }
 
   if (fields.length === 0) return false;
@@ -1674,11 +1668,12 @@ export async function createInvite(allianceId: number, userId: number, invitedBy
   const members = await getAllianceMembers(allianceId);
   if (members.length >= alliance.max_members) return null;
 
-  const result = await query(
+  await query(
     "INSERT INTO alliance_invites (alliance_id, user_id, invited_by, status) VALUES (?, ?, ?, 'pending')",
     [allianceId, userId, invitedBy]
   );
-  return result.insertId || null;
+  const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
+  return idResult.rows[0]?.id || null;
 }
 
 export async function respondToInvite(inviteId: number, userId: number, accept: boolean): Promise<boolean> {
@@ -2156,7 +2151,7 @@ export async function createProspect(userId: number, input: CreateProspectInput)
     throw new Error("Invalid page");
   }
 
-  const result = await query(
+  await query(
     `INSERT INTO prospects (page_id, user_id, name, character_name, server, location, status, priority, quality_rating, skills, notes, contact_info, source, tags, custom_fields)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -2177,7 +2172,8 @@ export async function createProspect(userId: number, input: CreateProspectInput)
       input.custom_fields || null,
     ]
   );
-  return result.insertId || 0;
+  const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
+  return idResult.rows[0]?.id || 0;
 }
 
 export async function searchProspects(
