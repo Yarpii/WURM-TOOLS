@@ -129,46 +129,22 @@ export interface AdvancedMaterialResult extends MaterialResult {
 }
 
 export interface CraftingPrediction {
-  // Success info
+  itemName: string;
+  quantity: number;
   successChance: number;
-  successLabel: string;
-  successColor: string;
-
-  // Quality prediction
-  averageQL: number;
-  minQL: number;
-  maxQL: number;
-
-  // Time estimates
-  timePerItem: number;
-  totalTime: number;
-  totalTimeFormatted: string;
-
-  // Material waste
-  failureRate: number;
-  wasteMultiplier: number;
-
-  // Tool wear
-  toolDamagePerAction: number;
-  repairsNeeded: number;
-
-  // Skill gain
-  skillGainPerAction: number;
-  totalSkillGain: number;
-  newSkillLevel: number;
-  actionsToNextLevel: number;
-  isOptimalDifficulty: boolean;
+  qualityPrediction: number;
+  estimatedTime: number;
+  expectedAttempts: number;
 }
 
 export interface SkillGrindStep {
-  skillFrom: number;
-  skillTo: number;
-  targetQL: number;
-  actionsNeeded: number;
-  successRate: number;
-  description: string;
-  materialsNeeded: number;
-  timeEstimate: string;
+  itemName: string;
+  itemId: number;
+  startSkill: number;
+  targetSkill: number;
+  estimatedItems: number;
+  skillGainPerItem: number;
+  difficulty: number;
 }
 
 export interface AdvancedCalculationResult {

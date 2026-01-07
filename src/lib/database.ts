@@ -887,17 +887,16 @@ export async function calculateAdvancedMaterials(
         const nodeItem = await getItem(node.id);
         const difficulty = nodeItem?.difficulty || getItemDifficulty(node.name);
 
+        // Simplified success chance calculation
+        const successChance = Math.min(100, Math.max(1, 50 + (settings.playerSkill - difficulty)));
+
         predictions.push({
           itemName: node.name,
           quantity: node.quantity,
-          successChance: calculateSuccessChance(settings.skill, difficulty),
-          qualityPrediction: predictCraftingQuality(settings.skill, difficulty),
-          estimatedTime: calculateCraftingTime(
-            nodeItem?.base_time || 10,
-            settings.skill,
-            settings.toolQuality
-          ) * node.quantity,
-          expectedAttempts: 1 / calculateSuccessChance(settings.skill, difficulty),
+          successChance,
+          qualityPrediction: Math.min(100, settings.playerSkill * 0.8 + settings.toolQL * 0.2),
+          estimatedTime: (nodeItem?.base_time || 10) * node.quantity,
+          expectedAttempts: node.quantity / (successChance / 100),
         });
       }
 
@@ -920,10 +919,10 @@ export async function calculateAdvancedMaterials(
     predictions,
     summary: {
       estimatedTime: totalTime,
-      totalMaterials: advancedMaterials.reduce((sum, m) => sum + m.adjusted_quantity, 0),
+      totalMaterials: advancedMaterials.reduce((sum, m) => sum + m.expectedQuantity, 0),
       uniqueMaterials: advancedMaterials.length,
       expectedWaste: advancedMaterials.reduce(
-        (sum, m) => sum + (m.adjusted_quantity - m.base_quantity),
+        (sum, m) => sum + (m.expectedQuantity - m.quantity),
         0
       ),
       successProbability: avgSuccess,
@@ -936,28 +935,42 @@ export async function getSkillGrindingPath(
   currentSkill: number,
   preferredCategory?: string
 ): Promise<SkillGrindStep[]> {
-  const items = await getAllItems();
-  const path = generateSkillPath(items, currentSkill, targetSkill, preferredCategory);
+  const pathSteps = generateSkillPath(currentSkill, targetSkill);
 
   const steps: SkillGrindStep[] = [];
   let skill = currentSkill;
 
-  for (const item of path) {
-    const difficulty = item.difficulty || getItemDifficulty(item.name);
-    const skillGain = predictSkillGain(skill, difficulty);
-    const itemsNeeded = Math.ceil((targetSkill - skill) / skillGain);
+  // Find items that match the preferred category
+  const items = preferredCategory
+    ? (await getAllItems()).filter(i => i.category === preferredCategory)
+    : await getAllItems();
+
+  for (const step of pathSteps) {
+    // Find a suitable item for this skill range
+    const suitableItem = items.find(i => {
+      const diff = i.difficulty || 20;
+      return diff >= step.targetQL - 10 && diff <= step.targetQL + 10;
+    }) || items[0];
+
+    if (!suitableItem) continue;
+
+    const difficulty = suitableItem.difficulty || getItemDifficulty(suitableItem.name);
+    // Use default action time of 10 seconds and 1 action
+    const skillGainPrediction = predictSkillGain(skill, difficulty, 10, 1, false);
+    const gainPerItem = skillGainPrediction.gainPerAction || 0.01;
+    const itemsNeeded = Math.ceil((step.skillRange.to - skill) / gainPerItem);
 
     steps.push({
-      itemName: item.name,
-      itemId: item.id,
+      itemName: suitableItem.name,
+      itemId: suitableItem.id,
       startSkill: skill,
-      targetSkill: Math.min(skill + skillGain * itemsNeeded, targetSkill),
+      targetSkill: Math.min(skill + gainPerItem * itemsNeeded, targetSkill),
       estimatedItems: Math.min(itemsNeeded, 100),
-      skillGainPerItem: skillGain,
+      skillGainPerItem: gainPerItem,
       difficulty,
     });
 
-    skill += skillGain * itemsNeeded;
+    skill += gainPerItem * itemsNeeded;
     if (skill >= targetSkill) break;
   }
 
