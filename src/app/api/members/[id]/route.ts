@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublicProfile } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/members/[id] - Get public profile of a member
 export async function GET(
@@ -14,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
-    const profile = getPublicProfile(userId);
+    const profile = await getPublicProfile(userId);
 
     if (!profile) {
       return NextResponse.json({ error: "User not found or not visible" }, { status: 404 });
@@ -23,7 +24,7 @@ export async function GET(
     return NextResponse.json({ profile });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch profile: " + String(error) },
+      { error: sanitizeError(error, "Fetch profile") },
       { status: 500 }
     );
   }

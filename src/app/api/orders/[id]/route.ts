@@ -6,6 +6,7 @@ import {
   deleteOrder,
   updateOrderStatus,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { OrderStatus } from "@/lib/types";
 
 export async function GET(
@@ -23,7 +24,7 @@ export async function GET(
       );
     }
 
-    const order = getOrderById(orderId);
+    const order = await getOrderById(orderId);
     if (!order) {
       return NextResponse.json(
         { error: "Order not found" },
@@ -34,7 +35,7 @@ export async function GET(
     return NextResponse.json(order);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch order: " + String(error) },
+      { error: sanitizeError(error, "Fetch order") },
       { status: 500 }
     );
   }
@@ -83,7 +84,7 @@ export async function PUT(
         );
       }
 
-      const success = updateOrderStatus(
+      const success = await updateOrderStatus(
         orderId,
         result.user.id,
         body.status,
@@ -113,7 +114,7 @@ export async function PUT(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update order: " + String(error) },
+      { error: sanitizeError(error, "Update order") },
       { status: 500 }
     );
   }
@@ -166,7 +167,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to delete order: " + String(error) },
+      { error: sanitizeError(error, "Delete order") },
       { status: 500 }
     );
   }

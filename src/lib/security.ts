@@ -2,6 +2,123 @@
  * Security utilities for production-safe error handling and input validation
  */
 
+// ==================== STRING VALIDATION ====================
+
+/**
+ * String length limits for various input fields.
+ * These should match database column sizes.
+ */
+export const INPUT_LIMITS = {
+  // User fields
+  username: { min: 3, max: 50 },
+  displayName: { min: 1, max: 100 },
+  bio: { min: 0, max: 500 },
+
+  // Content fields
+  name: { min: 1, max: 100 },
+  title: { min: 1, max: 200 },
+  description: { min: 0, max: 1000 },
+  notes: { min: 0, max: 2000 },
+
+  // Short fields
+  tag: { min: 2, max: 10 },
+  location: { min: 0, max: 200 },
+  server: { min: 1, max: 50 },
+  coordinates: { min: 0, max: 50 },
+
+  // Long content
+  stockList: { min: 1, max: 5000 },
+  itemName: { min: 1, max: 200 },
+  tradeFor: { min: 0, max: 500 },
+
+  // Generic
+  short: { min: 0, max: 100 },
+  medium: { min: 0, max: 500 },
+  long: { min: 0, max: 2000 },
+} as const;
+
+/**
+ * Validates a string input against length constraints.
+ * Returns null if valid, or an error message if invalid.
+ */
+export function validateStringLength(
+  value: string | undefined | null,
+  fieldName: string,
+  limits: { min: number; max: number },
+  required: boolean = false
+): string | null {
+  if (value === undefined || value === null || value === "") {
+    if (required) {
+      return `${fieldName} is required`;
+    }
+    return null; // Optional field, empty is ok
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed.length < limits.min) {
+    if (limits.min === 1) {
+      return `${fieldName} is required`;
+    }
+    return `${fieldName} must be at least ${limits.min} characters`;
+  }
+
+  if (trimmed.length > limits.max) {
+    return `${fieldName} must be ${limits.max} characters or less`;
+  }
+
+  return null;
+}
+
+/**
+ * Validates multiple string fields at once.
+ * Returns the first error encountered, or null if all valid.
+ */
+export function validateStringFields(
+  fields: Array<{
+    value: string | undefined | null;
+    name: string;
+    limits: { min: number; max: number };
+    required?: boolean;
+  }>
+): string | null {
+  for (const field of fields) {
+    const error = validateStringLength(field.value, field.name, field.limits, field.required);
+    if (error) {
+      return error;
+    }
+  }
+  return null;
+}
+
+/**
+ * Sanitizes a string by trimming and optionally truncating.
+ * Returns undefined for empty strings if allowEmpty is false.
+ */
+export function sanitizeString(
+  value: string | undefined | null,
+  maxLength?: number,
+  allowEmpty: boolean = false
+): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  let result = value.trim();
+
+  if (maxLength && result.length > maxLength) {
+    result = result.substring(0, maxLength);
+  }
+
+  if (result === "" && !allowEmpty) {
+    return undefined;
+  }
+
+  return result;
+}
+
+// ==================== ERROR HANDLING ====================
+
 /**
  * Sanitizes error messages to prevent information leakage in production.
  * In development, returns the full error; in production, returns a generic message.

@@ -14,6 +14,7 @@ import {
   getProjectMaterials,
   getUserAlliance,
 } from "@/lib/database";
+import { sanitizeError, validateStringLength, INPUT_LIMITS } from "@/lib/security";
 import type { CreateProjectInput, UpdateProjectInput, AddProjectItemInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(projects);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch projects: " + String(error) },
+      { error: sanitizeError(error, "Fetch projects") },
       { status: 500 }
     );
   }
@@ -112,11 +113,16 @@ export async function POST(request: NextRequest) {
       case "create": {
         const { name, description, is_shared } = data;
 
-        if (!name || name.trim() === "") {
-          return NextResponse.json(
-            { error: "Project name is required" },
-            { status: 400 }
-          );
+        // Validate project name
+        const nameError = validateStringLength(name, "Project name", INPUT_LIMITS.name, true);
+        if (nameError) {
+          return NextResponse.json({ error: nameError }, { status: 400 });
+        }
+
+        // Validate description if provided
+        const descError = validateStringLength(description, "Description", INPUT_LIMITS.description);
+        if (descError) {
+          return NextResponse.json({ error: descError }, { status: 400 });
         }
 
         // If sharing, get user's alliance
@@ -145,6 +151,22 @@ export async function POST(request: NextRequest) {
             { error: "Project ID is required" },
             { status: 400 }
           );
+        }
+
+        // Validate name if provided
+        if (data.name !== undefined) {
+          const nameError = validateStringLength(data.name, "Project name", INPUT_LIMITS.name, true);
+          if (nameError) {
+            return NextResponse.json({ error: nameError }, { status: 400 });
+          }
+        }
+
+        // Validate description if provided
+        if (data.description !== undefined) {
+          const descError = validateStringLength(data.description, "Description", INPUT_LIMITS.description);
+          if (descError) {
+            return NextResponse.json({ error: descError }, { status: 400 });
+          }
         }
 
         const updateInput: UpdateProjectInput = {};
@@ -184,6 +206,22 @@ export async function POST(request: NextRequest) {
             { error: "Item ID and quantity are required" },
             { status: 400 }
           );
+        }
+
+        // Validate quantity bounds
+        if (quantity < 1 || quantity > 1000000) {
+          return NextResponse.json(
+            { error: "Quantity must be between 1 and 1,000,000" },
+            { status: 400 }
+          );
+        }
+
+        // Validate notes if provided
+        if (notes) {
+          const notesError = validateStringLength(notes, "Notes", INPUT_LIMITS.notes);
+          if (notesError) {
+            return NextResponse.json({ error: notesError }, { status: 400 });
+          }
         }
 
         const itemInput: AddProjectItemInput = {
@@ -260,7 +298,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to process request: " + String(error) },
+      { error: sanitizeError(error, "Process project request") },
       { status: 500 }
     );
   }

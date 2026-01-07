@@ -6,6 +6,7 @@ import {
   buildShallowCraftingTree,
   getItem
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 export async function GET(request: Request) {
   try {
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to calculate materials: " + String(error) },
+      { error: sanitizeError(error, "Calculate materials") },
       { status: 500 }
     );
   }

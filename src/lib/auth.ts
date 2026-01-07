@@ -293,11 +293,58 @@ export async function updateUserRole(userId: number, role: "user" | "admin"): Pr
 }
 
 export async function deleteUser(userId: number): Promise<boolean> {
-  // Delete sessions first
-  await query("DELETE FROM sessions WHERE user_id = ?", [userId]);
-  // Then delete user
-  const result = await query("DELETE FROM users WHERE id = ?", [userId]);
-  return result.rowCount > 0;
+  // Delete all user data in a transaction to ensure consistency
+  try {
+    await withTransaction(async (client) => {
+      // Delete sessions
+      await client.query("DELETE FROM sessions WHERE user_id = ?", [userId]);
+
+      // Delete prospects and prospect pages
+      await client.query("DELETE FROM prospects WHERE user_id = ?", [userId]);
+      await client.query("DELETE FROM prospect_pages WHERE user_id = ?", [userId]);
+
+      // Delete orders
+      await client.query("DELETE FROM orders WHERE user_id = ?", [userId]);
+
+      // Delete merchants
+      await client.query("DELETE FROM merchants WHERE user_id = ?", [userId]);
+
+      // Delete projects and project items
+      await client.query(
+        "DELETE FROM project_items WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)",
+        [userId]
+      );
+      await client.query("DELETE FROM projects WHERE user_id = ?", [userId]);
+
+      // Delete price alerts
+      await client.query("DELETE FROM price_alerts WHERE user_id = ?", [userId]);
+
+      // Delete map locations
+      await client.query("DELETE FROM map_locations WHERE user_id = ?", [userId]);
+
+      // Delete achievements and XP
+      await client.query("DELETE FROM user_achievements WHERE user_id = ?", [userId]);
+      await client.query("DELETE FROM user_xp WHERE user_id = ?", [userId]);
+
+      // Delete webhooks
+      await client.query("DELETE FROM discord_webhooks WHERE user_id = ?", [userId]);
+
+      // Delete ratings (both given and received)
+      await client.query("DELETE FROM user_ratings WHERE rater_id = ? OR rated_user_id = ?", [userId, userId]);
+
+      // Leave alliances (but don't delete owned alliances - admin should handle that separately)
+      await client.query("DELETE FROM alliance_members WHERE user_id = ?", [userId]);
+      await client.query("DELETE FROM alliance_invites WHERE user_id = ?", [userId]);
+
+      // Finally delete user
+      await client.query("DELETE FROM users WHERE id = ?", [userId]);
+    });
+
+    return true;
+  } catch (error) {
+    console.error("[deleteUser] Failed to delete user:", error);
+    return false;
+  }
 }
 
 // ========== AUTHENTICATION FUNCTIONS ==========

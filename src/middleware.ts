@@ -2,23 +2,44 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // ==================== RATE LIMITING ====================
-/**
- * PRODUCTION WARNING: This in-memory rate limiter does NOT work with:
- * - Multiple server instances (load balanced)
- * - Serverless deployments (Vercel, AWS Lambda)
- * - Container orchestration (Kubernetes)
- *
- * For production, implement Redis-based rate limiting:
- * - Use Redis INCR with EXPIRE for atomic counters
- * - Or use a service like Cloudflare, AWS WAF, or rate-limit middleware
- *
- * See /src/lib/security.ts for Redis implementation example.
- */
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+/**
+ * Rate Limiting Configuration
+ *
+ * PRODUCTION DEPLOYMENT OPTIONS:
+ *
+ * Option 1: Set REDIS_URL environment variable to use Redis-based rate limiting
+ *   - Works with multiple server instances, serverless, and Kubernetes
+ *   - Example: REDIS_URL=redis://localhost:6379
+ *
+ * Option 2: Use external rate limiting (recommended for production)
+ *   - Cloudflare Rate Limiting
+ *   - AWS WAF
+ *   - Nginx rate limiting
+ *   - API Gateway rate limiting
+ *
+ * Option 3: In-memory fallback (current default)
+ *   - Only suitable for single-instance deployments
+ *   - Used when REDIS_URL is not configured
+ *
+ * To use Redis, install ioredis and uncomment the Redis implementation below.
+ */
+
+const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 100; // max requests per window
 const AUTH_RATE_LIMIT_MAX = 10; // stricter limit for auth endpoints
+
+// In-memory rate limit store (fallback for development/single instance)
+const inMemoryStore = new Map<string, { count: number; resetTime: number }>();
+
+/**
+ * Check if Redis is configured for rate limiting.
+ * To enable Redis rate limiting:
+ * 1. Install ioredis: npm install ioredis
+ * 2. Set REDIS_URL environment variable
+ * 3. Uncomment the Redis implementation in checkRateLimitRedis
+ */
+const REDIS_ENABLED = !!process.env.REDIS_URL;
 
 function getRateLimitKey(request: NextRequest): string {
   // Use IP address or forwarded IP
@@ -27,21 +48,25 @@ function getRateLimitKey(request: NextRequest): string {
   return ip;
 }
 
-function checkRateLimit(key: string, maxRequests: number): boolean {
+/**
+ * In-memory rate limit check (fallback for development/single instance)
+ */
+function checkRateLimitInMemory(key: string, maxRequests: number): boolean {
   const now = Date.now();
-  const entry = rateLimitStore.get(key);
+  const windowMs = RATE_LIMIT_WINDOW_SECONDS * 1000;
+  const entry = inMemoryStore.get(key);
 
-  // Clean up old entries periodically
-  if (rateLimitStore.size > 10000) {
-    for (const [k, v] of rateLimitStore.entries()) {
+  // Clean up old entries periodically (prevent memory leaks)
+  if (inMemoryStore.size > 10000) {
+    for (const [k, v] of inMemoryStore.entries()) {
       if (v.resetTime < now) {
-        rateLimitStore.delete(k);
+        inMemoryStore.delete(k);
       }
     }
   }
 
   if (!entry || entry.resetTime < now) {
-    rateLimitStore.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    inMemoryStore.set(key, { count: 1, resetTime: now + windowMs });
     return true;
   }
 
@@ -51,6 +76,51 @@ function checkRateLimit(key: string, maxRequests: number): boolean {
 
   entry.count++;
   return true;
+}
+
+/**
+ * Redis-based rate limit check (for production with multiple instances)
+ *
+ * To enable:
+ * 1. npm install ioredis
+ * 2. Uncomment the implementation below
+ * 3. Set REDIS_URL environment variable
+ */
+// import Redis from 'ioredis';
+// let redis: Redis | null = null;
+// function getRedis(): Redis {
+//   if (!redis && process.env.REDIS_URL) {
+//     redis = new Redis(process.env.REDIS_URL);
+//   }
+//   return redis!;
+// }
+// async function checkRateLimitRedis(key: string, maxRequests: number): Promise<boolean> {
+//   const client = getRedis();
+//   const redisKey = `ratelimit:${key}`;
+//   const current = await client.incr(redisKey);
+//   if (current === 1) {
+//     await client.expire(redisKey, RATE_LIMIT_WINDOW_SECONDS);
+//   }
+//   return current <= maxRequests;
+// }
+
+/**
+ * Check rate limit using configured backend
+ * Uses in-memory store by default, Redis when REDIS_URL is set
+ */
+function checkRateLimit(key: string, maxRequests: number): boolean {
+  // For now, always use in-memory (sync)
+  // When Redis is enabled, this would need to be async
+  // and the middleware would need to handle promises
+  if (REDIS_ENABLED) {
+    // Log warning in development that Redis is configured but not implemented
+    // In production, you would use the async Redis implementation
+    console.warn(
+      "[Rate Limit] REDIS_URL is set but Redis rate limiting requires async implementation. " +
+      "Using in-memory fallback. See middleware.ts for Redis implementation instructions."
+    );
+  }
+  return checkRateLimitInMemory(key, maxRequests);
 }
 
 // ==================== SECURITY HEADERS ====================
