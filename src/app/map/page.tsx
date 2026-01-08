@@ -4,18 +4,18 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import type { MapLocation, WurmServer, LocationType } from "@/lib/types";
 
-const SERVERS: { value: WurmServer; label: string }[] = [
-  { value: "harmony", label: "Harmony" },
-  { value: "melody", label: "Melody" },
-  { value: "cadence", label: "Cadence" },
-  { value: "defiance", label: "Defiance" },
-  { value: "independence", label: "Independence" },
-  { value: "deliverance", label: "Deliverance" },
-  { value: "exodus", label: "Exodus" },
-  { value: "celebration", label: "Celebration" },
-  { value: "pristine", label: "Pristine" },
-  { value: "release", label: "Release" },
-  { value: "xanadu", label: "Xanadu" },
+const SERVERS: { value: WurmServer; label: string; size: number }[] = [
+  { value: "harmony", label: "Harmony", size: 4096 },
+  { value: "melody", label: "Melody", size: 2048 },
+  { value: "cadence", label: "Cadence", size: 4096 },
+  { value: "defiance", label: "Defiance", size: 4096 },
+  { value: "independence", label: "Independence", size: 4096 },
+  { value: "deliverance", label: "Deliverance", size: 2048 },
+  { value: "exodus", label: "Exodus", size: 2048 },
+  { value: "celebration", label: "Celebration", size: 2048 },
+  { value: "pristine", label: "Pristine", size: 2048 },
+  { value: "release", label: "Release", size: 2048 },
+  { value: "xanadu", label: "Xanadu", size: 8192 },
 ];
 
 const LOCATION_TYPES: { value: LocationType; label: string; color: string }[] = [
@@ -46,6 +46,11 @@ export default function MapPage() {
 
   // Selected location
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
+
+  // Map image
+  const [mapImage, setMapImage] = useState<HTMLImageElement | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   // Add location form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -81,6 +86,48 @@ export default function MapPage() {
     };
     loadData();
   }, [selectedServer, selectedType]);
+
+  // Load map image when server changes
+  useEffect(() => {
+    const serverConfig = SERVERS.find(s => s.value === selectedServer);
+    if (!serverConfig) {
+      setMapImage(null);
+      setMapError("Invalid server selected");
+      return;
+    }
+
+    setMapLoading(true);
+    setMapError(null);
+
+    const img = new Image();
+
+    img.onload = () => {
+      setMapImage(img);
+      setMapLoading(false);
+      // Center the map initially
+      const serverSize = serverConfig.size;
+      const initialZoom = Math.min(canvasSize.width, canvasSize.height) / serverSize * 0.8;
+      setZoom(initialZoom);
+      setOffset({
+        x: (canvasSize.width - serverSize * initialZoom) / 2,
+        y: (canvasSize.height - serverSize * initialZoom) / 2,
+      });
+    };
+
+    img.onerror = () => {
+      setMapImage(null);
+      setMapLoading(false);
+      setMapError("Failed to load map image. The server may not have public map dumps available.");
+    };
+
+    // Use our API proxy to avoid CORS issues
+    img.src = `/api/map/image?server=${selectedServer}`;
+
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [selectedServer]);
 
   // Handle canvas resize to fill container
   useEffect(() => {
@@ -124,28 +171,41 @@ export default function MapPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const serverConfig = SERVERS.find(s => s.value === selectedServer);
+    const mapSize = serverConfig?.size || 4096;
+
     const draw = () => {
-      // Clear
-      ctx.fillStyle = "#1a1a2e";
+      // Clear with water color
+      ctx.fillStyle = "#1e3a5f";
       ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
-      // Draw grid
-      ctx.strokeStyle = "#2a2a4a";
+      // Draw map image if loaded
+      if (mapImage) {
+        const imgWidth = mapSize * zoom;
+        const imgHeight = mapSize * zoom;
+        ctx.drawImage(mapImage, offset.x, offset.y, imgWidth, imgHeight);
+      }
+
+      // Draw grid overlay (optional, lighter when map is loaded)
+      ctx.strokeStyle = mapImage ? "rgba(255,255,255,0.1)" : "#2a2a4a";
       ctx.lineWidth = 1;
       const gridSize = 100 * zoom;
 
-      for (let x = (offset.x % gridSize); x < canvasSize.width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvasSize.height);
-        ctx.stroke();
-      }
+      // Only draw grid if zoomed in enough
+      if (gridSize > 20) {
+        for (let x = (offset.x % gridSize); x < canvasSize.width; x += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvasSize.height);
+          ctx.stroke();
+        }
 
-      for (let y = (offset.y % gridSize); y < canvasSize.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvasSize.width, y);
-        ctx.stroke();
+        for (let y = (offset.y % gridSize); y < canvasSize.height; y += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvasSize.width, y);
+          ctx.stroke();
+        }
       }
 
       // Draw locations
@@ -188,7 +248,7 @@ export default function MapPage() {
     };
 
     draw();
-  }, [locations, offset, zoom, selectedServer, canvasSize]);
+  }, [locations, offset, zoom, selectedServer, canvasSize, mapImage]);
 
   // Mouse handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -522,9 +582,20 @@ export default function MapPage() {
           </div>
         )}
 
-        {loading && (
+        {(loading || mapLoading) && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <div className="text-text-primary">Loading map...</div>
+            <div className="text-center">
+              <div className="text-text-primary mb-2">
+                {mapLoading ? "Loading map image..." : "Loading locations..."}
+              </div>
+              <div className="text-sm text-text-muted">This may take a moment for larger maps</div>
+            </div>
+          </div>
+        )}
+
+        {mapError && !mapLoading && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-warning/20 border border-warning/30 rounded-lg px-4 py-2 text-warning text-sm">
+            {mapError}
           </div>
         )}
       </div>
