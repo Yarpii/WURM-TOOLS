@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
 type Tab = "calculator" | "advanced" | "optimizer";
@@ -98,10 +99,21 @@ export default function CraftingPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">Crafting</h1>
-          <p className="text-text-secondary">
-            Calculate materials, predict outcomes, and optimize your skill training
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-text-primary mb-2">Crafting</h1>
+              <p className="text-text-secondary">
+                Calculate materials, predict outcomes, and optimize your skill training
+              </p>
+            </div>
+            <Link
+              href="/recipes/submit"
+              className="flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-border rounded-lg hover:border-accent/50 hover:bg-bg-hover transition-colors text-sm text-text-secondary hover:text-text-primary whitespace-nowrap"
+            >
+              <span>+</span>
+              <span>Missing a recipe?</span>
+            </Link>
+          </div>
         </div>
 
         {/* Tab Navigation */}

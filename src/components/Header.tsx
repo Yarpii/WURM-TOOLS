@@ -12,7 +12,6 @@ const navCategories = [
     label: "Tools",
     items: [
       { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
-      { href: "/recipes/submit", label: "Submit Recipe", icon: "plus", description: "Suggest missing recipes" },
       { href: "/market", label: "Market", icon: "store", description: "Buy & sell items" },
       { href: "/prices", label: "Price Guide", icon: "coins", description: "Community price database" },
       { href: "/map", label: "Map", icon: "map", description: "Interactive world map" },
@@ -52,11 +51,6 @@ const icons: Record<string, React.ReactNode> = {
   hammer: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-    </svg>
-  ),
-  plus: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
     </svg>
   ),
   store: (
