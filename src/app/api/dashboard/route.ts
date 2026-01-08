@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
     const achievements = achievementsResult.rows[0] || { unlocked: 0 };
 
     const xpResult = await query<{ total_xp: number; level: number }>(
-      "SELECT total_xp, level FROM user_xp WHERE user_id = ?", [userId]
+      "SELECT total_xp, FLOOR(SQRT(total_xp / 100)) + 1 as level FROM user_xp WHERE user_id = ?", [userId]
     );
     const xp = xpResult.rows[0];
 
