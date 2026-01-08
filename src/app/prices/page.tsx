@@ -191,9 +191,9 @@ export default function PriceGuidePage() {
   };
 
   const getTrendColor = (trend: "up" | "down" | "stable") => {
-    if (trend === "up") return "text-green-400";
-    if (trend === "down") return "text-red-400";
-    return "text-gray-400";
+    if (trend === "up") return "text-success";
+    if (trend === "down") return "text-danger";
+    return "text-text-secondary";
   };
 
   const formatPrice = (price: number) => {
@@ -204,37 +204,37 @@ export default function PriceGuidePage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-bg-primary text-text-primary flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-bg-primary text-text-primary">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Price Guide</h1>
-          <p className="text-gray-400 mt-1">
+          <p className="text-text-secondary mt-1">
             Community-driven price database with historical trends
           </p>
         </div>
 
         {/* Messages */}
         {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded mb-6">
+          <div className="bg-danger/20 border border-danger text-danger px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded mb-6">
+          <div className="bg-success/20 border border-success text-success px-4 py-3 rounded mb-6">
             {success}
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-700 pb-2">
+        <div className="flex gap-2 mb-6 border-b border-border pb-2">
           <button
             onClick={() => {
               setActiveTab("browse");
@@ -242,8 +242,8 @@ export default function PriceGuidePage() {
             }}
             className={`px-4 py-2 rounded-t ${
               activeTab === "browse"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                ? "bg-accent text-white"
+                : "bg-bg-secondary text-text-secondary hover:bg-bg-tertiary"
             }`}
           >
             Browse Prices
@@ -253,15 +253,15 @@ export default function PriceGuidePage() {
               onClick={() => setActiveTab("submit")}
               className={`px-4 py-2 rounded-t ${
                 activeTab === "submit"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  ? "bg-accent text-white"
+                  : "bg-bg-secondary text-text-secondary hover:bg-bg-tertiary"
               }`}
             >
               Submit Price
             </button>
           )}
           {activeTab === "detail" && selectedItem && (
-            <button className="px-4 py-2 rounded-t bg-blue-600 text-white">
+            <button className="px-4 py-2 rounded-t bg-accent text-white">
               {selectedItem}
             </button>
           )}
@@ -277,11 +277,11 @@ export default function PriceGuidePage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search items..."
-                className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
+                className="flex-1 px-4 py-2 bg-bg-secondary border border-border rounded focus:border-accent focus:outline-none"
               />
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                className="px-6 py-2 bg-accent hover:bg-accent-hover rounded"
               >
                 Search
               </button>
@@ -290,17 +290,17 @@ export default function PriceGuidePage() {
             {/* Price Table */}
             {loading ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent mx-auto"></div>
               </div>
             ) : items.length === 0 ? (
-              <div className="text-center py-12 bg-gray-800 rounded-lg">
-                <p className="text-gray-400">
+              <div className="text-center py-12 bg-bg-secondary rounded-lg">
+                <p className="text-text-secondary">
                   {search ? "No items found matching your search." : "No price data available yet."}
                 </p>
                 {user && (
                   <button
                     onClick={() => setActiveTab("submit")}
-                    className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                    className="mt-4 px-4 py-2 bg-accent hover:bg-accent-hover rounded"
                   >
                     Be the first to submit a price!
                   </button>
@@ -311,13 +311,13 @@ export default function PriceGuidePage() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-700 text-left">
-                        <th className="pb-3 text-gray-400 font-medium">Item</th>
-                        <th className="pb-3 text-gray-400 font-medium text-right">Avg Price</th>
-                        <th className="pb-3 text-gray-400 font-medium text-right">Min</th>
-                        <th className="pb-3 text-gray-400 font-medium text-right">Max</th>
-                        <th className="pb-3 text-gray-400 font-medium text-center">Trend</th>
-                        <th className="pb-3 text-gray-400 font-medium text-right">Samples</th>
+                      <tr className="border-b border-border text-left">
+                        <th className="pb-3 text-text-secondary font-medium">Item</th>
+                        <th className="pb-3 text-text-secondary font-medium text-right">Avg Price</th>
+                        <th className="pb-3 text-text-secondary font-medium text-right">Min</th>
+                        <th className="pb-3 text-text-secondary font-medium text-right">Max</th>
+                        <th className="pb-3 text-text-secondary font-medium text-center">Trend</th>
+                        <th className="pb-3 text-text-secondary font-medium text-right">Samples</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -325,23 +325,23 @@ export default function PriceGuidePage() {
                         <tr
                           key={item.item_name}
                           onClick={() => fetchItemDetail(item.item_name)}
-                          className="border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer"
+                          className="border-b border-border hover:bg-bg-secondary/50 cursor-pointer"
                         >
                           <td className="py-3 font-medium">{item.item_name}</td>
-                          <td className="py-3 text-right text-yellow-400">
+                          <td className="py-3 text-right text-warning">
                             {formatPrice(item.avg_price)}
                           </td>
-                          <td className="py-3 text-right text-gray-400">
+                          <td className="py-3 text-right text-text-secondary">
                             {formatPrice(item.min_price)}
                           </td>
-                          <td className="py-3 text-right text-gray-400">
+                          <td className="py-3 text-right text-text-secondary">
                             {formatPrice(item.max_price)}
                           </td>
                           <td className={`py-3 text-center ${getTrendColor(item.trend)}`}>
                             {getTrendIcon(item.trend)}{" "}
                             {item.trend !== "stable" && `${Math.abs(item.trend_percentage)}%`}
                           </td>
-                          <td className="py-3 text-right text-gray-500">{item.price_count}</td>
+                          <td className="py-3 text-right text-text-muted">{item.price_count}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -354,17 +354,17 @@ export default function PriceGuidePage() {
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 disabled:opacity-50"
+                      className="px-4 py-2 bg-bg-secondary rounded hover:bg-bg-tertiary disabled:opacity-50"
                     >
                       Previous
                     </button>
-                    <span className="px-4 py-2 text-gray-400">
+                    <span className="px-4 py-2 text-text-secondary">
                       Page {page} of {totalPages}
                     </span>
                     <button
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
-                      className="px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 disabled:opacity-50"
+                      className="px-4 py-2 bg-bg-secondary rounded hover:bg-bg-tertiary disabled:opacity-50"
                     >
                       Next
                     </button>
@@ -383,7 +383,7 @@ export default function PriceGuidePage() {
                 setActiveTab("browse");
                 setSelectedItem(null);
               }}
-              className="mb-4 text-blue-400 hover:text-blue-300"
+              className="mb-4 text-accent hover:text-accent-hover"
             >
               ← Back to Browse
             </button>
@@ -393,43 +393,43 @@ export default function PriceGuidePage() {
             {/* Analytics */}
             {itemDetail.analytics && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">Average Price</div>
-                  <div className="text-2xl font-bold text-yellow-400">
+                <div className="bg-bg-secondary rounded-lg p-4">
+                  <div className="text-text-secondary text-sm">Average Price</div>
+                  <div className="text-2xl font-bold text-warning">
                     {formatPrice(itemDetail.analytics.avg_price)}
                   </div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">Min / Max</div>
+                <div className="bg-bg-secondary rounded-lg p-4">
+                  <div className="text-text-secondary text-sm">Min / Max</div>
                   <div className="text-lg">
                     {formatPrice(itemDetail.analytics.min_price)} -{" "}
                     {formatPrice(itemDetail.analytics.max_price)}
                   </div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">24h Change</div>
+                <div className="bg-bg-secondary rounded-lg p-4">
+                  <div className="text-text-secondary text-sm">24h Change</div>
                   <div
                     className={`text-xl font-bold ${
                       itemDetail.analytics.price_change_24h > 0
-                        ? "text-green-400"
+                        ? "text-success"
                         : itemDetail.analytics.price_change_24h < 0
-                        ? "text-red-400"
-                        : "text-gray-400"
+                        ? "text-danger"
+                        : "text-text-secondary"
                     }`}
                   >
                     {itemDetail.analytics.price_change_24h > 0 ? "+" : ""}
                     {itemDetail.analytics.price_change_24h.toFixed(1)}%
                   </div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">7d Change</div>
+                <div className="bg-bg-secondary rounded-lg p-4">
+                  <div className="text-text-secondary text-sm">7d Change</div>
                   <div
                     className={`text-xl font-bold ${
                       itemDetail.analytics.price_change_7d > 0
-                        ? "text-green-400"
+                        ? "text-success"
                         : itemDetail.analytics.price_change_7d < 0
-                        ? "text-red-400"
-                        : "text-gray-400"
+                        ? "text-danger"
+                        : "text-text-secondary"
                     }`}
                   >
                     {itemDetail.analytics.price_change_7d > 0 ? "+" : ""}
@@ -445,10 +445,10 @@ export default function PriceGuidePage() {
                 <h3 className="text-lg font-bold mb-4">Price by Server</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {itemDetail.servers.map((server) => (
-                    <div key={server.server} className="bg-gray-800 rounded-lg p-3">
+                    <div key={server.server} className="bg-bg-secondary rounded-lg p-3">
                       <div className="font-medium">{server.server}</div>
-                      <div className="text-yellow-400">{formatPrice(server.avg_price)}</div>
-                      <div className="text-xs text-gray-500">{server.price_count} prices</div>
+                      <div className="text-warning">{formatPrice(server.avg_price)}</div>
+                      <div className="text-xs text-text-muted">{server.price_count} prices</div>
                     </div>
                   ))}
                 </div>
@@ -462,36 +462,36 @@ export default function PriceGuidePage() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-700 text-left">
-                        <th className="pb-2 text-gray-400 text-sm">Date</th>
-                        <th className="pb-2 text-gray-400 text-sm text-right">Price</th>
-                        <th className="pb-2 text-gray-400 text-sm text-center">Type</th>
-                        <th className="pb-2 text-gray-400 text-sm text-center">QL</th>
-                        <th className="pb-2 text-gray-400 text-sm">Server</th>
+                      <tr className="border-b border-border text-left">
+                        <th className="pb-2 text-text-secondary text-sm">Date</th>
+                        <th className="pb-2 text-text-secondary text-sm text-right">Price</th>
+                        <th className="pb-2 text-text-secondary text-sm text-center">Type</th>
+                        <th className="pb-2 text-text-secondary text-sm text-center">QL</th>
+                        <th className="pb-2 text-text-secondary text-sm">Server</th>
                       </tr>
                     </thead>
                     <tbody>
                       {itemDetail.history.slice(0, 20).map((entry) => (
-                        <tr key={entry.id} className="border-b border-gray-800">
-                          <td className="py-2 text-sm text-gray-400">
+                        <tr key={entry.id} className="border-b border-border">
+                          <td className="py-2 text-sm text-text-secondary">
                             {new Date(entry.recorded_at).toLocaleDateString()}
                           </td>
-                          <td className="py-2 text-right text-yellow-400">
+                          <td className="py-2 text-right text-warning">
                             {formatPrice(entry.price)}
                           </td>
                           <td className="py-2 text-center">
                             <span
                               className={`px-2 py-0.5 rounded text-xs ${
                                 entry.order_type === "sell"
-                                  ? "bg-green-900 text-green-300"
-                                  : "bg-blue-900 text-blue-300"
+                                  ? "bg-success/20 text-success"
+                                  : "bg-accent/20 text-accent"
                               }`}
                             >
                               {entry.order_type}
                             </span>
                           </td>
-                          <td className="py-2 text-center text-gray-400">{entry.quality}</td>
-                          <td className="py-2 text-sm text-gray-500">{entry.server || "-"}</td>
+                          <td className="py-2 text-center text-text-secondary">{entry.quality}</td>
+                          <td className="py-2 text-sm text-text-muted">{entry.server || "-"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -505,20 +505,20 @@ export default function PriceGuidePage() {
         {/* Submit Tab */}
         {activeTab === "submit" && user && (
           <div className="max-w-lg">
-            <p className="text-gray-400 mb-6">
+            <p className="text-text-secondary mb-6">
               Help the community by submitting prices you&apos;ve seen or paid in-game.
             </p>
 
             <form onSubmit={handleSubmitPrice} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Item Name <span className="text-red-400">*</span>
+                  Item Name <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   value={submitForm.item_name}
                   onChange={(e) => setSubmitForm({ ...submitForm, item_name: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
+                  className="w-full px-4 py-2 bg-bg-secondary border border-border rounded focus:border-accent focus:outline-none"
                   placeholder="e.g. Rare Longsword"
                   required
                 />
@@ -527,7 +527,7 @@ export default function PriceGuidePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Price (silver) <span className="text-red-400">*</span>
+                    Price (silver) <span className="text-danger">*</span>
                   </label>
                   <input
                     type="number"
@@ -535,7 +535,7 @@ export default function PriceGuidePage() {
                     min="0.01"
                     value={submitForm.price}
                     onChange={(e) => setSubmitForm({ ...submitForm, price: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-bg-secondary border border-border rounded focus:border-accent focus:outline-none"
                     placeholder="1.00"
                     required
                   />
@@ -543,14 +543,14 @@ export default function PriceGuidePage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Type <span className="text-red-400">*</span>
+                    Type <span className="text-danger">*</span>
                   </label>
                   <select
                     value={submitForm.order_type}
                     onChange={(e) =>
                       setSubmitForm({ ...submitForm, order_type: e.target.value as "buy" | "sell" })
                     }
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-bg-secondary border border-border rounded focus:border-accent focus:outline-none"
                   >
                     <option value="sell">Sell Price</option>
                     <option value="buy">Buy Price</option>
@@ -567,7 +567,7 @@ export default function PriceGuidePage() {
                     max="100"
                     value={submitForm.quality}
                     onChange={(e) => setSubmitForm({ ...submitForm, quality: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-bg-secondary border border-border rounded focus:border-accent focus:outline-none"
                     placeholder="50"
                   />
                 </div>
@@ -577,7 +577,7 @@ export default function PriceGuidePage() {
                   <select
                     value={submitForm.server}
                     onChange={(e) => setSubmitForm({ ...submitForm, server: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2 bg-bg-secondary border border-border rounded focus:border-accent focus:outline-none"
                   >
                     <option value="">Select server...</option>
                     {WURM_SERVERS.map((server) => (
@@ -592,7 +592,7 @@ export default function PriceGuidePage() {
               <button
                 type="submit"
                 disabled={submitting || !submitForm.item_name || !submitForm.price}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-accent hover:bg-accent-hover rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Submitting..." : "Submit Price"}
               </button>
@@ -602,9 +602,9 @@ export default function PriceGuidePage() {
 
         {/* Not logged in for submit */}
         {activeTab === "submit" && !user && (
-          <div className="text-center py-12 bg-gray-800 rounded-lg">
-            <p className="text-gray-400 mb-4">Please log in to submit prices.</p>
-            <Link href="/login" className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">
+          <div className="text-center py-12 bg-bg-secondary rounded-lg">
+            <p className="text-text-secondary mb-4">Please log in to submit prices.</p>
+            <Link href="/login" className="px-4 py-2 bg-accent rounded hover:bg-accent-hover">
               Log In
             </Link>
           </div>

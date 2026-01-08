@@ -62,10 +62,10 @@ interface DashboardStats {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "text-green-400 bg-green-500/20",
-  completed: "text-blue-400 bg-blue-500/20",
-  cancelled: "text-red-400 bg-red-500/20",
-  expired: "text-gray-400 bg-gray-500/20",
+  active: "text-success bg-success/20",
+  completed: "text-accent bg-accent/20",
+  cancelled: "text-danger bg-danger/20",
+  expired: "text-text-muted bg-bg-tertiary",
 };
 
 const ORDER_TYPE_ICONS: Record<string, string> = {
@@ -136,7 +136,7 @@ export default function DashboardPage() {
 
   const renderStars = (rating: number) => {
     return (
-      <span className="text-yellow-400">
+      <span className="text-warning">
         {"★".repeat(Math.floor(rating))}
         {"☆".repeat(5 - Math.floor(rating))}
       </span>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 text-red-400">
+        <div className="bg-danger/20 border border-danger/50 rounded-lg p-4 text-danger">
           {error}
         </div>
       </div>
@@ -183,7 +183,7 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header with Profile Summary */}
-      <div className="bg-gradient-to-r from-accent/20 to-purple-500/20 rounded-2xl border border-border p-6 mb-8">
+      <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-2xl border border-border p-6 mb-8">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
           {/* Avatar */}
           <div className="w-20 h-20 rounded-full bg-accent/30 flex items-center justify-center text-accent font-bold text-2xl flex-shrink-0 border-2 border-accent/50">
@@ -246,10 +246,10 @@ export default function DashboardPage() {
               <div
                 className={`h-full transition-all ${
                   stats.profile.completeness === 100
-                    ? "bg-green-500"
+                    ? "bg-success"
                     : stats.profile.completeness >= 60
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
+                    ? "bg-warning"
+                    : "bg-danger"
                 }`}
                 style={{ width: `${stats.profile.completeness}%` }}
               />
@@ -316,12 +316,12 @@ export default function DashboardPage() {
           <div className="text-3xl font-bold text-text-primary mb-2">{stats.orders.total}</div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <span className="w-2 h-2 rounded-full bg-success"></span>
               <span className="text-text-muted">Active:</span>
               <span className="text-text-primary font-medium">{stats.orders.active}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span className="w-2 h-2 rounded-full bg-accent"></span>
               <span className="text-text-muted">Done:</span>
               <span className="text-text-primary font-medium">{stats.orders.completed}</span>
             </div>
@@ -345,12 +345,12 @@ export default function DashboardPage() {
           <div className="text-3xl font-bold text-text-primary mb-2">{stats.projects.total}</div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+              <span className="w-2 h-2 rounded-full bg-warning"></span>
               <span className="text-text-muted">Active:</span>
               <span className="text-text-primary font-medium">{stats.projects.in_progress}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <span className="w-2 h-2 rounded-full bg-success"></span>
               <span className="text-text-muted">Done:</span>
               <span className="text-text-primary font-medium">{stats.projects.completed}</span>
             </div>
@@ -370,12 +370,12 @@ export default function DashboardPage() {
           <div className="text-3xl font-bold text-text-primary mb-2">{stats.trades.total_matches}</div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <span className="w-2 h-2 rounded-full bg-success"></span>
               <span className="text-text-muted">Complete:</span>
               <span className="text-text-primary font-medium">{stats.trades.completed}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+              <span className="w-2 h-2 rounded-full bg-warning"></span>
               <span className="text-text-muted">Pending:</span>
               <span className="text-text-primary font-medium">{stats.trades.pending}</span>
             </div>
@@ -448,14 +448,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Level Progress */}
-          <div className="bg-gradient-to-r from-accent/20 to-purple-500/20 rounded-lg p-4 mb-6">
+          <div className="bg-gradient-to-r from-accent/20 to-accent/10 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-text-secondary">Level {stats.achievements.level}</span>
               <span className="text-accent font-bold">Level {stats.achievements.level + 1}</span>
             </div>
             <div className="h-3 bg-bg-tertiary rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-accent to-purple-500 transition-all"
+                className="h-full bg-gradient-to-r from-accent to-accent-hover transition-all"
                 style={{ width: `${Math.min((stats.achievements.total_xp % 1000) / 10, 100)}%` }}
               />
             </div>
