@@ -218,9 +218,12 @@ CREATE TABLE IF NOT EXISTS price_history (
     quality INT DEFAULT 50,
     order_type VARCHAR(10) NOT NULL,
     currency VARCHAR(20) DEFAULT 'silver',
+    server VARCHAR(50),
+    user_id INT,
     recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT chk_price_history_type CHECK (order_type IN ('buy', 'sell'))
+    CONSTRAINT chk_price_history_type CHECK (order_type IN ('buy', 'sell')),
+    CONSTRAINT fk_price_history_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS price_alerts (
@@ -239,6 +242,7 @@ CREATE TABLE IF NOT EXISTS price_alerts (
 
 CREATE INDEX idx_price_history_item ON price_history(item_name);
 CREATE INDEX idx_price_history_date ON price_history(recorded_at);
+CREATE INDEX idx_price_history_server ON price_history(server);
 CREATE INDEX idx_price_alerts_user ON price_alerts(user_id);
 CREATE INDEX idx_price_alerts_item ON price_alerts(item_name);
 

@@ -201,12 +201,6 @@ export default function Home() {
       status: "planned",
     },
     {
-      title: "Price Guide",
-      description: "Community-driven price database with historical trends and server-specific pricing",
-      icon: "💰",
-      status: "planned",
-    },
-    {
       title: "Affinity Tracker",
       description: "Track and manage affinities across all your characters in one place",
       icon: "✨",

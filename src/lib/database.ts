@@ -1191,7 +1191,23 @@ export async function createOrder(userId: number, input: CreateOrderInput): Prom
   );
 
   const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
-  return idResult.rows[0]?.id || 0;
+  const orderId = idResult.rows[0]?.id || 0;
+
+  // Automatically record price to price history for buy/sell orders
+  if (input.price && (input.order_type === 'buy' || input.order_type === 'sell')) {
+    // Extract server from location if it matches a known server pattern
+    const serverMatch = input.location?.match(/\b(Harmony|Melody|Cadence|Defiance|Xanadu|Deliverance|Exodus|Celebration|Pristine|Release|Independence|Chaos)\b/i);
+    const server = serverMatch ? serverMatch[1] : null;
+
+    await recordPrice(input.item_name, input.price, input.order_type, {
+      quality: input.quality,
+      server: server || undefined,
+      userId,
+      currency: input.currency,
+    });
+  }
+
+  return orderId;
 }
 
 export async function updateOrder(
@@ -1756,11 +1772,26 @@ export async function cancelInvite(inviteId: number, userId: number, isAdmin: bo
 export async function recordPrice(
   itemName: string,
   price: number,
-  orderType: OrderType
+  orderType: OrderType,
+  options?: {
+    quality?: number;
+    server?: string;
+    userId?: number;
+    currency?: string;
+  }
 ): Promise<void> {
   await query(
-    "INSERT INTO price_history (item_name, price, order_type) VALUES (?, ?, ?)",
-    [itemName, price, orderType]
+    `INSERT INTO price_history (item_name, price, order_type, quality, server, user_id, currency)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      itemName,
+      price,
+      orderType,
+      options?.quality || 50,
+      options?.server || null,
+      options?.userId || null,
+      options?.currency || 'silver'
+    ]
   );
 }
 
@@ -1775,6 +1806,154 @@ export async function getPriceHistory(
     [itemName, days]
   );
   return result.rows;
+}
+
+// ========== PRICE GUIDE FUNCTIONS ==========
+
+export interface PriceGuideItem {
+  item_name: string;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  price_count: number;
+  last_updated: string;
+  trend: 'up' | 'down' | 'stable';
+  trend_percentage: number;
+}
+
+export interface ServerPriceComparison {
+  server: string;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  price_count: number;
+}
+
+export async function getPriceGuideItems(
+  options?: {
+    search?: string;
+    minPrices?: number;
+    days?: number;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<{ items: PriceGuideItem[]; total: number }> {
+  const days = options?.days || 30;
+  const minPrices = options?.minPrices || 1;
+  const limit = Math.min(options?.limit || 50, 200);
+  const offset = options?.offset || 0;
+
+  let whereClause = "recorded_at > DATE_SUB(NOW(), INTERVAL ? DAY)";
+  const params: (string | number)[] = [days];
+
+  if (options?.search) {
+    whereClause += " AND item_name LIKE ?";
+    params.push(`%${options.search}%`);
+  }
+
+  // Count total
+  const countResult = await query<{ total: number }>(`
+    SELECT COUNT(DISTINCT item_name) as total
+    FROM price_history
+    WHERE ${whereClause}
+    HAVING COUNT(*) >= ?
+  `, [...params, minPrices]);
+  const total = countResult.rows[0]?.total || 0;
+
+  // Get price guide items with trend calculation
+  const result = await query<PriceGuideItem & { recent_avg: number; older_avg: number }>(`
+    SELECT
+      item_name,
+      AVG(price) as avg_price,
+      MIN(price) as min_price,
+      MAX(price) as max_price,
+      COUNT(*) as price_count,
+      MAX(recorded_at) as last_updated,
+      (SELECT AVG(p2.price) FROM price_history p2
+       WHERE p2.item_name = price_history.item_name
+       AND p2.recorded_at > DATE_SUB(NOW(), INTERVAL 7 DAY)) as recent_avg,
+      (SELECT AVG(p3.price) FROM price_history p3
+       WHERE p3.item_name = price_history.item_name
+       AND p3.recorded_at BETWEEN DATE_SUB(NOW(), INTERVAL ? DAY) AND DATE_SUB(NOW(), INTERVAL 7 DAY)) as older_avg
+    FROM price_history
+    WHERE ${whereClause}
+    GROUP BY item_name
+    HAVING price_count >= ?
+    ORDER BY price_count DESC, item_name ASC
+    LIMIT ? OFFSET ?
+  `, [...params, days, minPrices, limit, offset]);
+
+  const items = result.rows.map(row => {
+    let trend: 'up' | 'down' | 'stable' = 'stable';
+    let trend_percentage = 0;
+
+    if (row.recent_avg && row.older_avg && row.older_avg > 0) {
+      trend_percentage = ((row.recent_avg - row.older_avg) / row.older_avg) * 100;
+      if (trend_percentage > 5) trend = 'up';
+      else if (trend_percentage < -5) trend = 'down';
+    }
+
+    return {
+      item_name: row.item_name,
+      avg_price: Math.round(row.avg_price * 100) / 100,
+      min_price: Math.round(row.min_price * 100) / 100,
+      max_price: Math.round(row.max_price * 100) / 100,
+      price_count: row.price_count,
+      last_updated: row.last_updated,
+      trend,
+      trend_percentage: Math.round(trend_percentage * 10) / 10,
+    };
+  });
+
+  return { items, total };
+}
+
+export async function getServerPriceComparison(itemName: string): Promise<ServerPriceComparison[]> {
+  const result = await query<ServerPriceComparison>(`
+    SELECT
+      server,
+      AVG(price) as avg_price,
+      MIN(price) as min_price,
+      MAX(price) as max_price,
+      COUNT(*) as price_count
+    FROM price_history
+    WHERE item_name = ?
+      AND server IS NOT NULL
+      AND recorded_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+    GROUP BY server
+    ORDER BY price_count DESC
+  `, [itemName]);
+
+  return result.rows.map(row => ({
+    ...row,
+    avg_price: Math.round(row.avg_price * 100) / 100,
+    min_price: Math.round(row.min_price * 100) / 100,
+    max_price: Math.round(row.max_price * 100) / 100,
+  }));
+}
+
+export async function getPopularPricedItems(limit: number = 20): Promise<PriceGuideItem[]> {
+  const { items } = await getPriceGuideItems({ limit, minPrices: 3 });
+  return items;
+}
+
+export async function submitPrice(
+  userId: number,
+  itemName: string,
+  price: number,
+  orderType: 'buy' | 'sell',
+  options?: {
+    quality?: number;
+    server?: string;
+    currency?: string;
+  }
+): Promise<void> {
+  await recordPrice(itemName, price, orderType, {
+    quality: options?.quality,
+    server: options?.server,
+    userId,
+    currency: options?.currency,
+  });
 }
 
 // ========== PROJECTS ==========
