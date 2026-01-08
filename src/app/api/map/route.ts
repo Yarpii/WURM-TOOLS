@@ -8,6 +8,7 @@ import {
   deleteLocation,
   verifyLocation,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { WurmServer, LocationType, CreateLocationInput, UpdateLocationInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(locations);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch locations: " + String(error) },
+      { error: sanitizeError(error, "Fetch locations") },
       { status: 500 }
     );
   }
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to process request: " + String(error) },
+      { error: sanitizeError(error, "Process map request") },
       { status: 500 }
     );
   }

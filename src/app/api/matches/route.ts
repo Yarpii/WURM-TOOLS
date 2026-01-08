@@ -11,6 +11,7 @@ import {
   getBarterSuggestions,
   expireOldMatches,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { MatchStatus, CreateRatingInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch matches: " + String(error) },
+      { error: sanitizeError(error, "Fetch matches") },
       { status: 500 }
     );
   }
@@ -188,9 +189,9 @@ export async function POST(request: NextRequest) {
         try {
           const ratingId = await createRating(result.user.id, ratingInput);
           return NextResponse.json({ id: ratingId, success: true });
-        } catch (error) {
+        } catch (ratingError) {
           return NextResponse.json(
-            { error: String(error) },
+            { error: sanitizeError(ratingError, "Create rating") },
             { status: 400 }
           );
         }
@@ -212,7 +213,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to process request: " + String(error) },
+      { error: sanitizeError(error, "Process matches request") },
       { status: 500 }
     );
   }

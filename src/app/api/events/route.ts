@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionAsync as getSession, isAdminAsync as isAdmin } from "@/lib/auth";
 import { query } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { WurmEvent, CreateEventInput, UpdateEventInput, UpdateAttendanceInput } from "@/lib/types";
 
 // GET /api/events - Get events
@@ -55,8 +56,10 @@ export async function GET(request: NextRequest) {
     const result = await query(sql, params);
     return NextResponse.json(result.rows);
   } catch (error) {
-    console.error("Failed to fetch events:", error);
-    return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
+    return NextResponse.json(
+      { error: sanitizeError(error, "Fetch events") },
+      { status: 500 }
+    );
   }
 }
 
@@ -255,7 +258,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
   } catch (error) {
-    console.error("Failed to process event request:", error);
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 });
+    return NextResponse.json(
+      { error: sanitizeError(error, "Process event request") },
+      { status: 500 }
+    );
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, getAllUsers, getUsersPaginated, getUserStats } from "@/lib/auth";
-import { sanitizeError } from "@/lib/security";
+import { sanitizeError, validatePagination } from "@/lib/security";
 
 // GET /api/admin/members - Get all users (admin only)
 export async function GET(request: NextRequest) {
@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
 
     // SECURITY: Support pagination to prevent DoS via unbounded queries
     if (paginate) {
-      const pageParam = parseInt(searchParams.get("page") || "1", 10);
-      const limitParam = parseInt(searchParams.get("limit") || "50", 10);
-      const page = isNaN(pageParam) ? 1 : Math.max(pageParam, 1);
-      const limit = isNaN(limitParam) ? 50 : Math.min(Math.max(limitParam, 1), 100);
+      const { page, limit } = validatePagination(
+        searchParams.get("page"),
+        searchParams.get("limit")
+      );
       const result = await getUsersPaginated({ page, limit });
       return NextResponse.json({ ...result, stats });
     }

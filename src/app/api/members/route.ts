@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getVisibleMembers } from "@/lib/auth";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/members - Get list of visible members (opt-in)
 export async function GET() {
@@ -20,7 +21,7 @@ export async function GET() {
     return NextResponse.json({ members: publicMembers });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch members: " + String(error) },
+      { error: sanitizeError(error, "Fetch members") },
       { status: 500 }
     );
   }

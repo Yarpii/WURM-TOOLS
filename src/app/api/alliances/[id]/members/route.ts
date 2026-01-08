@@ -8,6 +8,7 @@ import {
   removeMember,
   transferLeadership,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 // GET /api/alliances/[id]/members - Get alliance members
 export async function GET(
@@ -49,7 +50,7 @@ export async function GET(
     return NextResponse.json({ members });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch members: " + String(error) },
+      { error: sanitizeError(error, "Fetch alliance members") },
       { status: 500 }
     );
   }
@@ -125,7 +126,7 @@ export async function PUT(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update member: " + String(error) },
+      { error: sanitizeError(error, "Update alliance member") },
       { status: 500 }
     );
   }
@@ -176,7 +177,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to remove member: " + String(error) },
+      { error: sanitizeError(error, "Remove alliance member") },
       { status: 500 }
     );
   }

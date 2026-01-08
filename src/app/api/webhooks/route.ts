@@ -7,6 +7,7 @@ import {
   updateWebhook,
   deleteWebhook,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { CreateWebhookInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(webhooks);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch webhooks: " + String(error) },
+      { error: sanitizeError(error, "Fetch webhooks") },
       { status: 500 }
     );
   }
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to process request: " + String(error) },
+      { error: sanitizeError(error, "Process webhook request") },
       { status: 500 }
     );
   }

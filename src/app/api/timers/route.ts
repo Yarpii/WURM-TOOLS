@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionAsync as getSession } from "@/lib/auth";
 import { query } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { UserTimer, TimerPreset, CreateTimerInput, UpdateTimerInput } from "@/lib/types";
 
 // GET /api/timers - Get user's timers or presets
@@ -40,8 +41,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows);
   } catch (error) {
-    console.error("Failed to fetch timers:", error);
-    return NextResponse.json({ error: "Failed to fetch timers" }, { status: 500 });
+    return NextResponse.json(
+      { error: sanitizeError(error, "Fetch timers") },
+      { status: 500 }
+    );
   }
 }
 
@@ -254,7 +257,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
   } catch (error) {
-    console.error("Failed to process timer request:", error);
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 });
+    return NextResponse.json(
+      { error: sanitizeError(error, "Process timer request") },
+      { status: 500 }
+    );
   }
 }

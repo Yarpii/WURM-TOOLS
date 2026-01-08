@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest) {
         .replace(/'/g, "&#x27;");
     };
 
-    const success = updateUserProfile(session.user.id, {
+    const success = await updateUserProfile(session.user.id, {
       display_name: sanitizeText(display_name),
       bio: sanitizeText(bio),
       avatar_url,

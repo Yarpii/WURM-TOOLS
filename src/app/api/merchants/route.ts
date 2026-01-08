@@ -7,7 +7,7 @@ import {
   getMerchantStats,
   getServers,
 } from "@/lib/database";
-import { sanitizeError, validateStringFields, INPUT_LIMITS } from "@/lib/security";
+import { sanitizeError, validateStringFields, INPUT_LIMITS, validatePagination } from "@/lib/security";
 import type { MerchantCategory, CreateMerchantInput } from "@/lib/types";
 
 const VALID_CATEGORIES: MerchantCategory[] = [
@@ -48,10 +48,10 @@ export async function GET(request: NextRequest) {
     const servers_only = searchParams.get("servers");
 
     // Pagination parameters with validation
-    const pageParam = parseInt(searchParams.get("page") || "1", 10);
-    const limitParam = parseInt(searchParams.get("limit") || "50", 10);
-    const page = isNaN(pageParam) ? 1 : Math.max(pageParam, 1);
-    const limit = isNaN(limitParam) ? 50 : Math.min(Math.max(limitParam, 1), 100);
+    const { page, limit } = validatePagination(
+      searchParams.get("page"),
+      searchParams.get("limit")
+    );
     const paginate = searchParams.get("paginate") === "true";
 
     if (stats_only) {

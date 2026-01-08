@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionAsync as getSession } from "@/lib/auth";
 import { query, getClient } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 import type { UserSkill, WurmSkill, CreateSkillInput, UpdateSkillInput } from "@/lib/types";
 
 // GET /api/skills - Get user's skills or skill list
@@ -35,8 +36,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows);
   } catch (error) {
-    console.error("Failed to fetch skills:", error);
-    return NextResponse.json({ error: "Failed to fetch skills" }, { status: 500 });
+    return NextResponse.json(
+      { error: sanitizeError(error, "Fetch skills") },
+      { status: 500 }
+    );
   }
 }
 
@@ -163,7 +166,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
   } catch (error) {
-    console.error("Failed to process skill request:", error);
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 });
+    return NextResponse.json(
+      { error: sanitizeError(error, "Process skill request") },
+      { status: 500 }
+    );
   }
 }

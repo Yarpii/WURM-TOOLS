@@ -8,7 +8,7 @@ import {
   getCategories,
 } from "@/lib/database";
 import { getSession } from "@/lib/auth";
-import { sanitizeError } from "@/lib/security";
+import { sanitizeError, validatePagination } from "@/lib/security";
 
 export async function GET(request: Request) {
   try {
@@ -17,8 +17,10 @@ export async function GET(request: Request) {
     const categoriesOnly = searchParams.get("categories");
 
     // Pagination parameters with validation
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
+    const { page, limit } = validatePagination(
+      searchParams.get("page"),
+      searchParams.get("limit")
+    );
     const paginate = searchParams.get("paginate") === "true";
 
     if (categoriesOnly) {

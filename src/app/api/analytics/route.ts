@@ -10,6 +10,7 @@ import {
   deletePriceAlert,
   checkPriceAlerts,
 } from "@/lib/database";
+import { sanitizeError } from "@/lib/security";
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch analytics: " + String(error) },
+      { error: sanitizeError(error, "Fetch analytics") },
       { status: 500 }
     );
   }
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to process request: " + String(error) },
+      { error: sanitizeError(error, "Process analytics request") },
       { status: 500 }
     );
   }
