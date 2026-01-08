@@ -25,12 +25,6 @@ interface DashboardStats {
     completed: number;
     total_items: number;
   };
-  prospects: {
-    total: number;
-    pages: number;
-    recruited: number;
-    pending: number;
-  };
   merchants: {
     total: number;
     active: number;
@@ -60,12 +54,6 @@ interface DashboardStats {
       order_type: string;
       item_name: string;
       quantity: number;
-      status: string;
-      created_at: string;
-    }>;
-    recent_prospects: Array<{
-      id: number;
-      name: string;
       status: string;
       created_at: string;
     }>;
@@ -141,14 +129,6 @@ export async function GET(request: NextRequest) {
       `, [userId]),
     ]);
 
-    // Prospects stats
-    const [prospectsTotal, prospectPages, prospectsRecruited, prospectsPending] = await Promise.all([
-      query<{ count: number }>("SELECT COUNT(*) as count FROM prospects WHERE user_id = ?", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM prospect_pages WHERE user_id = ?", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM prospects WHERE user_id = ? AND status = 'recruited'", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM prospects WHERE user_id = ? AND status IN ('potential', 'contacted', 'interested')", [userId]),
-    ]);
-
     // Merchants stats
     const [merchantsTotal, merchantsActive] = await Promise.all([
       query<{ count: number }>("SELECT COUNT(*) as count FROM merchants WHERE user_id = ?", [userId]),
@@ -210,22 +190,9 @@ export async function GET(request: NextRequest) {
     }>(`
       SELECT id, order_type, item_name, quantity, status, created_at
       FROM orders WHERE user_id = ?
-      ORDER BY created_at DESC LIMIT 5
+      ORDER BY created_at DESC LIMIT 8
     `, [userId]);
     const recentOrders = recentOrdersResult.rows;
-
-    // Recent activity - prospects
-    const recentProspectsResult = await query<{
-      id: number;
-      name: string;
-      status: string;
-      created_at: string;
-    }>(`
-      SELECT id, name, status, created_at
-      FROM prospects WHERE user_id = ?
-      ORDER BY created_at DESC LIMIT 5
-    `, [userId]);
-    const recentProspects = recentProspectsResult.rows;
 
     const stats: DashboardStats = {
       profile: {
@@ -248,12 +215,6 @@ export async function GET(request: NextRequest) {
         in_progress: projectsInProgress.rows[0]?.count || 0,
         completed: projectsCompleted.rows[0]?.count || 0,
         total_items: projectItems.rows[0]?.total || 0,
-      },
-      prospects: {
-        total: prospectsTotal.rows[0]?.count || 0,
-        pages: prospectPages.rows[0]?.count || 0,
-        recruited: prospectsRecruited.rows[0]?.count || 0,
-        pending: prospectsPending.rows[0]?.count || 0,
       },
       merchants: {
         total: merchantsTotal.rows[0]?.count || 0,
@@ -280,7 +241,6 @@ export async function GET(request: NextRequest) {
       },
       activity: {
         recent_orders: recentOrders,
-        recent_prospects: recentProspects,
       },
     };
 
