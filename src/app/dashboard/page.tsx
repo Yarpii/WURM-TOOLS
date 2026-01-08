@@ -26,12 +26,6 @@ interface DashboardStats {
     completed: number;
     total_items: number;
   };
-  prospects: {
-    total: number;
-    pages: number;
-    recruited: number;
-    pending: number;
-  };
   merchants: {
     total: number;
     active: number;
@@ -64,12 +58,6 @@ interface DashboardStats {
       status: string;
       created_at: string;
     }>;
-    recent_prospects: Array<{
-      id: number;
-      name: string;
-      status: string;
-      created_at: string;
-    }>;
   };
 }
 
@@ -78,12 +66,6 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "text-blue-400 bg-blue-500/20",
   cancelled: "text-red-400 bg-red-500/20",
   expired: "text-gray-400 bg-gray-500/20",
-  potential: "text-blue-400 bg-blue-500/20",
-  contacted: "text-yellow-400 bg-yellow-500/20",
-  interested: "text-purple-400 bg-purple-500/20",
-  recruited: "text-green-400 bg-green-500/20",
-  declined: "text-red-400 bg-red-500/20",
-  inactive: "text-gray-400 bg-gray-500/20",
 };
 
 const ORDER_TYPE_ICONS: Record<string, string> = {
@@ -301,13 +283,6 @@ export default function DashboardPage() {
           <div className="text-sm font-medium text-text-primary group-hover:text-accent">Projects</div>
         </Link>
         <Link
-          href="/prospects"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
-        >
-          <div className="text-2xl mb-2">🎯</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Prospects</div>
-        </Link>
-        <Link
           href="/merchants"
           className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
         >
@@ -386,31 +361,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Prospects */}
-        <div className="bg-bg-secondary rounded-xl border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-text-primary">Prospects</h3>
-            <Link href="/prospects" className="text-accent text-sm hover:underline">View all</Link>
-          </div>
-          <div className="text-3xl font-bold text-text-primary mb-2">{stats.prospects.total}</div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
-              <span className="text-text-muted">Recruited:</span>
-              <span className="text-text-primary font-medium">{stats.prospects.recruited}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-              <span className="text-text-muted">Pending:</span>
-              <span className="text-text-primary font-medium">{stats.prospects.pending}</span>
-            </div>
-            <div className="col-span-2 flex items-center gap-2">
-              <span className="text-text-muted">Pages:</span>
-              <span className="text-text-primary">{stats.prospects.pages}</span>
-            </div>
-          </div>
-        </div>
-
         {/* Trades & Reputation */}
         <div className="bg-bg-secondary rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -445,87 +395,47 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-bg-secondary rounded-xl border border-border p-6">
           <h3 className="font-semibold text-text-primary mb-4">Recent Activity</h3>
 
-          {stats.activity.recent_orders.length === 0 && stats.activity.recent_prospects.length === 0 ? (
+          {stats.activity.recent_orders.length === 0 ? (
             <div className="text-center py-8 text-text-muted">
               <div className="text-4xl mb-2">📭</div>
               <p>No recent activity</p>
-              <p className="text-sm mt-1">Create your first order or add a prospect to get started!</p>
+              <p className="text-sm mt-1">Create your first order to get started!</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Combine and sort activities */}
-              {[
-                ...stats.activity.recent_orders.map((o) => ({
-                  type: "order" as const,
-                  data: o,
-                  date: new Date(o.created_at),
-                })),
-                ...stats.activity.recent_prospects.map((p) => ({
-                  type: "prospect" as const,
-                  data: p,
-                  date: new Date(p.created_at),
-                })),
-              ]
-                .sort((a, b) => b.date.getTime() - a.date.getTime())
-                .slice(0, 8)
-                .map((activity, i) => (
-                  <div
-                    key={`${activity.type}-${activity.type === "order" ? activity.data.id : activity.data.id}-${i}`}
-                    className="flex items-center gap-4 p-3 bg-bg-tertiary rounded-lg"
-                  >
-                    <div className="text-xl">
-                      {activity.type === "order"
-                        ? ORDER_TYPE_ICONS[(activity.data as typeof stats.activity.recent_orders[0]).order_type]
-                        : "👤"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {activity.type === "order" ? (
-                        <div>
-                          <span className="text-text-primary font-medium">
-                            {(activity.data as typeof stats.activity.recent_orders[0]).order_type.charAt(0).toUpperCase() +
-                              (activity.data as typeof stats.activity.recent_orders[0]).order_type.slice(1)}{" "}
-                            order
-                          </span>
-                          <span className="text-text-muted"> - </span>
-                          <span className="text-text-secondary">
-                            {(activity.data as typeof stats.activity.recent_orders[0]).quantity}x{" "}
-                            {(activity.data as typeof stats.activity.recent_orders[0]).item_name}
-                          </span>
-                        </div>
-                      ) : (
-                        <div>
-                          <span className="text-text-primary font-medium">New prospect</span>
-                          <span className="text-text-muted"> - </span>
-                          <span className="text-text-secondary">
-                            {(activity.data as typeof stats.activity.recent_prospects[0]).name}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs ${
-                          STATUS_COLORS[
-                            activity.type === "order"
-                              ? (activity.data as typeof stats.activity.recent_orders[0]).status
-                              : (activity.data as typeof stats.activity.recent_prospects[0]).status
-                          ] || "text-gray-400 bg-gray-500/20"
-                        }`}
-                      >
-                        {activity.type === "order"
-                          ? (activity.data as typeof stats.activity.recent_orders[0]).status
-                          : (activity.data as typeof stats.activity.recent_prospects[0]).status}
+              {stats.activity.recent_orders.slice(0, 8).map((order) => (
+                <div
+                  key={`order-${order.id}`}
+                  className="flex items-center gap-4 p-3 bg-bg-tertiary rounded-lg"
+                >
+                  <div className="text-xl">
+                    {ORDER_TYPE_ICONS[order.order_type]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div>
+                      <span className="text-text-primary font-medium">
+                        {order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1)} order
                       </span>
-                      <span className="text-xs text-text-muted whitespace-nowrap">
-                        {formatDate(
-                          activity.type === "order"
-                            ? (activity.data as typeof stats.activity.recent_orders[0]).created_at
-                            : (activity.data as typeof stats.activity.recent_prospects[0]).created_at
-                        )}
+                      <span className="text-text-muted"> - </span>
+                      <span className="text-text-secondary">
+                        {order.quantity}x {order.item_name}
                       </span>
                     </div>
                   </div>
-                ))}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs ${
+                        STATUS_COLORS[order.status] || "text-gray-400 bg-gray-500/20"
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                    <span className="text-xs text-text-muted whitespace-nowrap">
+                      {formatDate(order.created_at)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

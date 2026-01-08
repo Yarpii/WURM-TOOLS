@@ -12,9 +12,7 @@ const navCategories = [
     label: "Tools",
     items: [
       { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
-      { href: "/recipes/submit", label: "Submit Recipe", icon: "plus", description: "Suggest missing recipes" },
       { href: "/market", label: "Market", icon: "store", description: "Buy & sell items" },
-      { href: "/prices", label: "Price Guide", icon: "coins", description: "Community price database" },
       { href: "/map", label: "Map", icon: "map", description: "Interactive world map" },
       { href: "/data", label: "Data", icon: "database", description: "Game data & stats" },
     ],
@@ -33,7 +31,6 @@ const navCategories = [
     items: [
       { href: "/members", label: "Members", icon: "users", description: "Player directory" },
       { href: "/alliances", label: "Alliances", icon: "shield", description: "Guild management" },
-      { href: "/merchants", label: "Merchants", icon: "shop", description: "Find traders" },
     ],
   },
   {
@@ -42,7 +39,6 @@ const navCategories = [
       { href: "/analytics", label: "Analytics", icon: "chart", description: "Skill & progress stats" },
       { href: "/trades", label: "Trades", icon: "exchange", description: "Trade history" },
       { href: "/projects", label: "Projects", icon: "folder", description: "Project planning" },
-      { href: "/prospects", label: "Prospects", icon: "target", description: "Recruit management" },
       { href: "/achievements", label: "Achievements", icon: "trophy", description: "Goals & milestones" },
     ],
   },
@@ -53,11 +49,6 @@ const icons: Record<string, React.ReactNode> = {
   hammer: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-    </svg>
-  ),
-  plus: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
     </svg>
   ),
   store: (
@@ -85,11 +76,6 @@ const icons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   ),
-  shop: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
-  ),
   chart: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -110,13 +96,6 @@ const icons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3h14M5 3v4a7 7 0 007 7m-7-7H2m17 0h3M19 3v4a7 7 0 01-7 7m0 0v4m0 4h-4m4 0h4m-4-4h.01" />
     </svg>
   ),
-  target: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
-      <circle cx="12" cy="12" r="6" strokeWidth={1.5} />
-      <circle cx="12" cy="12" r="2" strokeWidth={1.5} />
-    </svg>
-  ),
   skill: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -135,11 +114,6 @@ const icons: Record<string, React.ReactNode> = {
   character: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  ),
-  coins: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
 };
