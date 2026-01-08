@@ -396,8 +396,13 @@ export async function logout(sessionId: string): Promise<boolean> {
 }
 
 export async function getSession(sessionId: string): Promise<{ session: Session; user: User } | null> {
-  // Clean up expired sessions first
-  await query("DELETE FROM sessions WHERE expires_at < ?", [new Date().toISOString()]);
+  // Clean up expired sessions (non-blocking - don't fail session check if cleanup fails)
+  try {
+    await query("DELETE FROM sessions WHERE expires_at < ?", [new Date().toISOString()]);
+  } catch (cleanupError) {
+    // Log but don't throw - session validation should still proceed
+    console.warn("Failed to clean up expired sessions:", cleanupError);
+  }
 
   // Get session with user
   const result = await query<{

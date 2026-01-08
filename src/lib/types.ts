@@ -166,6 +166,59 @@ export interface AdvancedCalculationResult {
   skillPath?: SkillGrindStep[];
 }
 
+// ========== CHARACTER SHOWCASE TYPES ==========
+
+export type WurmReligion = "Fo" | "Vynora" | "Magranon" | "Libila" | "None";
+export type Playstyle = "pve" | "pvp" | "both" | "casual" | "hardcore";
+
+export interface Character {
+  id: number;
+  user_id: number;
+  username?: string;
+  name: string;
+  server?: string;
+  religion?: WurmReligion;
+  avatar_url?: string;
+  premium_until?: string;
+  is_primary: boolean;
+  bio?: string;
+  deed_name?: string;
+  playstyle?: Playstyle;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCharacterInput {
+  name: string;
+  server?: string;
+  religion?: WurmReligion;
+  avatar_url?: string;
+  premium_until?: string;
+  is_primary?: boolean;
+  bio?: string;
+  deed_name?: string;
+  playstyle?: Playstyle;
+}
+
+export interface UpdateCharacterInput {
+  name?: string;
+  server?: string;
+  religion?: WurmReligion;
+  avatar_url?: string;
+  premium_until?: string;
+  is_primary?: boolean;
+  bio?: string;
+  deed_name?: string;
+  playstyle?: Playstyle;
+}
+
+export interface CharacterWithStats extends Character {
+  orders_count: number;
+  merchants_count: number;
+  projects_count: number;
+  skills_count: number;
+}
+
 // ========== MARKET/TRADING TYPES ==========
 
 export type OrderType = "buy" | "sell" | "trade";

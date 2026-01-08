@@ -47,6 +47,32 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX idx_sessions_user ON sessions(user_id);
 CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 
+-- ========== CHARACTER SHOWCASE ==========
+
+CREATE TABLE IF NOT EXISTS characters (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    server VARCHAR(50),
+    religion VARCHAR(50),
+    avatar_url VARCHAR(500),
+    premium_until DATE,
+    is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+    bio TEXT,
+    deed_name VARCHAR(100),
+    playstyle VARCHAR(50),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_characters_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_characters_religion CHECK (religion IS NULL OR religion IN ('Fo', 'Vynora', 'Magranon', 'Libila', 'None')),
+    CONSTRAINT chk_characters_playstyle CHECK (playstyle IS NULL OR playstyle IN ('pve', 'pvp', 'both', 'casual', 'hardcore'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_characters_user ON characters(user_id);
+CREATE INDEX idx_characters_server ON characters(server);
+CREATE INDEX idx_characters_primary ON characters(is_primary);
+
 -- ========== CRAFTING SYSTEM ==========
 
 CREATE TABLE IF NOT EXISTS items (
@@ -79,6 +105,7 @@ CREATE INDEX idx_recipes_ingredient ON recipes(ingredient_item_id);
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    character_id INT,
     order_type VARCHAR(10) NOT NULL,
     item_name VARCHAR(100) NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
@@ -93,6 +120,7 @@ CREATE TABLE IF NOT EXISTS orders (
     expires_at TIMESTAMP NULL,
 
     CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_orders_character FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE SET NULL,
     CONSTRAINT chk_orders_type CHECK (order_type IN ('buy', 'sell', 'trade')),
     CONSTRAINT chk_orders_status CHECK (status IN ('active', 'completed', 'cancelled', 'expired'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -107,6 +135,7 @@ CREATE INDEX idx_orders_item ON orders(item_name);
 CREATE TABLE IF NOT EXISTS merchants (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    character_id INT,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     location VARCHAR(200) NOT NULL,
@@ -118,7 +147,8 @@ CREATE TABLE IF NOT EXISTS merchants (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_merchants_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_merchants_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_merchants_character FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_merchants_user ON merchants(user_id);
@@ -188,9 +218,12 @@ CREATE TABLE IF NOT EXISTS price_history (
     quality INT DEFAULT 50,
     order_type VARCHAR(10) NOT NULL,
     currency VARCHAR(20) DEFAULT 'silver',
+    server VARCHAR(50),
+    user_id INT,
     recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT chk_price_history_type CHECK (order_type IN ('buy', 'sell'))
+    CONSTRAINT chk_price_history_type CHECK (order_type IN ('buy', 'sell')),
+    CONSTRAINT fk_price_history_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS price_alerts (
@@ -209,6 +242,7 @@ CREATE TABLE IF NOT EXISTS price_alerts (
 
 CREATE INDEX idx_price_history_item ON price_history(item_name);
 CREATE INDEX idx_price_history_date ON price_history(recorded_at);
+CREATE INDEX idx_price_history_server ON price_history(server);
 CREATE INDEX idx_price_alerts_user ON price_alerts(user_id);
 CREATE INDEX idx_price_alerts_item ON price_alerts(item_name);
 
@@ -217,6 +251,7 @@ CREATE INDEX idx_price_alerts_item ON price_alerts(item_name);
 CREATE TABLE IF NOT EXISTS projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    character_id INT,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'planning',
@@ -226,6 +261,7 @@ CREATE TABLE IF NOT EXISTS projects (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_projects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_projects_character FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE SET NULL,
     CONSTRAINT fk_projects_alliance FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE SET NULL,
     CONSTRAINT chk_projects_status CHECK (status IN ('planning', 'in_progress', 'completed', 'archived'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -453,6 +489,7 @@ CREATE INDEX idx_prospects_quality ON prospects(quality_rating);
 CREATE TABLE IF NOT EXISTS user_skills (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    character_id INT,
     skill_name VARCHAR(100) NOT NULL,
     current_level DECIMAL(10, 4) NOT NULL DEFAULT 1.0,
     target_level DECIMAL(10, 4),
@@ -461,7 +498,8 @@ CREATE TABLE IF NOT EXISTS user_skills (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_user_skills_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_user_skill (user_id, skill_name)
+    CONSTRAINT fk_user_skills_character FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE SET NULL,
+    UNIQUE KEY uk_user_skill_char (user_id, character_id, skill_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_user_skills_user ON user_skills(user_id);

@@ -14,6 +14,7 @@ const navCategories = [
       { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
       { href: "/recipes/submit", label: "Submit Recipe", icon: "plus", description: "Suggest missing recipes" },
       { href: "/market", label: "Market", icon: "store", description: "Buy & sell items" },
+      { href: "/prices", label: "Price Guide", icon: "coins", description: "Community price database" },
       { href: "/map", label: "Map", icon: "map", description: "Interactive world map" },
       { href: "/data", label: "Data", icon: "database", description: "Game data & stats" },
     ],
@@ -21,6 +22,7 @@ const navCategories = [
   {
     label: "Player Hub",
     items: [
+      { href: "/characters", label: "Characters", icon: "character", description: "Character showcase" },
       { href: "/skills", label: "Skills", icon: "skill", description: "Skill calculator & tracker" },
       { href: "/timers", label: "Timers", icon: "timer", description: "Timer dashboard" },
       { href: "/events", label: "Events", icon: "calendar", description: "Community calendar" },
@@ -128,6 +130,16 @@ const icons: Record<string, React.ReactNode> = {
   calendar: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+  character: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  ),
+  coins: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
 };

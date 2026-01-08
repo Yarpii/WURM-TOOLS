@@ -75,6 +75,15 @@ export async function query<T = Record<string, unknown>>(
       return { rows: [], rowCount: result.affectedRows };
     }
   } catch (error) {
+    // Provide helpful error messages for common connection issues
+    const err = error as { code?: string; message?: string };
+    if (err.code === 'ECONNREFUSED') {
+      console.error("MySQL Connection refused - is the database server running?");
+      console.error("Check DATABASE_URL or database host/port configuration.");
+      const dbError = new Error("Database connection refused. Please ensure MySQL is running.");
+      (dbError as Error & { code: string }).code = 'ECONNREFUSED';
+      throw dbError;
+    }
     console.error("MySQL Query error:", error);
     console.error("SQL:", convertedSql);
     console.error("Params:", params);
