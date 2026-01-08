@@ -7,7 +7,7 @@ import {
   getOrderStats,
   expireOldOrders,
 } from "@/lib/database";
-import { sanitizeError, validateStringFields, INPUT_LIMITS } from "@/lib/security";
+import { sanitizeError, validateStringFields, INPUT_LIMITS, validatePagination } from "@/lib/security";
 import type { OrderType, OrderStatus, CreateOrderInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -22,9 +22,11 @@ export async function GET(request: NextRequest) {
     const user_id = searchParams.get("user_id");
     const stats_only = searchParams.get("stats");
 
-    // Pagination parameters
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    // Pagination parameters with validation
+    const { page, limit } = validatePagination(
+      searchParams.get("page"),
+      searchParams.get("limit")
+    );
     const paginate = searchParams.get("paginate") === "true";
 
     if (stats_only) {

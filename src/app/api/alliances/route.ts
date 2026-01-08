@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getAllAlliances, getAlliancesPaginated, createAlliance, getUserAlliance } from "@/lib/database";
-import { sanitizeError } from "@/lib/security";
+import { sanitizeError, validatePagination, INPUT_LIMITS } from "@/lib/security";
 
 // GET /api/alliances - Get list of public alliances
 export async function GET(request: NextRequest) {
@@ -9,8 +9,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Pagination parameters with validation
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
+    const { page, limit } = validatePagination(
+      searchParams.get("page"),
+      searchParams.get("limit")
+    );
     const paginate = searchParams.get("paginate") === "true";
 
     const sessionId = request.cookies.get("session")?.value;
@@ -72,9 +74,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (tag && (tag.length < 2 || tag.length > 5)) {
+    if (tag && (tag.length < INPUT_LIMITS.tag.min || tag.length > INPUT_LIMITS.tag.max)) {
       return NextResponse.json(
-        { error: "Tag must be between 2 and 5 characters" },
+        { error: `Tag must be between ${INPUT_LIMITS.tag.min} and ${INPUT_LIMITS.tag.max} characters` },
         { status: 400 }
       );
     }
