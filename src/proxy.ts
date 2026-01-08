@@ -117,7 +117,7 @@ function checkRateLimit(key: string, maxRequests: number): boolean {
     // In production, you would use the async Redis implementation
     console.warn(
       "[Rate Limit] REDIS_URL is set but Redis rate limiting requires async implementation. " +
-      "Using in-memory fallback. See middleware.ts for Redis implementation instructions."
+      "Using in-memory fallback. See proxy.ts for Redis implementation instructions."
     );
   }
   return checkRateLimitInMemory(key, maxRequests);
@@ -170,8 +170,8 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-// ==================== MIDDLEWARE ====================
-export function middleware(request: NextRequest) {
+// ==================== PROXY ====================
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const rateLimitKey = getRateLimitKey(request);
 
