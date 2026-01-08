@@ -12,7 +12,8 @@ const navCategories = [
     label: "Market",
     items: [
       { href: "/market", label: "Market", icon: "store", description: "Buy & sell items" },
-      { href: "/trades", label: "Trades", icon: "exchange", description: "Trade history" },
+      { href: "/trades", label: "Trades", icon: "exchange", description: "Trade matching & reputation" },
+      { href: "/analytics", label: "Analytics", icon: "chart", description: "Price tracking & alerts" },
     ],
   },
   {
@@ -20,10 +21,8 @@ const navCategories = [
     items: [
       { href: "/characters", label: "Characters", icon: "character", description: "Character showcase" },
       { href: "/skills", label: "Skills", icon: "skill", description: "Skill calculator & tracker" },
-      { href: "/analytics", label: "Analytics", icon: "chart", description: "Skill & progress stats" },
-      { href: "/timers", label: "Timers", icon: "timer", description: "Timer dashboard" },
-      { href: "/projects", label: "Projects", icon: "folder", description: "Project planning" },
-      { href: "/achievements", label: "Achievements", icon: "trophy", description: "Goals & milestones" },
+      { href: "/timers", label: "Timers", icon: "timer", description: "Sleep bonus & activity timers" },
+      { href: "/achievements", label: "Achievements", icon: "trophy", description: "Goals & leaderboard" },
     ],
   },
   {
@@ -39,7 +38,8 @@ const navCategories = [
     label: "Tools",
     items: [
       { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
-      { href: "/data", label: "Data", icon: "database", description: "Game data & stats" },
+      { href: "/projects", label: "Projects", icon: "folder", description: "Crafting project planning" },
+      { href: "/data", label: "Data", icon: "database", description: "Game data management" },
     ],
   },
 ];
