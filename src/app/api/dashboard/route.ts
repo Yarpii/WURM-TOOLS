@@ -69,6 +69,27 @@ interface DashboardStats {
     total: number;
     main_character: string | null;
   };
+  skills: {
+    total: number;
+    at_goal: number;
+    closest_to_goal: Array<{
+      id: number;
+      skill_name: string;
+      current_level: number;
+      target_level: number;
+      progress: number;
+    }>;
+  };
+  events: {
+    upcoming: Array<{
+      id: number;
+      title: string;
+      event_type: string;
+      start_date: string;
+      server: string;
+      status: string;
+    }>;
+  };
   activity: {
     recent_orders: Array<{
       id: number;
@@ -77,6 +98,13 @@ interface DashboardStats {
       quantity: number;
       status: string;
       created_at: string;
+    }>;
+    recent_hunts: Array<{
+      id: number;
+      name: string;
+      status: string;
+      server: string;
+      updated_at: string;
     }>;
   };
 }
@@ -243,6 +271,51 @@ export async function GET(request: NextRequest) {
     `, [userId, userId]);
     const charactersStats = charactersResult.rows[0] || { count: 0, main_name: null };
 
+    // Skills stats
+    const skillsStatsResult = await query<{ total: number; at_goal: number }>(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN current_level >= target_level THEN 1 ELSE 0 END) as at_goal
+      FROM user_skills WHERE user_id = ? AND target_level > 0
+    `, [userId]);
+    const skillsStats = skillsStatsResult.rows[0] || { total: 0, at_goal: 0 };
+
+    const closestSkillsResult = await query<{
+      id: number;
+      skill_name: string;
+      current_level: number;
+      target_level: number;
+    }>(`
+      SELECT id, skill_name, current_level, target_level
+      FROM user_skills
+      WHERE user_id = ? AND target_level > 0 AND current_level < target_level
+      ORDER BY (current_level * 1.0 / target_level) DESC
+      LIMIT 3
+    `, [userId]);
+    const closestSkills = closestSkillsResult.rows.map(s => ({
+      ...s,
+      progress: Math.round((s.current_level / s.target_level) * 100)
+    }));
+
+    // Upcoming events
+    const upcomingEventsResult = await query<{
+      id: number;
+      title: string;
+      event_type: string;
+      start_date: string;
+      server: string;
+      status: string;
+    }>(`
+      SELECT e.id, e.title, e.event_type, e.start_date, e.server, ea.status
+      FROM events e
+      JOIN event_attendees ea ON e.id = ea.event_id
+      WHERE ea.user_id = ? AND ea.status IN ('going', 'maybe')
+        AND e.start_date >= datetime('now')
+      ORDER BY e.start_date ASC
+      LIMIT 3
+    `, [userId]);
+    const upcomingEvents = upcomingEventsResult.rows;
+
     // Recent activity - orders
     const recentOrdersResult = await query<{
       id: number;
@@ -254,9 +327,23 @@ export async function GET(request: NextRequest) {
     }>(`
       SELECT id, order_type, item_name, quantity, status, created_at
       FROM orders WHERE user_id = ?
-      ORDER BY created_at DESC LIMIT 8
+      ORDER BY created_at DESC LIMIT 5
     `, [userId]);
     const recentOrders = recentOrdersResult.rows;
+
+    // Recent treasure hunts
+    const recentHuntsResult = await query<{
+      id: number;
+      name: string;
+      status: string;
+      server: string;
+      updated_at: string;
+    }>(`
+      SELECT id, name, status, server, updated_at
+      FROM treasure_hunts WHERE user_id = ?
+      ORDER BY updated_at DESC LIMIT 3
+    `, [userId]);
+    const recentHunts = recentHuntsResult.rows;
 
     const stats: DashboardStats = {
       profile: {
@@ -319,8 +406,17 @@ export async function GET(request: NextRequest) {
         total: charactersStats.count,
         main_character: charactersStats.main_name,
       },
+      skills: {
+        total: skillsStats.total,
+        at_goal: skillsStats.at_goal || 0,
+        closest_to_goal: closestSkills,
+      },
+      events: {
+        upcoming: upcomingEvents,
+      },
       activity: {
         recent_orders: recentOrders,
+        recent_hunts: recentHunts,
       },
     };
 

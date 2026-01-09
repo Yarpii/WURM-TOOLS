@@ -70,6 +70,27 @@ interface DashboardStats {
     total: number;
     main_character: string | null;
   };
+  skills: {
+    total: number;
+    at_goal: number;
+    closest_to_goal: Array<{
+      id: number;
+      skill_name: string;
+      current_level: number;
+      target_level: number;
+      progress: number;
+    }>;
+  };
+  events: {
+    upcoming: Array<{
+      id: number;
+      title: string;
+      event_type: string;
+      start_date: string;
+      server: string;
+      status: string;
+    }>;
+  };
   activity: {
     recent_orders: Array<{
       id: number;
@@ -78,6 +99,13 @@ interface DashboardStats {
       quantity: number;
       status: string;
       created_at: string;
+    }>;
+    recent_hunts: Array<{
+      id: number;
+      name: string;
+      status: string;
+      server: string;
+      updated_at: string;
     }>;
   };
 }
@@ -101,6 +129,27 @@ const TIMER_TYPE_ICONS: Record<string, string> = {
   sermon: "🙏",
   meditation: "🧘",
   custom: "⏰",
+};
+
+const EVENT_TYPE_ICONS: Record<string, string> = {
+  impalong: "🔨",
+  rift: "🌀",
+  unique: "🐉",
+  sermon: "🙏",
+  market: "🛒",
+  pvp: "⚔️",
+  community: "🎉",
+  personal: "📌",
+};
+
+const HUNT_STATUS_ICONS: Record<string, string> = {
+  new: "📜",
+  reading: "🔍",
+  searching: "🧭",
+  found: "📍",
+  digging: "⛏️",
+  completed: "✅",
+  abandoned: "❌",
 };
 
 export default function DashboardPage() {
@@ -187,6 +236,18 @@ export default function DashboardPage() {
       return `${days}d ${hours % 24}h`;
     }
     return `${hours}h ${minutes}m`;
+  };
+
+  const formatEventDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    if (diffDays < 7) return `In ${diffDays} days`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   if (!authLoading && !user) {
@@ -511,11 +572,100 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-4 text-text-muted">
-              <div className="text-4xl mb-2">😴</div>
+            <div className="text-center py-6 text-text-muted">
+              <div className="text-3xl mb-2">😴</div>
               <p className="text-sm">No active timers</p>
               <Link href="/timers" className="text-accent text-xs hover:underline mt-2 inline-block">
                 Create a timer
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Skills & Events Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Skills Progress */}
+        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📊</span>
+              <h3 className="font-semibold text-text-primary">Skill Progress</h3>
+            </div>
+            <Link href="/skills" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          {stats.skills.closest_to_goal.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm text-text-muted mb-2">
+                <span>{stats.skills.at_goal} at goal</span>
+                <span>{stats.skills.total} tracking</span>
+              </div>
+              {stats.skills.closest_to_goal.map((skill) => (
+                <div key={skill.id} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-primary font-medium">{skill.skill_name}</span>
+                    <span className="text-text-muted">
+                      {skill.current_level.toFixed(1)} → {skill.target_level}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-bg-tertiary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-accent to-accent-hover transition-all"
+                      style={{ width: `${skill.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-text-muted">
+              <div className="text-3xl mb-2">🎯</div>
+              <p className="text-sm">No skill goals set</p>
+              <Link href="/skills" className="text-accent text-xs hover:underline mt-2 inline-block">
+                Track your skills
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming Events */}
+        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📅</span>
+              <h3 className="font-semibold text-text-primary">Upcoming Events</h3>
+            </div>
+            <Link href="/events" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          {stats.events.upcoming.length > 0 ? (
+            <div className="space-y-3">
+              {stats.events.upcoming.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events?id=${event.id}`}
+                  className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3 hover:bg-bg-hover transition-colors"
+                >
+                  <span className="text-xl">{EVENT_TYPE_ICONS[event.event_type] || "📌"}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-text-primary truncate">{event.title}</div>
+                    <div className="flex items-center gap-2 text-xs text-text-muted">
+                      <span>{formatEventDate(event.start_date)}</span>
+                      <span>•</span>
+                      <span>{event.server}</span>
+                      {event.status === "maybe" && (
+                        <span className="text-warning">(maybe)</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-text-muted">
+              <div className="text-3xl mb-2">🎉</div>
+              <p className="text-sm">No upcoming events</p>
+              <Link href="/events" className="text-accent text-xs hover:underline mt-2 inline-block">
+                Browse events
               </Link>
             </div>
           )}
@@ -528,15 +678,48 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-bg-secondary rounded-xl border border-border p-6">
           <h3 className="font-semibold text-text-primary mb-4">Recent Activity</h3>
 
-          {stats.activity.recent_orders.length === 0 ? (
+          {stats.activity.recent_orders.length === 0 && stats.activity.recent_hunts.length === 0 ? (
             <div className="text-center py-8 text-text-muted">
               <div className="text-4xl mb-2">📭</div>
               <p>No recent activity</p>
-              <p className="text-sm mt-1">Create your first order to get started!</p>
+              <p className="text-sm mt-1">Create your first order or treasure hunt!</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {stats.activity.recent_orders.slice(0, 8).map((order) => (
+              {/* Recent Treasure Hunts */}
+              {stats.activity.recent_hunts.length > 0 && (
+                <>
+                  {stats.activity.recent_hunts.map((hunt) => (
+                    <Link
+                      key={`hunt-${hunt.id}`}
+                      href="/treasures"
+                      className="flex items-center gap-4 p-3 bg-bg-tertiary rounded-lg hover:bg-bg-hover transition-colors"
+                    >
+                      <div className="text-xl">
+                        {HUNT_STATUS_ICONS[hunt.status] || "🗺️"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div>
+                          <span className="text-text-primary font-medium">Treasure Hunt</span>
+                          <span className="text-text-muted"> - </span>
+                          <span className="text-text-secondary truncate">{hunt.name}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-xs bg-accent/20 text-accent">
+                          {hunt.status}
+                        </span>
+                        <span className="text-xs text-text-muted whitespace-nowrap">
+                          {formatDate(hunt.updated_at)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              )}
+
+              {/* Recent Orders */}
+              {stats.activity.recent_orders.map((order) => (
                 <div
                   key={`order-${order.id}`}
                   className="flex items-center gap-4 p-3 bg-bg-tertiary rounded-lg"
