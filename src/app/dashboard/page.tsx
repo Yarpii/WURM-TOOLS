@@ -25,6 +25,12 @@ interface DashboardStats {
     in_progress: number;
     completed: number;
     total_items: number;
+    active_projects: Array<{
+      id: number;
+      name: string;
+      progress: number;
+      item_count: number;
+    }>;
   };
   merchants: {
     total: number;
@@ -49,6 +55,56 @@ interface DashboardStats {
     total_xp: number;
     level: number;
   };
+  treasures: {
+    total_hunts: number;
+    active_hunts: number;
+    completed_hunts: number;
+    shared_with_me: number;
+    total_loot: number;
+  };
+  timers: {
+    total: number;
+    active: number;
+    recent: Array<{
+      id: number;
+      name: string;
+      timer_type: string;
+      end_time: string;
+    }>;
+  };
+  characters: {
+    total: number;
+    main_character: {
+      name: string;
+      server: string;
+      is_premium: boolean;
+    } | null;
+  };
+  leaderboard: {
+    rank: number;
+    total_players: number;
+  };
+  skills: {
+    total: number;
+    at_goal: number;
+    closest_to_goal: Array<{
+      id: number;
+      skill_name: string;
+      current_level: number;
+      target_level: number;
+      progress: number;
+    }>;
+  };
+  events: {
+    upcoming: Array<{
+      id: number;
+      title: string;
+      event_type: string;
+      start_date: string;
+      server: string;
+      status: string;
+    }>;
+  };
   activity: {
     recent_orders: Array<{
       id: number;
@@ -57,6 +113,13 @@ interface DashboardStats {
       quantity: number;
       status: string;
       created_at: string;
+    }>;
+    recent_hunts: Array<{
+      id: number;
+      name: string;
+      status: string;
+      server: string;
+      updated_at: string;
     }>;
   };
 }
@@ -72,6 +135,35 @@ const ORDER_TYPE_ICONS: Record<string, string> = {
   buy: "🛒",
   sell: "💰",
   trade: "🔄",
+};
+
+const TIMER_TYPE_ICONS: Record<string, string> = {
+  sleep_bonus: "💤",
+  fatigue: "⚡",
+  sermon: "🙏",
+  meditation: "🧘",
+  custom: "⏰",
+};
+
+const EVENT_TYPE_ICONS: Record<string, string> = {
+  impalong: "🔨",
+  rift: "🌀",
+  unique: "🐉",
+  sermon: "🙏",
+  market: "🛒",
+  pvp: "⚔️",
+  community: "🎉",
+  personal: "📌",
+};
+
+const HUNT_STATUS_ICONS: Record<string, string> = {
+  new: "📜",
+  reading: "🔍",
+  searching: "🧭",
+  found: "📍",
+  digging: "⛏️",
+  completed: "✅",
+  abandoned: "❌",
 };
 
 export default function DashboardPage() {
@@ -141,6 +233,35 @@ export default function DashboardPage() {
         {"☆".repeat(5 - Math.floor(rating))}
       </span>
     );
+  };
+
+  const formatTimerRemaining = (endTime: string) => {
+    const end = new Date(endTime);
+    const now = new Date();
+    const diffMs = end.getTime() - now.getTime();
+
+    if (diffMs <= 0) return "Expired";
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}d ${hours % 24}h`;
+    }
+    return `${hours}h ${minutes}m`;
+  };
+
+  const formatEventDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    if (diffDays < 7) return `In ${diffDays} days`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   if (!authLoading && !user) {
@@ -267,46 +388,60 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
         <Link
           href="/market"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">🛒</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">New Order</div>
+          <div className="text-xl mb-1">🛒</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Market</div>
+        </Link>
+        <Link
+          href="/treasures"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
+        >
+          <div className="text-xl mb-1">🗺️</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Treasures</div>
+        </Link>
+        <Link
+          href="/timers"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
+        >
+          <div className="text-xl mb-1">⏱️</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Timers</div>
         </Link>
         <Link
           href="/projects"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">📋</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Projects</div>
-        </Link>
-        <Link
-          href="/merchants"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
-        >
-          <div className="text-2xl mb-2">🏪</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Merchants</div>
+          <div className="text-xl mb-1">📋</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Projects</div>
         </Link>
         <Link
           href="/crafting"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">🔨</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Crafting</div>
+          <div className="text-xl mb-1">🔨</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Crafting</div>
+        </Link>
+        <Link
+          href="/characters"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
+        >
+          <div className="text-xl mb-1">👤</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Characters</div>
         </Link>
         <Link
           href="/settings"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">⚙️</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Settings</div>
+          <div className="text-xl mb-1">⚙️</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Settings</div>
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stats Grid - Row 1 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
         {/* Orders */}
         <div className="bg-bg-secondary rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -342,23 +477,32 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-text-primary">Projects</h3>
             <Link href="/projects" className="text-accent text-sm hover:underline">View all</Link>
           </div>
-          <div className="text-3xl font-bold text-text-primary mb-2">{stats.projects.total}</div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-warning"></span>
-              <span className="text-text-muted">Active:</span>
-              <span className="text-text-primary font-medium">{stats.projects.in_progress}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success"></span>
-              <span className="text-text-muted">Done:</span>
-              <span className="text-text-primary font-medium">{stats.projects.completed}</span>
-            </div>
-            <div className="col-span-2 flex items-center gap-2">
-              <span className="text-text-muted">Total items tracked:</span>
-              <span className="text-text-primary">{stats.projects.total_items}</span>
-            </div>
+          <div className="flex items-center gap-4 mb-3">
+            <div className="text-3xl font-bold text-text-primary">{stats.projects.in_progress}</div>
+            <div className="text-sm text-text-muted">active</div>
           </div>
+          {stats.projects.active_projects.length > 0 ? (
+            <div className="space-y-2">
+              {stats.projects.active_projects.slice(0, 2).map((project) => (
+                <div key={project.id} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-primary truncate">{project.name}</span>
+                    <span className="text-text-muted">{project.progress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent transition-all"
+                      style={{ width: `${project.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-text-muted">
+              {stats.projects.completed} completed • {stats.projects.total_items} items
+            </div>
+          )}
         </div>
 
         {/* Trades & Reputation */}
@@ -387,6 +531,168 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+      </div>
+
+      {/* Treasure Hunts - Featured Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/20 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🗺️</span>
+              <h3 className="font-semibold text-text-primary">Treasure Hunts</h3>
+            </div>
+            <Link href="/treasures" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-text-primary">{stats.treasures.total_hunts}</div>
+              <div className="text-xs text-text-muted">Total</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-warning">{stats.treasures.active_hunts}</div>
+              <div className="text-xs text-text-muted">Active</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-success">{stats.treasures.completed_hunts}</div>
+              <div className="text-xs text-text-muted">Completed</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-accent">{stats.treasures.total_loot}</div>
+              <div className="text-xs text-text-muted">Loot Items</div>
+            </div>
+          </div>
+          {stats.treasures.shared_with_me > 0 && (
+            <div className="mt-4 pt-4 border-t border-accent/20 text-center">
+              <span className="text-info text-sm">📨 {stats.treasures.shared_with_me} hunt{stats.treasures.shared_with_me !== 1 ? 's' : ''} shared with you</span>
+            </div>
+          )}
+        </div>
+
+        {/* Active Timers Summary */}
+        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⏱️</span>
+              <h3 className="font-semibold text-text-primary">Timers</h3>
+            </div>
+            <Link href="/timers" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          {stats.timers.active > 0 ? (
+            <div className="space-y-3">
+              <div className="text-center mb-4">
+                <div className="text-2xl font-bold text-warning">{stats.timers.active}</div>
+                <div className="text-xs text-text-muted">Active Timers</div>
+              </div>
+              {stats.timers.recent.slice(0, 2).map((timer) => (
+                <div key={timer.id} className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3">
+                  <span className="text-lg">{TIMER_TYPE_ICONS[timer.timer_type] || "⏰"}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-text-primary truncate">{timer.name}</div>
+                    <div className="text-xs text-warning">{formatTimerRemaining(timer.end_time)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-text-muted">
+              <div className="text-3xl mb-2">😴</div>
+              <p className="text-sm">No active timers</p>
+              <Link href="/timers" className="text-accent text-xs hover:underline mt-2 inline-block">
+                Create a timer
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Skills & Events Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Skills Progress */}
+        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📊</span>
+              <h3 className="font-semibold text-text-primary">Skill Progress</h3>
+            </div>
+            <Link href="/skills" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          {stats.skills.closest_to_goal.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm text-text-muted mb-2">
+                <span>{stats.skills.at_goal} at goal</span>
+                <span>{stats.skills.total} tracking</span>
+              </div>
+              {stats.skills.closest_to_goal.map((skill) => (
+                <div key={skill.id} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-primary font-medium">{skill.skill_name}</span>
+                    <span className="text-text-muted">
+                      {skill.current_level.toFixed(1)} → {skill.target_level}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-bg-tertiary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-accent to-accent-hover transition-all"
+                      style={{ width: `${skill.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-text-muted">
+              <div className="text-3xl mb-2">🎯</div>
+              <p className="text-sm">No skill goals set</p>
+              <Link href="/skills" className="text-accent text-xs hover:underline mt-2 inline-block">
+                Track your skills
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming Events */}
+        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📅</span>
+              <h3 className="font-semibold text-text-primary">Upcoming Events</h3>
+            </div>
+            <Link href="/events" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          {stats.events.upcoming.length > 0 ? (
+            <div className="space-y-3">
+              {stats.events.upcoming.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events?id=${event.id}`}
+                  className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3 hover:bg-bg-hover transition-colors"
+                >
+                  <span className="text-xl">{EVENT_TYPE_ICONS[event.event_type] || "📌"}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-text-primary truncate">{event.title}</div>
+                    <div className="flex items-center gap-2 text-xs text-text-muted">
+                      <span>{formatEventDate(event.start_date)}</span>
+                      <span>•</span>
+                      <span>{event.server}</span>
+                      {event.status === "maybe" && (
+                        <span className="text-warning">(maybe)</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-text-muted">
+              <div className="text-3xl mb-2">🎉</div>
+              <p className="text-sm">No upcoming events</p>
+              <Link href="/events" className="text-accent text-xs hover:underline mt-2 inline-block">
+                Browse events
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Activity Feed & Achievements */}
@@ -395,15 +701,48 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-bg-secondary rounded-xl border border-border p-6">
           <h3 className="font-semibold text-text-primary mb-4">Recent Activity</h3>
 
-          {stats.activity.recent_orders.length === 0 ? (
+          {stats.activity.recent_orders.length === 0 && stats.activity.recent_hunts.length === 0 ? (
             <div className="text-center py-8 text-text-muted">
               <div className="text-4xl mb-2">📭</div>
               <p>No recent activity</p>
-              <p className="text-sm mt-1">Create your first order to get started!</p>
+              <p className="text-sm mt-1">Create your first order or treasure hunt!</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {stats.activity.recent_orders.slice(0, 8).map((order) => (
+              {/* Recent Treasure Hunts */}
+              {stats.activity.recent_hunts.length > 0 && (
+                <>
+                  {stats.activity.recent_hunts.map((hunt) => (
+                    <Link
+                      key={`hunt-${hunt.id}`}
+                      href="/treasures"
+                      className="flex items-center gap-4 p-3 bg-bg-tertiary rounded-lg hover:bg-bg-hover transition-colors"
+                    >
+                      <div className="text-xl">
+                        {HUNT_STATUS_ICONS[hunt.status] || "🗺️"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div>
+                          <span className="text-text-primary font-medium">Treasure Hunt</span>
+                          <span className="text-text-muted"> - </span>
+                          <span className="text-text-secondary truncate">{hunt.name}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-xs bg-accent/20 text-accent">
+                          {hunt.status}
+                        </span>
+                        <span className="text-xs text-text-muted whitespace-nowrap">
+                          {formatDate(hunt.updated_at)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              )}
+
+              {/* Recent Orders */}
+              {stats.activity.recent_orders.map((order) => (
                 <div
                   key={`order-${order.id}`}
                   className="flex items-center gap-4 p-3 bg-bg-tertiary rounded-lg"
@@ -464,15 +803,62 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Achievement Count */}
-          <div className="text-center">
-            <div className="text-4xl font-bold text-accent mb-1">{stats.achievements.unlocked}</div>
-            <div className="text-text-muted">Achievements Unlocked</div>
+          {/* Achievement & Leaderboard */}
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div className="text-3xl font-bold text-accent">{stats.achievements.unlocked}</div>
+              <div className="text-xs text-text-muted">Achievements</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-warning">#{stats.leaderboard.rank || "—"}</div>
+              <div className="text-xs text-text-muted">
+                {stats.leaderboard.total_players > 0 ? `of ${stats.leaderboard.total_players}` : "Rank"}
+              </div>
+            </div>
           </div>
+
+          {/* Character Info */}
+          {stats.characters.main_character ? (
+            <Link href="/characters" className="mt-6 p-4 bg-bg-tertiary rounded-lg block hover:bg-bg-hover transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-lg">
+                  {stats.characters.main_character.is_premium ? "👑" : "👤"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-text-primary truncate">
+                    {stats.characters.main_character.name}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-text-muted">
+                    <span>{stats.characters.main_character.server}</span>
+                    {stats.characters.main_character.is_premium && (
+                      <span className="text-warning">Premium</span>
+                    )}
+                  </div>
+                </div>
+                {stats.characters.total > 1 && (
+                  <span className="text-xs text-text-muted">+{stats.characters.total - 1}</span>
+                )}
+              </div>
+            </Link>
+          ) : stats.characters.total > 0 ? (
+            <Link href="/characters" className="mt-6 p-4 bg-bg-tertiary rounded-lg block hover:bg-bg-hover transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                  👤
+                </div>
+                <div>
+                  <div className="font-medium text-text-primary">No main set</div>
+                  <div className="text-sm text-text-muted">
+                    {stats.characters.total} character{stats.characters.total !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ) : null}
 
           {/* Alliance Info */}
           {stats.alliances.alliance_name && (
-            <div className="mt-6 p-4 bg-bg-tertiary rounded-lg">
+            <div className="mt-4 p-4 bg-bg-tertiary rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
                   🛡️

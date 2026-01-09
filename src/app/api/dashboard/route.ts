@@ -24,6 +24,12 @@ interface DashboardStats {
     in_progress: number;
     completed: number;
     total_items: number;
+    active_projects: Array<{
+      id: number;
+      name: string;
+      progress: number;
+      item_count: number;
+    }>;
   };
   merchants: {
     total: number;
@@ -48,6 +54,56 @@ interface DashboardStats {
     total_xp: number;
     level: number;
   };
+  treasures: {
+    total_hunts: number;
+    active_hunts: number;
+    completed_hunts: number;
+    shared_with_me: number;
+    total_loot: number;
+  };
+  timers: {
+    total: number;
+    active: number;
+    recent: Array<{
+      id: number;
+      name: string;
+      timer_type: string;
+      end_time: string;
+    }>;
+  };
+  characters: {
+    total: number;
+    main_character: {
+      name: string;
+      server: string;
+      is_premium: boolean;
+    } | null;
+  };
+  leaderboard: {
+    rank: number;
+    total_players: number;
+  };
+  skills: {
+    total: number;
+    at_goal: number;
+    closest_to_goal: Array<{
+      id: number;
+      skill_name: string;
+      current_level: number;
+      target_level: number;
+      progress: number;
+    }>;
+  };
+  events: {
+    upcoming: Array<{
+      id: number;
+      title: string;
+      event_type: string;
+      start_date: string;
+      server: string;
+      status: string;
+    }>;
+  };
   activity: {
     recent_orders: Array<{
       id: number;
@@ -56,6 +112,13 @@ interface DashboardStats {
       quantity: number;
       status: string;
       created_at: string;
+    }>;
+    recent_hunts: Array<{
+      id: number;
+      name: string;
+      status: string;
+      server: string;
+      updated_at: string;
     }>;
   };
 }
@@ -129,6 +192,31 @@ export async function GET(request: NextRequest) {
       `, [userId]),
     ]);
 
+    // Active projects with progress
+    const activeProjectsResult = await query<{
+      id: number;
+      name: string;
+      total_items: number;
+      completed_items: number;
+    }>(`
+      SELECT
+        p.id, p.name,
+        COUNT(pi.id) as total_items,
+        SUM(CASE WHEN pi.is_complete = 1 THEN 1 ELSE 0 END) as completed_items
+      FROM projects p
+      LEFT JOIN project_items pi ON p.id = pi.project_id
+      WHERE p.user_id = ? AND p.status = 'in_progress'
+      GROUP BY p.id
+      ORDER BY p.updated_at DESC
+      LIMIT 3
+    `, [userId]);
+    const activeProjects = activeProjectsResult.rows.map(p => ({
+      id: p.id,
+      name: p.name,
+      progress: p.total_items > 0 ? Math.round((p.completed_items / p.total_items) * 100) : 0,
+      item_count: p.total_items,
+    }));
+
     // Merchants stats
     const [merchantsTotal, merchantsActive] = await Promise.all([
       query<{ count: number }>("SELECT COUNT(*) as count FROM merchants WHERE user_id = ?", [userId]),
@@ -179,6 +267,111 @@ export async function GET(request: NextRequest) {
     );
     const xp = xpResult.rows[0];
 
+    // Treasure hunts stats
+    const [treasuresTotal, treasuresActive, treasuresCompleted, treasuresShared, treasuresLoot] = await Promise.all([
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ?", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ? AND status NOT IN ('completed', 'abandoned')", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ? AND status = 'completed'", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunt_shares WHERE shared_with_user_id = ?", [userId]),
+      query<{ count: number }>(`
+        SELECT COUNT(*) as count FROM treasure_loot tl
+        JOIN treasure_hunts th ON tl.hunt_id = th.id
+        WHERE th.user_id = ?
+      `, [userId]),
+    ]);
+
+    // Timers stats
+    const timersResult = await query<{ count: number; active: number }>(`
+      SELECT
+        COUNT(*) as count,
+        SUM(CASE WHEN end_time > datetime('now') THEN 1 ELSE 0 END) as active
+      FROM timers WHERE user_id = ?
+    `, [userId]);
+    const timersStats = timersResult.rows[0] || { count: 0, active: 0 };
+
+    const recentTimersResult = await query<{
+      id: number;
+      name: string;
+      timer_type: string;
+      end_time: string;
+    }>(`
+      SELECT id, name, timer_type, end_time FROM timers
+      WHERE user_id = ? AND end_time > datetime('now')
+      ORDER BY end_time ASC LIMIT 3
+    `, [userId]);
+    const recentTimers = recentTimersResult.rows;
+
+    // Characters stats
+    const charactersCountResult = await query<{ count: number }>(
+      "SELECT COUNT(*) as count FROM characters WHERE user_id = ?",
+      [userId]
+    );
+    const charactersCount = charactersCountResult.rows[0]?.count || 0;
+
+    const mainCharacterResult = await query<{
+      name: string;
+      server: string;
+      is_premium: number;
+    }>(`
+      SELECT name, server, is_premium
+      FROM characters WHERE user_id = ? AND is_main = 1
+      LIMIT 1
+    `, [userId]);
+    const mainChar = mainCharacterResult.rows[0];
+
+    // Leaderboard position
+    const leaderboardResult = await query<{ rank: number; total: number }>(`
+      SELECT
+        (SELECT COUNT(*) + 1 FROM user_xp WHERE total_xp > COALESCE((SELECT total_xp FROM user_xp WHERE user_id = ?), 0)) as rank,
+        (SELECT COUNT(*) FROM user_xp) as total
+    `, [userId]);
+    const leaderboard = leaderboardResult.rows[0] || { rank: 0, total: 0 };
+
+    // Skills stats
+    const skillsStatsResult = await query<{ total: number; at_goal: number }>(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN current_level >= target_level THEN 1 ELSE 0 END) as at_goal
+      FROM user_skills WHERE user_id = ? AND target_level > 0
+    `, [userId]);
+    const skillsStats = skillsStatsResult.rows[0] || { total: 0, at_goal: 0 };
+
+    const closestSkillsResult = await query<{
+      id: number;
+      skill_name: string;
+      current_level: number;
+      target_level: number;
+    }>(`
+      SELECT id, skill_name, current_level, target_level
+      FROM user_skills
+      WHERE user_id = ? AND target_level > 0 AND current_level < target_level
+      ORDER BY (current_level * 1.0 / target_level) DESC
+      LIMIT 3
+    `, [userId]);
+    const closestSkills = closestSkillsResult.rows.map(s => ({
+      ...s,
+      progress: Math.round((s.current_level / s.target_level) * 100)
+    }));
+
+    // Upcoming events
+    const upcomingEventsResult = await query<{
+      id: number;
+      title: string;
+      event_type: string;
+      start_date: string;
+      server: string;
+      status: string;
+    }>(`
+      SELECT e.id, e.title, e.event_type, e.start_date, e.server, ea.status
+      FROM events e
+      JOIN event_attendees ea ON e.id = ea.event_id
+      WHERE ea.user_id = ? AND ea.status IN ('going', 'maybe')
+        AND e.start_date >= datetime('now')
+      ORDER BY e.start_date ASC
+      LIMIT 3
+    `, [userId]);
+    const upcomingEvents = upcomingEventsResult.rows;
+
     // Recent activity - orders
     const recentOrdersResult = await query<{
       id: number;
@@ -190,9 +383,23 @@ export async function GET(request: NextRequest) {
     }>(`
       SELECT id, order_type, item_name, quantity, status, created_at
       FROM orders WHERE user_id = ?
-      ORDER BY created_at DESC LIMIT 8
+      ORDER BY created_at DESC LIMIT 5
     `, [userId]);
     const recentOrders = recentOrdersResult.rows;
+
+    // Recent treasure hunts
+    const recentHuntsResult = await query<{
+      id: number;
+      name: string;
+      status: string;
+      server: string;
+      updated_at: string;
+    }>(`
+      SELECT id, name, status, server, updated_at
+      FROM treasure_hunts WHERE user_id = ?
+      ORDER BY updated_at DESC LIMIT 3
+    `, [userId]);
+    const recentHunts = recentHuntsResult.rows;
 
     const stats: DashboardStats = {
       profile: {
@@ -215,6 +422,7 @@ export async function GET(request: NextRequest) {
         in_progress: projectsInProgress.rows[0]?.count || 0,
         completed: projectsCompleted.rows[0]?.count || 0,
         total_items: projectItems.rows[0]?.total || 0,
+        active_projects: activeProjects,
       },
       merchants: {
         total: merchantsTotal.rows[0]?.count || 0,
@@ -239,8 +447,41 @@ export async function GET(request: NextRequest) {
         total_xp: xp?.total_xp || 0,
         level: xp?.level || 1,
       },
+      treasures: {
+        total_hunts: treasuresTotal.rows[0]?.count || 0,
+        active_hunts: treasuresActive.rows[0]?.count || 0,
+        completed_hunts: treasuresCompleted.rows[0]?.count || 0,
+        shared_with_me: treasuresShared.rows[0]?.count || 0,
+        total_loot: treasuresLoot.rows[0]?.count || 0,
+      },
+      timers: {
+        total: timersStats.count,
+        active: timersStats.active || 0,
+        recent: recentTimers,
+      },
+      characters: {
+        total: charactersCount,
+        main_character: mainChar ? {
+          name: mainChar.name,
+          server: mainChar.server,
+          is_premium: mainChar.is_premium === 1,
+        } : null,
+      },
+      leaderboard: {
+        rank: leaderboard.rank,
+        total_players: leaderboard.total,
+      },
+      skills: {
+        total: skillsStats.total,
+        at_goal: skillsStats.at_goal || 0,
+        closest_to_goal: closestSkills,
+      },
+      events: {
+        upcoming: upcomingEvents,
+      },
       activity: {
         recent_orders: recentOrders,
+        recent_hunts: recentHunts,
       },
     };
 

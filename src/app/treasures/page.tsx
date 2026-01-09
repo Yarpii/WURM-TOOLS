@@ -288,20 +288,37 @@ export default function TreasuresPage() {
   };
 
   // Share treasure to community modal
-  const openShareModal = () => {
-    setFormData({
-      name: "",
-      description: "",
-      server: "Harmony",
-      map_quality: "",
-      difficulty: "easy",
-      x: "",
-      y: "",
-      status: "new",
-      treasure_type: "treasure_chest",
-      parent_hunt_id: "",
-      screenshot_url: "",
-    });
+  const openShareModal = (fromHunt?: TreasureHunt) => {
+    if (fromHunt) {
+      // Pre-fill with hunt data
+      setFormData({
+        name: fromHunt.name,
+        description: fromHunt.description || "",
+        server: fromHunt.server,
+        map_quality: fromHunt.map_quality?.toString() || "",
+        difficulty: fromHunt.difficulty,
+        x: fromHunt.x?.toString() || "",
+        y: fromHunt.y?.toString() || "",
+        status: fromHunt.status,
+        treasure_type: "treasure_chest",
+        parent_hunt_id: "",
+        screenshot_url: "",
+      });
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        server: "Harmony",
+        map_quality: "",
+        difficulty: "easy",
+        x: "",
+        y: "",
+        status: "new",
+        treasure_type: "treasure_chest",
+        parent_hunt_id: "",
+        screenshot_url: "",
+      });
+    }
     setModalMode("share");
     setShowModal(true);
   };
@@ -513,20 +530,12 @@ export default function TreasuresPage() {
             </p>
           </div>
           {user && (
-            <div className="flex gap-2">
-              <button
-                onClick={openCreateModal}
-                className="px-4 py-2 bg-accent rounded-lg hover:bg-accent-hover flex items-center gap-2"
-              >
-                <span>+</span> New Hunt
-              </button>
-              <button
-                onClick={openShareModal}
-                className="px-4 py-2 bg-bg-secondary border border-border rounded-lg hover:bg-bg-tertiary"
-              >
-                Share Location
-              </button>
-            </div>
+            <button
+              onClick={() => openCreateModal()}
+              className="px-4 py-2 bg-accent rounded-lg hover:bg-accent-hover flex items-center gap-2"
+            >
+              <span>+</span> New Hunt
+            </button>
           )}
         </div>
 
@@ -692,26 +701,36 @@ export default function TreasuresPage() {
                           <h2 className="text-2xl font-bold">{selectedHunt.name}</h2>
                           <p className="text-text-secondary">{selectedHunt.server}</p>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={openShareFriendModal}
-                            className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
-                          >
-                            Share
-                          </button>
-                          <button
-                            onClick={() => openEditModal(selectedHunt)}
-                            className="px-3 py-1 bg-bg-tertiary rounded hover:bg-bg-hover text-sm"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteHunt(selectedHunt.id)}
-                            className="px-3 py-1 bg-danger/20 text-danger rounded hover:bg-danger/30 text-sm"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        {selectedHunt.user_id === user?.id && (
+                          <div className="flex gap-2">
+                            {selectedHunt.x && selectedHunt.y && (
+                              <button
+                                onClick={() => openShareModal(selectedHunt)}
+                                className="px-3 py-1 bg-accent/20 text-accent rounded hover:bg-accent/30 text-sm"
+                              >
+                                Share to Community
+                              </button>
+                            )}
+                            <button
+                              onClick={openShareFriendModal}
+                              className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
+                            >
+                              Share with Friend
+                            </button>
+                            <button
+                              onClick={() => openEditModal(selectedHunt)}
+                              className="px-3 py-1 bg-bg-tertiary rounded hover:bg-bg-hover text-sm"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteHunt(selectedHunt.id)}
+                              className="px-3 py-1 bg-danger/20 text-danger rounded hover:bg-danger/30 text-sm"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Status & Info */}
@@ -931,11 +950,9 @@ export default function TreasuresPage() {
             {sharedTreasures.length === 0 ? (
               <div className="text-center py-12 bg-bg-secondary rounded-lg">
                 <p className="text-text-secondary mb-4">No shared treasure locations yet.</p>
-                {user && (
-                  <button onClick={openShareModal} className="px-4 py-2 bg-accent rounded hover:bg-accent-hover">
-                    Share a Location
-                  </button>
-                )}
+                <p className="text-text-muted text-sm">
+                  Complete a treasure hunt with coordinates to share it with the community.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
