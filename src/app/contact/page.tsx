@@ -249,6 +249,59 @@ export default function ContactPage() {
           </div>
         </section>
 
+        {/* Donation Section */}
+        <section className="relative mb-8 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-amber-500/5 to-yellow-500/10 rounded-2xl" />
+          <div className="relative bg-bg-secondary/80 backdrop-blur rounded-2xl border border-yellow-500/20 p-6 md:p-8">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {/* Coin Icon */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-yellow-500/20 rounded-full blur-xl scale-150" />
+                <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-xl font-semibold text-text-primary mb-2">
+                  Support Blackforge Tools
+                </h3>
+                <p className="text-text-secondary mb-4">
+                  Want to show your appreciation? You can donate <strong className="text-yellow-500">in-game currency</strong> (silver, copper, iron) to help keep this project going. Just send it to <strong className="text-text-primary">Yarpiii</strong> on Celebration!
+                </p>
+                <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 text-yellow-500 text-sm rounded-full border border-yellow-500/20">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Silver & Copper
+                  </span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 text-yellow-500 text-sm rounded-full border border-yellow-500/20">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Items & Materials
+                  </span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-400 text-sm rounded-full border border-red-500/20">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    No Real Money
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-border/50">
+              <p className="text-sm text-text-muted text-center">
+                Blackforge Tools is and always will be <strong className="text-text-secondary">100% free</strong>. Donations are completely optional and purely a way to say thanks!
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Navigation */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
