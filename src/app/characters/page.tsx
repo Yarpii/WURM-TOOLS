@@ -236,18 +236,18 @@ export default function CharactersPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-bg-primary text-text-primary flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-bg-primary text-text-primary flex flex-col items-center justify-center">
         <h1 className="text-2xl font-bold mb-4">Character Showcase</h1>
-        <p className="text-gray-400 mb-4">Please log in to manage your characters.</p>
-        <Link href="/login" className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">
+        <p className="text-text-secondary mb-4">Please log in to manage your characters.</p>
+        <Link href="/login" className="px-4 py-2 bg-accent rounded hover:bg-accent-hover">
           Log In
         </Link>
       </div>
@@ -255,20 +255,20 @@ export default function CharactersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-bg-primary text-text-primary">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Character Showcase</h1>
-            <p className="text-gray-400 mt-1">
+            <p className="text-text-secondary mt-1">
               Manage your Wurm Online characters ({characters.length}/{MAX_CHARACTERS})
             </p>
           </div>
           {characters.length < MAX_CHARACTERS && (
             <button
               onClick={openCreateModal}
-              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              className="px-4 py-2 bg-accent rounded-lg hover:bg-accent-hover flex items-center gap-2"
             >
               <span>+</span> Add Character
             </button>
@@ -277,23 +277,23 @@ export default function CharactersPage() {
 
         {/* Messages */}
         {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded mb-6">
+          <div className="bg-danger/20 border border-danger text-danger px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded mb-6">
+          <div className="bg-success/20 border border-success text-success px-4 py-3 rounded mb-6">
             {success}
           </div>
         )}
 
         {/* Characters Grid */}
         {characters.length === 0 ? (
-          <div className="text-center py-12 bg-gray-800 rounded-lg">
-            <p className="text-gray-400 mb-4">You haven&apos;t created any characters yet.</p>
+          <div className="text-center py-12 bg-bg-secondary rounded-lg">
+            <p className="text-text-secondary mb-4">You haven&apos;t created any characters yet.</p>
             <button
               onClick={openCreateModal}
-              className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-accent rounded hover:bg-accent-hover"
             >
               Create Your First Character
             </button>
@@ -303,12 +303,12 @@ export default function CharactersPage() {
             {characters.map((character) => (
               <div
                 key={character.id}
-                className={`bg-gray-800 rounded-lg overflow-hidden border-2 ${
-                  character.is_primary ? "border-yellow-500" : "border-gray-700"
+                className={`bg-bg-secondary rounded-lg overflow-hidden border-2 ${
+                  character.is_primary ? "border-warning" : "border-border"
                 }`}
               >
                 {/* Character Header */}
-                <div className="p-4 bg-gray-700/50">
+                <div className="p-4 bg-bg-tertiary/50">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       {character.avatar_url ? (
@@ -318,7 +318,7 @@ export default function CharactersPage() {
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-xl">
+                        <div className="w-12 h-12 rounded-full bg-bg-hover flex items-center justify-center text-xl">
                           {character.name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -326,27 +326,27 @@ export default function CharactersPage() {
                         <h3 className="font-bold text-lg flex items-center gap-2">
                           {character.name}
                           {character.is_primary && (
-                            <span className="text-yellow-500 text-sm" title="Primary Character">
+                            <span className="text-warning text-sm" title="Primary Character">
                               ★
                             </span>
                           )}
                         </h3>
                         {character.server && (
-                          <p className="text-gray-400 text-sm">{character.server}</p>
+                          <p className="text-text-secondary text-sm">{character.server}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={() => openEditModal(character)}
-                        className="p-2 text-gray-400 hover:text-white hover:bg-gray-600 rounded"
+                        className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded"
                         title="Edit"
                       >
                         ✏️
                       </button>
                       <button
                         onClick={() => handleDelete(character.id)}
-                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded"
+                        className="p-2 text-text-secondary hover:text-danger hover:bg-bg-hover rounded"
                         title="Delete"
                       >
                         🗑️
@@ -359,54 +359,54 @@ export default function CharactersPage() {
                 <div className="p-4 space-y-3">
                   {character.deed_name && (
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-gray-500">Deed:</span>
+                      <span className="text-text-muted">Deed:</span>
                       <span>{character.deed_name}</span>
                     </div>
                   )}
                   {character.religion && (
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-gray-500">Religion:</span>
+                      <span className="text-text-muted">Religion:</span>
                       <span>{character.religion}</span>
                     </div>
                   )}
                   {character.playstyle && (
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-gray-500">Playstyle:</span>
+                      <span className="text-text-muted">Playstyle:</span>
                       <span className="capitalize">{character.playstyle}</span>
                     </div>
                   )}
                   {character.premium_until && (
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-gray-500">Premium:</span>
-                      <span className={isPremiumActive(character.premium_until) ? "text-green-400" : "text-red-400"}>
+                      <span className="text-text-muted">Premium:</span>
+                      <span className={isPremiumActive(character.premium_until) ? "text-success" : "text-danger"}>
                         {isPremiumActive(character.premium_until) ? "Active" : "Expired"}
-                        <span className="text-gray-500 ml-1">
+                        <span className="text-text-muted ml-1">
                           ({new Date(character.premium_until).toLocaleDateString()})
                         </span>
                       </span>
                     </div>
                   )}
                   {character.bio && (
-                    <p className="text-sm text-gray-400 line-clamp-2">{character.bio}</p>
+                    <p className="text-sm text-text-secondary line-clamp-2">{character.bio}</p>
                   )}
 
                   {/* Stats */}
-                  <div className="grid grid-cols-4 gap-2 pt-3 border-t border-gray-700">
+                  <div className="grid grid-cols-4 gap-2 pt-3 border-t border-border">
                     <div className="text-center">
                       <div className="text-lg font-bold">{character.orders_count || 0}</div>
-                      <div className="text-xs text-gray-500">Orders</div>
+                      <div className="text-xs text-text-muted">Orders</div>
                     </div>
                     <div className="text-center">
                       <div className="text-lg font-bold">{character.merchants_count || 0}</div>
-                      <div className="text-xs text-gray-500">Merchants</div>
+                      <div className="text-xs text-text-muted">Merchants</div>
                     </div>
                     <div className="text-center">
                       <div className="text-lg font-bold">{character.projects_count || 0}</div>
-                      <div className="text-xs text-gray-500">Projects</div>
+                      <div className="text-xs text-text-muted">Projects</div>
                     </div>
                     <div className="text-center">
                       <div className="text-lg font-bold">{character.skills_count || 0}</div>
-                      <div className="text-xs text-gray-500">Skills</div>
+                      <div className="text-xs text-text-muted">Skills</div>
                     </div>
                   </div>
 
@@ -414,7 +414,7 @@ export default function CharactersPage() {
                   {!character.is_primary && (
                     <button
                       onClick={() => handleSetPrimary(character.id)}
-                      className="w-full mt-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
+                      className="w-full mt-2 px-3 py-2 bg-bg-tertiary hover:bg-bg-hover rounded text-sm"
                     >
                       Set as Primary
                     </button>
@@ -428,14 +428,14 @@ export default function CharactersPage() {
         {/* Create/Edit Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div className="bg-bg-secondary rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-4 border-b border-border flex items-center justify-between">
                 <h2 className="text-xl font-bold">
                   {editingCharacter ? "Edit Character" : "Create Character"}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-text-secondary hover:text-text-primary"
                 >
                   ✕
                 </button>
@@ -445,13 +445,13 @@ export default function CharactersPage() {
                 {/* Name */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Character Name <span className="text-red-400">*</span>
+                    Character Name <span className="text-danger">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
                     required
                     maxLength={100}
                   />
@@ -463,7 +463,7 @@ export default function CharactersPage() {
                   <select
                     value={formData.server}
                     onChange={(e) => setFormData({ ...formData, server: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
                   >
                     <option value="">Select a server...</option>
                     {WURM_SERVERS.map((server) => (
@@ -480,7 +480,7 @@ export default function CharactersPage() {
                   <select
                     value={formData.religion}
                     onChange={(e) => setFormData({ ...formData, religion: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
                   >
                     <option value="">Select religion...</option>
                     {RELIGIONS.map((religion) => (
@@ -497,7 +497,7 @@ export default function CharactersPage() {
                   <select
                     value={formData.playstyle}
                     onChange={(e) => setFormData({ ...formData, playstyle: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
                   >
                     <option value="">Select playstyle...</option>
                     {PLAYSTYLES.map((style) => (
@@ -515,7 +515,7 @@ export default function CharactersPage() {
                     type="text"
                     value={formData.deed_name}
                     onChange={(e) => setFormData({ ...formData, deed_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
                     placeholder="Your deed/settlement name"
                     maxLength={100}
                   />
@@ -528,7 +528,7 @@ export default function CharactersPage() {
                     type="date"
                     value={formData.premium_until}
                     onChange={(e) => setFormData({ ...formData, premium_until: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
                   />
                 </div>
 
@@ -539,7 +539,7 @@ export default function CharactersPage() {
                     type="url"
                     value={formData.avatar_url}
                     onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
                     placeholder="https://..."
                   />
                 </div>
@@ -550,7 +550,7 @@ export default function CharactersPage() {
                   <textarea
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500 focus:outline-none resize-none"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none resize-none"
                     rows={3}
                     placeholder="Tell us about this character..."
                     maxLength={500}
@@ -562,14 +562,14 @@ export default function CharactersPage() {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                    className="flex-1 px-4 py-2 bg-bg-tertiary hover:bg-bg-hover rounded"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={saving || !formData.name.trim()}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-accent hover:bg-accent-hover rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {saving ? "Saving..." : editingCharacter ? "Update" : "Create"}
                   </button>

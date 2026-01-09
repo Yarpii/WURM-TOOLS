@@ -9,37 +9,37 @@ import { useAuth } from "./AuthProvider";
 // Navigation structure with categories and icons
 const navCategories = [
   {
-    label: "Tools",
+    label: "Market",
     items: [
-      { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
       { href: "/market", label: "Market", icon: "store", description: "Buy & sell items" },
-      { href: "/map", label: "Map", icon: "map", description: "Interactive world map" },
-      { href: "/data", label: "Data", icon: "database", description: "Game data & stats" },
+      { href: "/trades", label: "Trades", icon: "exchange", description: "Trade matching & reputation" },
+      { href: "/analytics", label: "Analytics", icon: "chart", description: "Price tracking & alerts" },
     ],
   },
   {
-    label: "Player Hub",
+    label: "Player",
     items: [
       { href: "/characters", label: "Characters", icon: "character", description: "Character showcase" },
       { href: "/skills", label: "Skills", icon: "skill", description: "Skill calculator & tracker" },
-      { href: "/timers", label: "Timers", icon: "timer", description: "Timer dashboard" },
-      { href: "/events", label: "Events", icon: "calendar", description: "Community calendar" },
+      { href: "/timers", label: "Timers", icon: "timer", description: "Sleep bonus & activity timers" },
+      { href: "/achievements", label: "Achievements", icon: "trophy", description: "Goals & leaderboard" },
     ],
   },
   {
     label: "Community",
     items: [
+      { href: "/map", label: "Map", icon: "map", description: "Interactive world map" },
       { href: "/members", label: "Members", icon: "users", description: "Player directory" },
       { href: "/alliances", label: "Alliances", icon: "shield", description: "Guild management" },
+      { href: "/events", label: "Events", icon: "calendar", description: "Community calendar" },
     ],
   },
   {
-    label: "Tracking",
+    label: "Tools",
     items: [
-      { href: "/analytics", label: "Analytics", icon: "chart", description: "Skill & progress stats" },
-      { href: "/trades", label: "Trades", icon: "exchange", description: "Trade history" },
-      { href: "/projects", label: "Projects", icon: "folder", description: "Project planning" },
-      { href: "/achievements", label: "Achievements", icon: "trophy", description: "Goals & milestones" },
+      { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
+      { href: "/projects", label: "Projects", icon: "folder", description: "Crafting project planning" },
+      { href: "/data", label: "Data", icon: "database", description: "Game data management" },
     ],
   },
 ];

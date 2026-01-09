@@ -146,9 +146,9 @@ export default function RecipeSubmitPage() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
-      approved: "bg-green-500/20 text-green-400 border-green-500/50",
-      rejected: "bg-red-500/20 text-red-400 border-red-500/50",
+      pending: "bg-warning/20 text-warning border-warning/50",
+      approved: "bg-success/20 text-success border-success/50",
+      rejected: "bg-danger/20 text-danger border-danger/50",
     };
     return styles[status] || styles.pending;
   };
@@ -158,16 +158,16 @@ export default function RecipeSubmitPage() {
     return (
       <div className="min-h-screen py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gray-800 rounded-lg p-8 text-center">
-            <h1 className="text-2xl font-bold text-amber-400 mb-4">
+          <div className="bg-bg-secondary rounded-lg p-8 text-center">
+            <h1 className="text-2xl font-bold text-accent mb-4">
               Login Required
             </h1>
-            <p className="text-gray-300 mb-6">
+            <p className="text-text-secondary mb-6">
               You need to be logged in to submit crafting recipes.
             </p>
             <Link
               href="/login"
-              className="inline-block bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded-lg transition-colors"
+              className="inline-block bg-accent hover:bg-accent-hover text-white px-6 py-2 rounded-lg transition-colors"
             >
               Login
             </Link>
@@ -182,21 +182,21 @@ export default function RecipeSubmitPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-amber-400">Submit Recipe</h1>
-          <p className="text-gray-400 mt-2">
+          <h1 className="text-3xl font-bold text-accent">Submit Recipe</h1>
+          <p className="text-text-secondary mt-2">
             Help expand our crafting database by submitting recipes that are
             missing.
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-700">
+        <div className="flex gap-2 mb-6 border-b border-border">
           <button
             onClick={() => setActiveTab("submit")}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === "submit"
-                ? "text-amber-400 border-b-2 border-amber-400"
-                : "text-gray-400 hover:text-gray-300"
+                ? "text-accent border-b-2 border-accent"
+                : "text-text-secondary hover:text-text-primary"
             }`}
           >
             Submit New Recipe
@@ -205,8 +205,8 @@ export default function RecipeSubmitPage() {
             onClick={() => setActiveTab("my-submissions")}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === "my-submissions"
-                ? "text-amber-400 border-b-2 border-amber-400"
-                : "text-gray-400 hover:text-gray-300"
+                ? "text-accent border-b-2 border-accent"
+                : "text-text-secondary hover:text-text-primary"
             }`}
           >
             My Submissions ({submissions.length})
@@ -215,23 +215,23 @@ export default function RecipeSubmitPage() {
 
         {/* Submit Form Tab */}
         {activeTab === "submit" && (
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-bg-secondary rounded-lg p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {formError && (
-                <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+                <div className="bg-danger/20 border border-danger text-danger px-4 py-3 rounded-lg">
                   {formError}
                 </div>
               )}
 
               {formSuccess && (
-                <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg">
+                <div className="bg-success/20 border border-success text-success px-4 py-3 rounded-lg">
                   {formSuccess}
                 </div>
               )}
 
               {/* Item Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text-primary mb-2">
                   Item Name *
                 </label>
                 <input
@@ -239,17 +239,17 @@ export default function RecipeSubmitPage() {
                   value={itemName}
                   onChange={(e) => setItemName(e.target.value)}
                   placeholder="e.g., Stone Brick"
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-bg-tertiary border border-border rounded-lg px-4 py-2 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent"
                   required
                 />
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-text-muted text-sm mt-1">
                   The name of the item this recipe creates
                 </p>
               </div>
 
               {/* Ingredients */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text-primary mb-2">
                   Ingredients *
                 </label>
                 <div className="space-y-3">
@@ -262,7 +262,7 @@ export default function RecipeSubmitPage() {
                           handleIngredientChange(index, "name", e.target.value)
                         }
                         placeholder="Ingredient name"
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-amber-500"
+                        className="flex-1 bg-bg-tertiary border border-border rounded-lg px-4 py-2 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent"
                       />
                       <input
                         type="number"
@@ -276,12 +276,12 @@ export default function RecipeSubmitPage() {
                         }
                         min="0.01"
                         step="0.01"
-                        className="w-24 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500"
+                        className="w-24 bg-bg-tertiary border border-border rounded-lg px-4 py-2 text-text-primary focus:outline-none focus:border-accent"
                       />
                       <button
                         type="button"
                         onClick={() => handleRemoveIngredient(index)}
-                        className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                        className="px-3 py-2 bg-danger hover:bg-danger/80 text-white rounded-lg transition-colors disabled:opacity-50"
                         disabled={ingredients.length <= 1}
                       >
                         ✕
@@ -292,7 +292,7 @@ export default function RecipeSubmitPage() {
                 <button
                   type="button"
                   onClick={handleAddIngredient}
-                  className="mt-3 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors text-sm"
+                  className="mt-3 px-4 py-2 bg-bg-tertiary hover:bg-bg-hover text-text-secondary rounded-lg transition-colors text-sm"
                 >
                   + Add Ingredient
                 </button>
@@ -300,7 +300,7 @@ export default function RecipeSubmitPage() {
 
               {/* Source URL */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text-primary mb-2">
                   Source URL (optional)
                 </label>
                 <input
@@ -308,16 +308,16 @@ export default function RecipeSubmitPage() {
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
                   placeholder="https://www.wurmpedia.com/index.php/..."
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-bg-tertiary border border-border rounded-lg px-4 py-2 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent"
                 />
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-text-muted text-sm mt-1">
                   Link to Wurmpedia or other source for verification
                 </p>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text-primary mb-2">
                   Notes (optional)
                 </label>
                 <textarea
@@ -325,7 +325,7 @@ export default function RecipeSubmitPage() {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Any additional information about this recipe..."
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-amber-500 resize-none"
+                  className="w-full bg-bg-tertiary border border-border rounded-lg px-4 py-2 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent resize-none"
                 />
               </div>
 
@@ -334,7 +334,7 @@ export default function RecipeSubmitPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                  className="px-6 py-2 bg-accent hover:bg-accent-hover disabled:bg-bg-tertiary text-white rounded-lg transition-colors font-medium"
                 >
                   {submitting ? "Submitting..." : "Submit Recipe"}
                 </button>
@@ -347,17 +347,17 @@ export default function RecipeSubmitPage() {
         {activeTab === "my-submissions" && (
           <div className="space-y-4">
             {loading ? (
-              <div className="bg-gray-800 rounded-lg p-8 text-center">
-                <p className="text-gray-400">Loading submissions...</p>
+              <div className="bg-bg-secondary rounded-lg p-8 text-center">
+                <p className="text-text-secondary">Loading submissions...</p>
               </div>
             ) : submissions.length === 0 ? (
-              <div className="bg-gray-800 rounded-lg p-8 text-center">
-                <p className="text-gray-400">
+              <div className="bg-bg-secondary rounded-lg p-8 text-center">
+                <p className="text-text-secondary">
                   You haven&apos;t submitted any recipes yet.
                 </p>
                 <button
                   onClick={() => setActiveTab("submit")}
-                  className="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors"
+                  className="mt-4 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
                 >
                   Submit Your First Recipe
                 </button>
@@ -374,14 +374,14 @@ export default function RecipeSubmitPage() {
                 return (
                   <div
                     key={sub.id}
-                    className="bg-gray-800 rounded-lg p-6 border border-gray-700"
+                    className="bg-bg-secondary rounded-lg p-6 border border-border"
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-lg font-bold text-amber-400">
+                        <h3 className="text-lg font-bold text-accent">
                           {sub.item_name}
                         </h3>
-                        <p className="text-gray-500 text-sm">
+                        <p className="text-text-muted text-sm">
                           Submitted{" "}
                           {new Date(sub.created_at).toLocaleDateString()}
                         </p>
@@ -398,12 +398,12 @@ export default function RecipeSubmitPage() {
 
                     {/* Ingredients */}
                     <div className="mb-4">
-                      <p className="text-gray-400 text-sm mb-2">Ingredients:</p>
+                      <p className="text-text-secondary text-sm mb-2">Ingredients:</p>
                       <div className="flex flex-wrap gap-2">
                         {parsedIngredients.map((ing, i) => (
                           <span
                             key={i}
-                            className="px-2 py-1 bg-gray-700 rounded text-sm text-gray-300"
+                            className="px-2 py-1 bg-bg-tertiary rounded text-sm text-text-primary"
                           >
                             {ing.quantity}x {ing.name}
                           </span>
@@ -414,12 +414,12 @@ export default function RecipeSubmitPage() {
                     {/* Source URL */}
                     {sub.source_url && (
                       <div className="mb-4">
-                        <p className="text-gray-400 text-sm">Source:</p>
+                        <p className="text-text-secondary text-sm">Source:</p>
                         <a
                           href={sub.source_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline text-sm break-all"
+                          className="text-accent hover:underline text-sm break-all"
                         >
                           {sub.source_url}
                         </a>
@@ -429,20 +429,20 @@ export default function RecipeSubmitPage() {
                     {/* Notes */}
                     {sub.notes && (
                       <div className="mb-4">
-                        <p className="text-gray-400 text-sm">Notes:</p>
-                        <p className="text-gray-300 text-sm">{sub.notes}</p>
+                        <p className="text-text-secondary text-sm">Notes:</p>
+                        <p className="text-text-primary text-sm">{sub.notes}</p>
                       </div>
                     )}
 
                     {/* Admin Notes */}
                     {sub.admin_notes && (
-                      <div className="mb-4 bg-gray-700/50 rounded p-3">
-                        <p className="text-gray-400 text-sm">Admin Response:</p>
-                        <p className="text-gray-300 text-sm">
+                      <div className="mb-4 bg-bg-tertiary/50 rounded p-3">
+                        <p className="text-text-secondary text-sm">Admin Response:</p>
+                        <p className="text-text-primary text-sm">
                           {sub.admin_notes}
                         </p>
                         {sub.reviewed_by_username && (
-                          <p className="text-gray-500 text-xs mt-1">
+                          <p className="text-text-muted text-xs mt-1">
                             — {sub.reviewed_by_username}
                           </p>
                         )}
@@ -454,7 +454,7 @@ export default function RecipeSubmitPage() {
                       <div className="flex justify-end">
                         <button
                           onClick={() => handleDelete(sub.id)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-sm transition-colors"
+                          className="px-3 py-1 bg-danger hover:bg-danger/80 text-white rounded text-sm transition-colors"
                         >
                           Delete
                         </button>
