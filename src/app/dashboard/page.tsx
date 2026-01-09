@@ -25,6 +25,12 @@ interface DashboardStats {
     in_progress: number;
     completed: number;
     total_items: number;
+    active_projects: Array<{
+      id: number;
+      name: string;
+      progress: number;
+      item_count: number;
+    }>;
   };
   merchants: {
     total: number;
@@ -68,7 +74,15 @@ interface DashboardStats {
   };
   characters: {
     total: number;
-    main_character: string | null;
+    main_character: {
+      name: string;
+      server: string;
+      is_premium: boolean;
+    } | null;
+  };
+  leaderboard: {
+    rank: number;
+    total_players: number;
   };
   skills: {
     total: number;
@@ -463,23 +477,32 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-text-primary">Projects</h3>
             <Link href="/projects" className="text-accent text-sm hover:underline">View all</Link>
           </div>
-          <div className="text-3xl font-bold text-text-primary mb-2">{stats.projects.total}</div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-warning"></span>
-              <span className="text-text-muted">Active:</span>
-              <span className="text-text-primary font-medium">{stats.projects.in_progress}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success"></span>
-              <span className="text-text-muted">Done:</span>
-              <span className="text-text-primary font-medium">{stats.projects.completed}</span>
-            </div>
-            <div className="col-span-2 flex items-center gap-2">
-              <span className="text-text-muted">Total items tracked:</span>
-              <span className="text-text-primary">{stats.projects.total_items}</span>
-            </div>
+          <div className="flex items-center gap-4 mb-3">
+            <div className="text-3xl font-bold text-text-primary">{stats.projects.in_progress}</div>
+            <div className="text-sm text-text-muted">active</div>
           </div>
+          {stats.projects.active_projects.length > 0 ? (
+            <div className="space-y-2">
+              {stats.projects.active_projects.slice(0, 2).map((project) => (
+                <div key={project.id} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-primary truncate">{project.name}</span>
+                    <span className="text-text-muted">{project.progress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent transition-all"
+                      style={{ width: `${project.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-text-muted">
+              {stats.projects.completed} completed • {stats.projects.total_items} items
+            </div>
+          )}
         </div>
 
         {/* Trades & Reputation */}
@@ -780,30 +803,58 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Achievement Count */}
-          <div className="text-center">
-            <div className="text-4xl font-bold text-accent mb-1">{stats.achievements.unlocked}</div>
-            <div className="text-text-muted">Achievements Unlocked</div>
+          {/* Achievement & Leaderboard */}
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div className="text-3xl font-bold text-accent">{stats.achievements.unlocked}</div>
+              <div className="text-xs text-text-muted">Achievements</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-warning">#{stats.leaderboard.rank || "—"}</div>
+              <div className="text-xs text-text-muted">
+                {stats.leaderboard.total_players > 0 ? `of ${stats.leaderboard.total_players}` : "Rank"}
+              </div>
+            </div>
           </div>
 
           {/* Character Info */}
-          {stats.characters.total > 0 && (
-            <div className="mt-6 p-4 bg-bg-tertiary rounded-lg">
+          {stats.characters.main_character ? (
+            <Link href="/characters" className="mt-6 p-4 bg-bg-tertiary rounded-lg block hover:bg-bg-hover transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-lg">
+                  {stats.characters.main_character.is_premium ? "👑" : "👤"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-text-primary truncate">
+                    {stats.characters.main_character.name}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-text-muted">
+                    <span>{stats.characters.main_character.server}</span>
+                    {stats.characters.main_character.is_premium && (
+                      <span className="text-warning">Premium</span>
+                    )}
+                  </div>
+                </div>
+                {stats.characters.total > 1 && (
+                  <span className="text-xs text-text-muted">+{stats.characters.total - 1}</span>
+                )}
+              </div>
+            </Link>
+          ) : stats.characters.total > 0 ? (
+            <Link href="/characters" className="mt-6 p-4 bg-bg-tertiary rounded-lg block hover:bg-bg-hover transition-colors">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
                   👤
                 </div>
                 <div>
-                  <div className="font-medium text-text-primary">
-                    {stats.characters.main_character || "No main set"}
-                  </div>
+                  <div className="font-medium text-text-primary">No main set</div>
                   <div className="text-sm text-text-muted">
                     {stats.characters.total} character{stats.characters.total !== 1 ? "s" : ""}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            </Link>
+          ) : null}
 
           {/* Alliance Info */}
           {stats.alliances.alliance_name && (

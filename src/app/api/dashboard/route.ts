@@ -24,6 +24,12 @@ interface DashboardStats {
     in_progress: number;
     completed: number;
     total_items: number;
+    active_projects: Array<{
+      id: number;
+      name: string;
+      progress: number;
+      item_count: number;
+    }>;
   };
   merchants: {
     total: number;
@@ -67,7 +73,15 @@ interface DashboardStats {
   };
   characters: {
     total: number;
-    main_character: string | null;
+    main_character: {
+      name: string;
+      server: string;
+      is_premium: boolean;
+    } | null;
+  };
+  leaderboard: {
+    rank: number;
+    total_players: number;
   };
   skills: {
     total: number;
@@ -178,6 +192,31 @@ export async function GET(request: NextRequest) {
       `, [userId]),
     ]);
 
+    // Active projects with progress
+    const activeProjectsResult = await query<{
+      id: number;
+      name: string;
+      total_items: number;
+      completed_items: number;
+    }>(`
+      SELECT
+        p.id, p.name,
+        COUNT(pi.id) as total_items,
+        SUM(CASE WHEN pi.is_complete = 1 THEN 1 ELSE 0 END) as completed_items
+      FROM projects p
+      LEFT JOIN project_items pi ON p.id = pi.project_id
+      WHERE p.user_id = ? AND p.status = 'in_progress'
+      GROUP BY p.id
+      ORDER BY p.updated_at DESC
+      LIMIT 3
+    `, [userId]);
+    const activeProjects = activeProjectsResult.rows.map(p => ({
+      id: p.id,
+      name: p.name,
+      progress: p.total_items > 0 ? Math.round((p.completed_items / p.total_items) * 100) : 0,
+      item_count: p.total_items,
+    }));
+
     // Merchants stats
     const [merchantsTotal, merchantsActive] = await Promise.all([
       query<{ count: number }>("SELECT COUNT(*) as count FROM merchants WHERE user_id = ?", [userId]),
@@ -263,13 +302,30 @@ export async function GET(request: NextRequest) {
     const recentTimers = recentTimersResult.rows;
 
     // Characters stats
-    const charactersResult = await query<{ count: number; main_name: string | null }>(`
+    const charactersCountResult = await query<{ count: number }>(
+      "SELECT COUNT(*) as count FROM characters WHERE user_id = ?",
+      [userId]
+    );
+    const charactersCount = charactersCountResult.rows[0]?.count || 0;
+
+    const mainCharacterResult = await query<{
+      name: string;
+      server: string;
+      is_premium: number;
+    }>(`
+      SELECT name, server, is_premium
+      FROM characters WHERE user_id = ? AND is_main = 1
+      LIMIT 1
+    `, [userId]);
+    const mainChar = mainCharacterResult.rows[0];
+
+    // Leaderboard position
+    const leaderboardResult = await query<{ rank: number; total: number }>(`
       SELECT
-        COUNT(*) as count,
-        (SELECT name FROM characters WHERE user_id = ? AND is_main = 1 LIMIT 1) as main_name
-      FROM characters WHERE user_id = ?
-    `, [userId, userId]);
-    const charactersStats = charactersResult.rows[0] || { count: 0, main_name: null };
+        (SELECT COUNT(*) + 1 FROM user_xp WHERE total_xp > COALESCE((SELECT total_xp FROM user_xp WHERE user_id = ?), 0)) as rank,
+        (SELECT COUNT(*) FROM user_xp) as total
+    `, [userId]);
+    const leaderboard = leaderboardResult.rows[0] || { rank: 0, total: 0 };
 
     // Skills stats
     const skillsStatsResult = await query<{ total: number; at_goal: number }>(`
@@ -366,6 +422,7 @@ export async function GET(request: NextRequest) {
         in_progress: projectsInProgress.rows[0]?.count || 0,
         completed: projectsCompleted.rows[0]?.count || 0,
         total_items: projectItems.rows[0]?.total || 0,
+        active_projects: activeProjects,
       },
       merchants: {
         total: merchantsTotal.rows[0]?.count || 0,
@@ -403,8 +460,16 @@ export async function GET(request: NextRequest) {
         recent: recentTimers,
       },
       characters: {
-        total: charactersStats.count,
-        main_character: charactersStats.main_name,
+        total: charactersCount,
+        main_character: mainChar ? {
+          name: mainChar.name,
+          server: mainChar.server,
+          is_premium: mainChar.is_premium === 1,
+        } : null,
+      },
+      leaderboard: {
+        rank: leaderboard.rank,
+        total_players: leaderboard.total,
       },
       skills: {
         total: skillsStats.total,
