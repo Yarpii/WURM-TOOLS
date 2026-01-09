@@ -288,20 +288,37 @@ export default function TreasuresPage() {
   };
 
   // Share treasure to community modal
-  const openShareModal = () => {
-    setFormData({
-      name: "",
-      description: "",
-      server: "Harmony",
-      map_quality: "",
-      difficulty: "easy",
-      x: "",
-      y: "",
-      status: "new",
-      treasure_type: "treasure_chest",
-      parent_hunt_id: "",
-      screenshot_url: "",
-    });
+  const openShareModal = (fromHunt?: TreasureHunt) => {
+    if (fromHunt) {
+      // Pre-fill with hunt data
+      setFormData({
+        name: fromHunt.name,
+        description: fromHunt.description || "",
+        server: fromHunt.server,
+        map_quality: fromHunt.map_quality?.toString() || "",
+        difficulty: fromHunt.difficulty,
+        x: fromHunt.x?.toString() || "",
+        y: fromHunt.y?.toString() || "",
+        status: fromHunt.status,
+        treasure_type: "treasure_chest",
+        parent_hunt_id: "",
+        screenshot_url: "",
+      });
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        server: "Harmony",
+        map_quality: "",
+        difficulty: "easy",
+        x: "",
+        y: "",
+        status: "new",
+        treasure_type: "treasure_chest",
+        parent_hunt_id: "",
+        screenshot_url: "",
+      });
+    }
     setModalMode("share");
     setShowModal(true);
   };
@@ -693,11 +710,19 @@ export default function TreasuresPage() {
                           <p className="text-text-secondary">{selectedHunt.server}</p>
                         </div>
                         <div className="flex gap-2">
+                          {selectedHunt.user_id === user?.id && selectedHunt.x && selectedHunt.y && (
+                            <button
+                              onClick={() => openShareModal(selectedHunt)}
+                              className="px-3 py-1 bg-accent/20 text-accent rounded hover:bg-accent/30 text-sm"
+                            >
+                              Share to Community
+                            </button>
+                          )}
                           <button
                             onClick={openShareFriendModal}
                             className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
                           >
-                            Share
+                            Share with Friend
                           </button>
                           <button
                             onClick={() => openEditModal(selectedHunt)}
