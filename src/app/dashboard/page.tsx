@@ -49,6 +49,27 @@ interface DashboardStats {
     total_xp: number;
     level: number;
   };
+  treasures: {
+    total_hunts: number;
+    active_hunts: number;
+    completed_hunts: number;
+    shared_with_me: number;
+    total_loot: number;
+  };
+  timers: {
+    total: number;
+    active: number;
+    recent: Array<{
+      id: number;
+      name: string;
+      timer_type: string;
+      end_time: string;
+    }>;
+  };
+  characters: {
+    total: number;
+    main_character: string | null;
+  };
   activity: {
     recent_orders: Array<{
       id: number;
@@ -72,6 +93,14 @@ const ORDER_TYPE_ICONS: Record<string, string> = {
   buy: "🛒",
   sell: "💰",
   trade: "🔄",
+};
+
+const TIMER_TYPE_ICONS: Record<string, string> = {
+  sleep_bonus: "💤",
+  fatigue: "⚡",
+  sermon: "🙏",
+  meditation: "🧘",
+  custom: "⏰",
 };
 
 export default function DashboardPage() {
@@ -141,6 +170,23 @@ export default function DashboardPage() {
         {"☆".repeat(5 - Math.floor(rating))}
       </span>
     );
+  };
+
+  const formatTimerRemaining = (endTime: string) => {
+    const end = new Date(endTime);
+    const now = new Date();
+    const diffMs = end.getTime() - now.getTime();
+
+    if (diffMs <= 0) return "Expired";
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}d ${hours % 24}h`;
+    }
+    return `${hours}h ${minutes}m`;
   };
 
   if (!authLoading && !user) {
@@ -267,41 +313,55 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
         <Link
           href="/market"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">🛒</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">New Order</div>
+          <div className="text-xl mb-1">🛒</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Market</div>
+        </Link>
+        <Link
+          href="/treasures"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
+        >
+          <div className="text-xl mb-1">🗺️</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Treasures</div>
+        </Link>
+        <Link
+          href="/timers"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
+        >
+          <div className="text-xl mb-1">⏱️</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Timers</div>
         </Link>
         <Link
           href="/projects"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">📋</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Projects</div>
-        </Link>
-        <Link
-          href="/merchants"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
-        >
-          <div className="text-2xl mb-2">🏪</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Merchants</div>
+          <div className="text-xl mb-1">📋</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Projects</div>
         </Link>
         <Link
           href="/crafting"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">🔨</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Crafting</div>
+          <div className="text-xl mb-1">🔨</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Crafting</div>
+        </Link>
+        <Link
+          href="/characters"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
+        >
+          <div className="text-xl mb-1">👤</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Characters</div>
         </Link>
         <Link
           href="/settings"
-          className="bg-bg-secondary rounded-lg border border-border p-4 hover:border-accent/50 transition-colors text-center group"
+          className="bg-bg-secondary rounded-lg border border-border p-3 hover:border-accent/50 transition-colors text-center group"
         >
-          <div className="text-2xl mb-2">⚙️</div>
-          <div className="text-sm font-medium text-text-primary group-hover:text-accent">Settings</div>
+          <div className="text-xl mb-1">⚙️</div>
+          <div className="text-xs font-medium text-text-primary group-hover:text-accent">Settings</div>
         </Link>
       </div>
 
@@ -387,6 +447,36 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Treasure Hunts */}
+        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-text-primary">Treasure Hunts</h3>
+            <Link href="/treasures" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          <div className="text-3xl font-bold text-text-primary mb-2">{stats.treasures.total_hunts}</div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-warning"></span>
+              <span className="text-text-muted">Active:</span>
+              <span className="text-text-primary font-medium">{stats.treasures.active_hunts}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success"></span>
+              <span className="text-text-muted">Done:</span>
+              <span className="text-text-primary font-medium">{stats.treasures.completed_hunts}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-text-muted">Loot:</span>
+              <span className="text-text-primary">{stats.treasures.total_loot} items</span>
+            </div>
+            {stats.treasures.shared_with_me > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-info">📨 {stats.treasures.shared_with_me} shared</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Activity Feed & Achievements */}
@@ -470,9 +560,49 @@ export default function DashboardPage() {
             <div className="text-text-muted">Achievements Unlocked</div>
           </div>
 
+          {/* Active Timers */}
+          {stats.timers.recent.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-text-secondary">Active Timers</h4>
+                <Link href="/timers" className="text-accent text-xs hover:underline">View all</Link>
+              </div>
+              <div className="space-y-2">
+                {stats.timers.recent.map((timer) => (
+                  <div key={timer.id} className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3">
+                    <span className="text-lg">{TIMER_TYPE_ICONS[timer.timer_type] || "⏰"}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-text-primary truncate">{timer.name}</div>
+                      <div className="text-xs text-warning">{formatTimerRemaining(timer.end_time)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Character Info */}
+          {stats.characters.total > 0 && (
+            <div className="mt-6 p-4 bg-bg-tertiary rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                  👤
+                </div>
+                <div>
+                  <div className="font-medium text-text-primary">
+                    {stats.characters.main_character || "No main set"}
+                  </div>
+                  <div className="text-sm text-text-muted">
+                    {stats.characters.total} character{stats.characters.total !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Alliance Info */}
           {stats.alliances.alliance_name && (
-            <div className="mt-6 p-4 bg-bg-tertiary rounded-lg">
+            <div className="mt-4 p-4 bg-bg-tertiary rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
                   🛡️

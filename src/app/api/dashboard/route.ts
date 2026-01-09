@@ -48,6 +48,27 @@ interface DashboardStats {
     total_xp: number;
     level: number;
   };
+  treasures: {
+    total_hunts: number;
+    active_hunts: number;
+    completed_hunts: number;
+    shared_with_me: number;
+    total_loot: number;
+  };
+  timers: {
+    total: number;
+    active: number;
+    recent: Array<{
+      id: number;
+      name: string;
+      timer_type: string;
+      end_time: string;
+    }>;
+  };
+  characters: {
+    total: number;
+    main_character: string | null;
+  };
   activity: {
     recent_orders: Array<{
       id: number;
@@ -179,6 +200,49 @@ export async function GET(request: NextRequest) {
     );
     const xp = xpResult.rows[0];
 
+    // Treasure hunts stats
+    const [treasuresTotal, treasuresActive, treasuresCompleted, treasuresShared, treasuresLoot] = await Promise.all([
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ?", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ? AND status NOT IN ('completed', 'abandoned')", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ? AND status = 'completed'", [userId]),
+      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunt_shares WHERE shared_with_user_id = ?", [userId]),
+      query<{ count: number }>(`
+        SELECT COUNT(*) as count FROM treasure_loot tl
+        JOIN treasure_hunts th ON tl.hunt_id = th.id
+        WHERE th.user_id = ?
+      `, [userId]),
+    ]);
+
+    // Timers stats
+    const timersResult = await query<{ count: number; active: number }>(`
+      SELECT
+        COUNT(*) as count,
+        SUM(CASE WHEN end_time > datetime('now') THEN 1 ELSE 0 END) as active
+      FROM timers WHERE user_id = ?
+    `, [userId]);
+    const timersStats = timersResult.rows[0] || { count: 0, active: 0 };
+
+    const recentTimersResult = await query<{
+      id: number;
+      name: string;
+      timer_type: string;
+      end_time: string;
+    }>(`
+      SELECT id, name, timer_type, end_time FROM timers
+      WHERE user_id = ? AND end_time > datetime('now')
+      ORDER BY end_time ASC LIMIT 3
+    `, [userId]);
+    const recentTimers = recentTimersResult.rows;
+
+    // Characters stats
+    const charactersResult = await query<{ count: number; main_name: string | null }>(`
+      SELECT
+        COUNT(*) as count,
+        (SELECT name FROM characters WHERE user_id = ? AND is_main = 1 LIMIT 1) as main_name
+      FROM characters WHERE user_id = ?
+    `, [userId, userId]);
+    const charactersStats = charactersResult.rows[0] || { count: 0, main_name: null };
+
     // Recent activity - orders
     const recentOrdersResult = await query<{
       id: number;
@@ -238,6 +302,22 @@ export async function GET(request: NextRequest) {
         unlocked: achievements.unlocked,
         total_xp: xp?.total_xp || 0,
         level: xp?.level || 1,
+      },
+      treasures: {
+        total_hunts: treasuresTotal.rows[0]?.count || 0,
+        active_hunts: treasuresActive.rows[0]?.count || 0,
+        completed_hunts: treasuresCompleted.rows[0]?.count || 0,
+        shared_with_me: treasuresShared.rows[0]?.count || 0,
+        total_loot: treasuresLoot.rows[0]?.count || 0,
+      },
+      timers: {
+        total: timersStats.count,
+        active: timersStats.active || 0,
+        recent: recentTimers,
+      },
+      characters: {
+        total: charactersStats.count,
+        main_character: charactersStats.main_name,
       },
       activity: {
         recent_orders: recentOrders,
