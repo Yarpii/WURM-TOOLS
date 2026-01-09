@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import {
   getUserTreasureHunts,
   getTreasureHuntById,
+  getChildHunts,
   createTreasureHunt,
   updateTreasureHunt,
   deleteTreasureHunt,
@@ -17,6 +18,11 @@ import {
   deleteSharedTreasure,
   voteSharedTreasure,
   verifySharedTreasure,
+  shareTreasureHuntWithUser,
+  unshareTreasureHunt,
+  getTreasureHuntShares,
+  getHuntsSharedWithMe,
+  searchUsersForSharing,
 } from "@/lib/database";
 import { sanitizeError, validateStringLength, INPUT_LIMITS } from "@/lib/security";
 import type {
@@ -91,13 +97,46 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(loot);
       }
 
-      return NextResponse.json(hunt);
+      // Get child hunts (chained maps) if requested
+      if (action === "children") {
+        const children = await getChildHunts(parseInt(huntId));
+        return NextResponse.json(children);
+      }
+
+      // Get shares for this hunt (only owner can see)
+      if (action === "shares") {
+        if (hunt.user_id !== userId) {
+          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+        const shares = await getTreasureHuntShares(parseInt(huntId), userId);
+        return NextResponse.json(shares);
+      }
+
+      // Include child hunts in the response
+      const childHunts = await getChildHunts(parseInt(huntId));
+      return NextResponse.json({ ...hunt, child_hunts: childHunts });
     }
 
     // Get stats
     if (action === "stats") {
       const stats = await getTreasureStats(userId);
       return NextResponse.json(stats);
+    }
+
+    // Get hunts shared with me
+    if (action === "shared-with-me") {
+      const sharedHunts = await getHuntsSharedWithMe(userId);
+      return NextResponse.json(sharedHunts);
+    }
+
+    // Search users to share with
+    if (action === "search-users") {
+      const searchTerm = searchParams.get("q");
+      if (!searchTerm || searchTerm.length < 2) {
+        return NextResponse.json([]);
+      }
+      const users = await searchUsersForSharing(searchTerm, userId);
+      return NextResponse.json(users);
     }
 
     // Get user's treasure hunts with filters
@@ -137,7 +176,7 @@ export async function POST(request: NextRequest) {
     // ========== PERSONAL TREASURE HUNTS ==========
 
     if (action === "create") {
-      const { name, description, server, map_quality, difficulty, character_id, is_public, alliance_id } = body;
+      const { name, description, server, map_quality, difficulty, character_id, is_public, alliance_id, parent_hunt_id, screenshot_url } = body;
 
       const nameError = validateStringLength(name, "Name", INPUT_LIMITS.name, true);
       if (nameError) return NextResponse.json({ error: nameError }, { status: 400 });
@@ -151,6 +190,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Server is required" }, { status: 400 });
       }
 
+      // Validate parent hunt exists and belongs to user
+      if (parent_hunt_id) {
+        const parentHunt = await getTreasureHuntById(parseInt(parent_hunt_id));
+        if (!parentHunt || parentHunt.user_id !== userId) {
+          return NextResponse.json({ error: "Invalid parent hunt" }, { status: 400 });
+        }
+      }
+
       const input: CreateTreasureHuntInput = {
         name,
         description,
@@ -160,6 +207,8 @@ export async function POST(request: NextRequest) {
         character_id: character_id ? parseInt(character_id) : undefined,
         is_public: is_public || false,
         alliance_id: alliance_id ? parseInt(alliance_id) : undefined,
+        parent_hunt_id: parent_hunt_id ? parseInt(parent_hunt_id) : undefined,
+        screenshot_url: screenshot_url || undefined,
       };
 
       const huntId = await createTreasureHunt(userId, input);
@@ -189,6 +238,8 @@ export async function POST(request: NextRequest) {
       if (updateData.chest_type !== undefined) input.chest_type = updateData.chest_type;
       if (updateData.requires_key !== undefined) input.requires_key = updateData.requires_key;
       if (updateData.is_public !== undefined) input.is_public = updateData.is_public;
+      if (updateData.parent_hunt_id !== undefined) input.parent_hunt_id = updateData.parent_hunt_id ? parseInt(updateData.parent_hunt_id) : undefined;
+      if (updateData.screenshot_url !== undefined) input.screenshot_url = updateData.screenshot_url;
 
       const success = await updateTreasureHunt(parseInt(hunt_id), userId, input, isAdmin);
       if (!success) {
@@ -334,6 +385,43 @@ export async function POST(request: NextRequest) {
       const success = await verifySharedTreasure(parseInt(treasure_id), userId, verified !== false);
       if (!success) {
         return NextResponse.json({ error: "Verification failed" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    // ========== PRIVATE SHARING WITH USERS ==========
+
+    if (action === "share-with-user") {
+      const { hunt_id, user_id: shareWithUserId, message, can_edit } = body;
+      if (!hunt_id || !shareWithUserId) {
+        return NextResponse.json({ error: "Hunt ID and user ID required" }, { status: 400 });
+      }
+
+      const shareId = await shareTreasureHuntWithUser(
+        parseInt(hunt_id),
+        userId,
+        parseInt(shareWithUserId),
+        message,
+        can_edit || false
+      );
+
+      if (!shareId) {
+        return NextResponse.json({ error: "Share failed. Hunt not found, not owner, or already shared." }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true, id: shareId });
+    }
+
+    if (action === "unshare") {
+      const { share_id } = body;
+      if (!share_id) {
+        return NextResponse.json({ error: "Share ID required" }, { status: 400 });
+      }
+
+      const success = await unshareTreasureHunt(parseInt(share_id), userId);
+      if (!success) {
+        return NextResponse.json({ error: "Unshare failed or access denied" }, { status: 400 });
       }
 
       return NextResponse.json({ success: true });

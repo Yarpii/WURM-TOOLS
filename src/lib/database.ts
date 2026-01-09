@@ -82,6 +82,7 @@ import type {
   TreasureLoot,
   SharedTreasure,
   TreasureStats,
+  TreasureHuntShare,
   CreateTreasureHuntInput,
   UpdateTreasureHuntInput,
   AddTreasureLootInput,
@@ -3483,6 +3484,7 @@ export async function getUserTreasureHunts(
     status?: TreasureHuntStatus;
     server?: string;
     difficulty?: string;
+    parent_hunt_id?: number;
   }
 ): Promise<TreasureHunt[]> {
   let sql = `
@@ -3490,10 +3492,12 @@ export async function getUserTreasureHunts(
       th.*,
       c.name as character_name,
       a.name as alliance_name,
+      p.name as parent_hunt_name,
       (SELECT COUNT(*) FROM treasure_loot WHERE treasure_hunt_id = th.id) as loot_count
     FROM treasure_hunts th
     LEFT JOIN characters c ON th.character_id = c.id
     LEFT JOIN alliances a ON th.alliance_id = a.id
+    LEFT JOIN treasure_hunts p ON th.parent_hunt_id = p.id
     WHERE th.user_id = ?
   `;
   const params: unknown[] = [userId];
@@ -3510,6 +3514,10 @@ export async function getUserTreasureHunts(
     sql += " AND th.difficulty = ?";
     params.push(filters.difficulty);
   }
+  if (filters?.parent_hunt_id) {
+    sql += " AND th.parent_hunt_id = ?";
+    params.push(filters.parent_hunt_id);
+  }
 
   sql += " ORDER BY th.created_at DESC";
 
@@ -3525,14 +3533,31 @@ export async function getTreasureHuntById(huntId: number): Promise<TreasureHunt 
       u.username,
       c.name as character_name,
       a.name as alliance_name,
+      p.name as parent_hunt_name,
       (SELECT COUNT(*) FROM treasure_loot WHERE treasure_hunt_id = th.id) as loot_count
     FROM treasure_hunts th
     LEFT JOIN users u ON th.user_id = u.id
     LEFT JOIN characters c ON th.character_id = c.id
     LEFT JOIN alliances a ON th.alliance_id = a.id
+    LEFT JOIN treasure_hunts p ON th.parent_hunt_id = p.id
     WHERE th.id = ?
   `, [huntId]);
   return result.rows[0] || null;
+}
+
+// Get child hunts (maps found in this chest)
+export async function getChildHunts(parentHuntId: number): Promise<TreasureHunt[]> {
+  const result = await query<TreasureHunt>(`
+    SELECT
+      th.*,
+      c.name as character_name,
+      (SELECT COUNT(*) FROM treasure_loot WHERE treasure_hunt_id = th.id) as loot_count
+    FROM treasure_hunts th
+    LEFT JOIN characters c ON th.character_id = c.id
+    WHERE th.parent_hunt_id = ?
+    ORDER BY th.created_at DESC
+  `, [parentHuntId]);
+  return result.rows;
 }
 
 // Create new treasure hunt
@@ -3541,11 +3566,12 @@ export async function createTreasureHunt(
   input: CreateTreasureHuntInput
 ): Promise<number> {
   await query(
-    `INSERT INTO treasure_hunts (user_id, character_id, name, description, server, map_quality, difficulty, is_public, alliance_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO treasure_hunts (user_id, character_id, parent_hunt_id, name, description, server, map_quality, difficulty, is_public, alliance_id, screenshot_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       input.character_id || null,
+      input.parent_hunt_id || null,
       input.name,
       input.description || null,
       input.server,
@@ -3553,6 +3579,7 @@ export async function createTreasureHunt(
       input.difficulty || "easy",
       input.is_public ? 1 : 0,
       input.alliance_id || null,
+      input.screenshot_url || null,
     ]
   );
 
@@ -3625,6 +3652,14 @@ export async function updateTreasureHunt(
   if (input.is_public !== undefined) {
     updates.push("is_public = ?");
     values.push(input.is_public ? 1 : 0);
+  }
+  if (input.parent_hunt_id !== undefined) {
+    updates.push("parent_hunt_id = ?");
+    values.push(input.parent_hunt_id || null);
+  }
+  if (input.screenshot_url !== undefined) {
+    updates.push("screenshot_url = ?");
+    values.push(input.screenshot_url || null);
   }
 
   if (updates.length === 0) return true;
@@ -3987,4 +4022,104 @@ export async function verifySharedTreasure(
     [verified ? 1 : 0, verified ? adminId : null, treasureId]
   );
   return result.rowCount > 0;
+}
+
+// ========== TREASURE HUNT PRIVATE SHARING ==========
+
+// Share a treasure hunt with a specific user
+export async function shareTreasureHuntWithUser(
+  huntId: number,
+  userId: number,
+  shareWithUserId: number,
+  message?: string,
+  canEdit: boolean = false
+): Promise<number | null> {
+  // Verify ownership
+  const hunt = await getTreasureHuntById(huntId);
+  if (!hunt || hunt.user_id !== userId) return null;
+
+  // Can't share with yourself
+  if (userId === shareWithUserId) return null;
+
+  try {
+    await query(
+      `INSERT INTO treasure_hunt_shares (treasure_hunt_id, shared_by_user_id, shared_with_user_id, message, can_edit)
+       VALUES (?, ?, ?, ?, ?)`,
+      [huntId, userId, shareWithUserId, message || null, canEdit ? 1 : 0]
+    );
+
+    const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
+    return idResult.rows[0]?.id || null;
+  } catch {
+    // Already shared (unique constraint)
+    return null;
+  }
+}
+
+// Remove a share
+export async function unshareTreasureHunt(
+  shareId: number,
+  userId: number
+): Promise<boolean> {
+  const result = await query(
+    "DELETE FROM treasure_hunt_shares WHERE id = ? AND shared_by_user_id = ?",
+    [shareId, userId]
+  );
+  return result.rowCount > 0;
+}
+
+// Get shares for a treasure hunt (who it's shared with)
+export async function getTreasureHuntShares(
+  huntId: number,
+  userId: number
+): Promise<TreasureHuntShare[]> {
+  const result = await query<TreasureHuntShare>(`
+    SELECT
+      ths.*,
+      u.username as shared_with_username
+    FROM treasure_hunt_shares ths
+    JOIN users u ON ths.shared_with_user_id = u.id
+    WHERE ths.treasure_hunt_id = ? AND ths.shared_by_user_id = ?
+    ORDER BY ths.created_at DESC
+  `, [huntId, userId]);
+  return result.rows;
+}
+
+// Get hunts shared with me
+export async function getHuntsSharedWithMe(userId: number): Promise<(TreasureHunt & { shared_by_username: string; share_message?: string })[]> {
+  const result = await query<TreasureHunt & { shared_by_username: string; share_message?: string }>(`
+    SELECT
+      th.*,
+      c.name as character_name,
+      a.name as alliance_name,
+      u.username as shared_by_username,
+      ths.message as share_message,
+      (SELECT COUNT(*) FROM treasure_loot WHERE treasure_hunt_id = th.id) as loot_count
+    FROM treasure_hunt_shares ths
+    JOIN treasure_hunts th ON ths.treasure_hunt_id = th.id
+    JOIN users u ON ths.shared_by_user_id = u.id
+    LEFT JOIN characters c ON th.character_id = c.id
+    LEFT JOIN alliances a ON th.alliance_id = a.id
+    WHERE ths.shared_with_user_id = ?
+    ORDER BY ths.created_at DESC
+  `, [userId]);
+  return result.rows;
+}
+
+// Search users to share with
+export async function searchUsersForSharing(
+  searchTerm: string,
+  currentUserId: number,
+  limit: number = 10
+): Promise<{ id: number; username: string; display_name?: string }[]> {
+  const result = await query<{ id: number; username: string; display_name?: string }>(`
+    SELECT id, username, display_name
+    FROM users
+    WHERE id != ?
+      AND is_banned = 0
+      AND (username LIKE ? OR display_name LIKE ?)
+    ORDER BY username
+    LIMIT ?
+  `, [currentUserId, `%${searchTerm}%`, `%${searchTerm}%`, limit]);
+  return result.rows;
 }

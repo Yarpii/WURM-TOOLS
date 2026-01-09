@@ -366,6 +366,7 @@ CREATE TABLE IF NOT EXISTS treasure_hunts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     character_id INT,
+    parent_hunt_id INT, -- For chained maps (map found in another chest)
     name VARCHAR(100) NOT NULL,
     description TEXT,
     server VARCHAR(50) NOT NULL,
@@ -389,6 +390,9 @@ CREATE TABLE IF NOT EXISTS treasure_hunts (
     is_public BOOLEAN DEFAULT FALSE,
     alliance_id INT,
 
+    -- Screenshot
+    screenshot_url VARCHAR(500),
+
     -- Timestamps
     found_at TIMESTAMP NULL,
     completed_at TIMESTAMP NULL,
@@ -398,6 +402,7 @@ CREATE TABLE IF NOT EXISTS treasure_hunts (
     CONSTRAINT fk_treasure_hunts_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_treasure_hunts_character FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE SET NULL,
     CONSTRAINT fk_treasure_hunts_alliance FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE SET NULL,
+    CONSTRAINT fk_treasure_hunts_parent FOREIGN KEY (parent_hunt_id) REFERENCES treasure_hunts(id) ON DELETE SET NULL,
     CONSTRAINT chk_treasure_difficulty CHECK (difficulty IN ('easy', 'challenging', 'difficult')),
     CONSTRAINT chk_treasure_status CHECK (status IN ('new', 'reading', 'searching', 'found', 'digging', 'completed', 'abandoned')),
     CONSTRAINT chk_treasure_chest_type CHECK (chest_type IS NULL OR chest_type IN ('open', 'locked', 'high_security'))
@@ -409,6 +414,7 @@ CREATE INDEX idx_treasure_hunts_status ON treasure_hunts(status);
 CREATE INDEX idx_treasure_hunts_difficulty ON treasure_hunts(difficulty);
 CREATE INDEX idx_treasure_hunts_public ON treasure_hunts(is_public);
 CREATE INDEX idx_treasure_hunts_coords ON treasure_hunts(x, y);
+CREATE INDEX idx_treasure_hunts_parent ON treasure_hunts(parent_hunt_id);
 
 -- Treasure loot tracking - what was found in chests
 CREATE TABLE IF NOT EXISTS treasure_loot (
@@ -422,7 +428,7 @@ CREATE TABLE IF NOT EXISTS treasure_loot (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_treasure_loot_hunt FOREIGN KEY (treasure_hunt_id) REFERENCES treasure_hunts(id) ON DELETE CASCADE,
-    CONSTRAINT chk_treasure_loot_rarity CHECK (rarity IS NULL OR rarity IN ('common', 'rare', 'supreme', 'fantastic'))
+    CONSTRAINT chk_treasure_loot_rarity CHECK (rarity IS NULL OR rarity IN ('rare', 'supreme', 'fantastic'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_treasure_loot_hunt ON treasure_loot(treasure_hunt_id);
@@ -471,6 +477,26 @@ CREATE TABLE IF NOT EXISTS shared_treasure_votes (
     CONSTRAINT fk_treasure_votes_treasure FOREIGN KEY (treasure_id) REFERENCES shared_treasures(id) ON DELETE CASCADE,
     CONSTRAINT chk_treasure_vote_type CHECK (vote_type IN ('up', 'down'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Private treasure hunt shares (sharing with specific users/friends)
+CREATE TABLE IF NOT EXISTS treasure_hunt_shares (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    treasure_hunt_id INT NOT NULL,
+    shared_by_user_id INT NOT NULL,
+    shared_with_user_id INT NOT NULL,
+    message TEXT,
+    can_edit BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_hunt_shares_hunt FOREIGN KEY (treasure_hunt_id) REFERENCES treasure_hunts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hunt_shares_by FOREIGN KEY (shared_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hunt_shares_with FOREIGN KEY (shared_with_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_hunt_share (treasure_hunt_id, shared_with_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_hunt_shares_hunt ON treasure_hunt_shares(treasure_hunt_id);
+CREATE INDEX idx_hunt_shares_by ON treasure_hunt_shares(shared_by_user_id);
+CREATE INDEX idx_hunt_shares_with ON treasure_hunt_shares(shared_with_user_id);
 
 -- ========== GAMIFICATION ==========
 

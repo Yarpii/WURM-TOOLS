@@ -11,6 +11,7 @@ import type {
   TreasureHuntStatus,
   TreasureDifficulty,
   SharedTreasureType,
+  TreasureHuntShare,
 } from "@/lib/types";
 
 const WURM_SERVERS = [
@@ -44,7 +45,13 @@ const TREASURE_TYPES: Record<SharedTreasureType, { label: string; icon: string }
   other: { label: "Other", icon: "❓" },
 };
 
-type TabType = "my-hunts" | "community" | "stats";
+type TabType = "my-hunts" | "shared-with-me" | "community" | "stats";
+
+const RARITY_COLORS: Record<string, string> = {
+  rare: "text-warning",
+  supreme: "text-cyan-400",
+  fantastic: "text-purple-400",
+};
 
 export default function TreasuresPage() {
   const { user, loading: authLoading } = useAuth();
@@ -67,9 +74,12 @@ export default function TreasuresPage() {
   // Stats state
   const [stats, setStats] = useState<TreasureStats | null>(null);
 
+  // Shared with me state
+  const [sharedWithMe, setSharedWithMe] = useState<(TreasureHunt & { shared_by_username: string })[]>([]);
+
   // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit" | "loot" | "share">("create");
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "loot" | "share" | "share-friend">("create");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -80,9 +90,19 @@ export default function TreasuresPage() {
     y: "",
     status: "new" as TreasureHuntStatus,
     treasure_type: "treasure_chest" as SharedTreasureType,
+    parent_hunt_id: "",
+    screenshot_url: "",
   });
   const [lootData, setLootData] = useState({ item_name: "", quantity: "1", quality: "", rarity: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [childHunts, setChildHunts] = useState<TreasureHunt[]>([]);
+
+  // Share with friend state
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userSearchResults, setUserSearchResults] = useState<{ id: number; username: string; display_name?: string }[]>([]);
+  const [selectedShareUser, setSelectedShareUser] = useState<{ id: number; username: string } | null>(null);
+  const [shareMessage, setShareMessage] = useState("");
+  const [huntShares, setHuntShares] = useState<TreasureHuntShare[]>([]);
 
   // Fetch hunts
   const fetchHunts = useCallback(async () => {
@@ -132,6 +152,36 @@ export default function TreasuresPage() {
     }
   }, []);
 
+  // Fetch hunts shared with me
+  const fetchSharedWithMe = useCallback(async () => {
+    try {
+      const res = await fetch("/api/treasures?action=shared-with-me");
+      const data = await res.json();
+      if (res.ok) {
+        setSharedWithMe(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch shared with me:", err);
+    }
+  }, []);
+
+  // Search users to share with
+  const searchUsers = async (query: string) => {
+    if (query.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/treasures?action=search-users&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setUserSearchResults(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to search users:", err);
+    }
+  };
+
   // Fetch hunt loot
   const fetchHuntLoot = async (huntId: number) => {
     try {
@@ -148,6 +198,8 @@ export default function TreasuresPage() {
   useEffect(() => {
     if (user && activeTab === "my-hunts") {
       fetchHunts();
+    } else if (user && activeTab === "shared-with-me") {
+      fetchSharedWithMe();
     } else if (activeTab === "community") {
       fetchShared();
     } else if (user && activeTab === "stats") {
@@ -155,26 +207,54 @@ export default function TreasuresPage() {
     } else if (!authLoading && !user) {
       setLoading(false);
     }
-  }, [user, authLoading, activeTab, fetchHunts, fetchShared, fetchStats]);
+  }, [user, authLoading, activeTab, fetchHunts, fetchShared, fetchStats, fetchSharedWithMe]);
 
   // Select a hunt to view details
   const selectHunt = async (hunt: TreasureHunt) => {
     setSelectedHunt(hunt);
     await fetchHuntLoot(hunt.id);
+    // Fetch child hunts (chained maps)
+    try {
+      const res = await fetch(`/api/treasures?id=${hunt.id}&action=children`);
+      const data = await res.json();
+      if (res.ok) {
+        setChildHunts(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch child hunts:", err);
+      setChildHunts([]);
+    }
+    // Fetch shares (only for own hunts)
+    if (hunt.user_id === user?.id) {
+      try {
+        const res = await fetch(`/api/treasures?id=${hunt.id}&action=shares`);
+        const data = await res.json();
+        if (res.ok) {
+          setHuntShares(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch shares:", err);
+        setHuntShares([]);
+      }
+    } else {
+      setHuntShares([]);
+    }
   };
 
   // Create new hunt
-  const openCreateModal = () => {
+  const openCreateModal = (parentHuntId?: number) => {
     setFormData({
       name: "",
       description: "",
-      server: "Harmony",
+      server: parentHuntId && selectedHunt ? selectedHunt.server : "Harmony",
       map_quality: "",
       difficulty: "easy",
       x: "",
       y: "",
       status: "new",
       treasure_type: "treasure_chest",
+      parent_hunt_id: parentHuntId?.toString() || "",
+      screenshot_url: "",
     });
     setModalMode("create");
     setShowModal(true);
@@ -192,6 +272,8 @@ export default function TreasuresPage() {
       y: hunt.y?.toString() || "",
       status: hunt.status,
       treasure_type: "treasure_chest",
+      parent_hunt_id: hunt.parent_hunt_id?.toString() || "",
+      screenshot_url: hunt.screenshot_url || "",
     });
     setSelectedHunt(hunt);
     setModalMode("edit");
@@ -205,7 +287,7 @@ export default function TreasuresPage() {
     setShowModal(true);
   };
 
-  // Share treasure modal
+  // Share treasure to community modal
   const openShareModal = () => {
     setFormData({
       name: "",
@@ -217,9 +299,81 @@ export default function TreasuresPage() {
       y: "",
       status: "new",
       treasure_type: "treasure_chest",
+      parent_hunt_id: "",
+      screenshot_url: "",
     });
     setModalMode("share");
     setShowModal(true);
+  };
+
+  // Share with friend modal
+  const openShareFriendModal = () => {
+    setUserSearchQuery("");
+    setUserSearchResults([]);
+    setSelectedShareUser(null);
+    setShareMessage("");
+    setModalMode("share-friend");
+    setShowModal(true);
+  };
+
+  // Share hunt with a user
+  const shareWithUser = async () => {
+    if (!selectedHunt || !selectedShareUser) return;
+    setSaving(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/treasures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "share-with-user",
+          hunt_id: selectedHunt.id,
+          user_id: selectedShareUser.id,
+          message: shareMessage || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Share failed");
+      } else {
+        setSuccess(`Shared with ${selectedShareUser.username}!`);
+        setShowModal(false);
+        // Refresh shares list
+        const sharesRes = await fetch(`/api/treasures?id=${selectedHunt.id}&action=shares`);
+        const sharesData = await sharesRes.json();
+        if (sharesRes.ok) {
+          setHuntShares(Array.isArray(sharesData) ? sharesData : []);
+        }
+      }
+    } catch (err) {
+      setError("Share failed: " + String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Remove share
+  const removeShare = async (shareId: number) => {
+    if (!selectedHunt) return;
+    try {
+      const res = await fetch("/api/treasures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "unshare",
+          share_id: shareId,
+        }),
+      });
+
+      if (res.ok) {
+        setHuntShares(huntShares.filter(s => s.id !== shareId));
+        setSuccess("Share removed");
+      }
+    } catch (err) {
+      console.error("Unshare failed:", err);
+    }
   };
 
   // Handle form submit
@@ -402,6 +556,23 @@ export default function TreasuresPage() {
           >
             My Hunts
           </button>
+          {user && (
+            <button
+              onClick={() => setActiveTab("shared-with-me")}
+              className={`px-4 py-2 rounded-t ${
+                activeTab === "shared-with-me"
+                  ? "bg-accent text-white"
+                  : "bg-bg-secondary text-text-secondary hover:bg-bg-tertiary"
+              }`}
+            >
+              Shared with Me
+              {sharedWithMe.length > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 bg-warning/20 text-warning text-xs rounded">
+                  {sharedWithMe.length}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setActiveTab("community")}
             className={`px-4 py-2 rounded-t ${
@@ -485,8 +656,13 @@ export default function TreasuresPage() {
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold truncate">{hunt.name}</h3>
-                            <span className={`px-2 py-0.5 rounded text-xs ${STATUS_LABELS[hunt.status].color}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {hunt.parent_hunt_id && (
+                                <span className="text-warning" title="Chained map">↳</span>
+                              )}
+                              <h3 className="font-semibold truncate">{hunt.name}</h3>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-xs flex-shrink-0 ${STATUS_LABELS[hunt.status].color}`}>
                               {STATUS_LABELS[hunt.status].label}
                             </span>
                           </div>
@@ -517,6 +693,12 @@ export default function TreasuresPage() {
                           <p className="text-text-secondary">{selectedHunt.server}</p>
                         </div>
                         <div className="flex gap-2">
+                          <button
+                            onClick={openShareFriendModal}
+                            className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
+                          >
+                            Share
+                          </button>
                           <button
                             onClick={() => openEditModal(selectedHunt)}
                             className="px-3 py-1 bg-bg-tertiary rounded hover:bg-bg-hover text-sm"
@@ -557,8 +739,28 @@ export default function TreasuresPage() {
                         </div>
                       </div>
 
+                      {/* Parent Hunt Link */}
+                      {selectedHunt.parent_hunt_id && selectedHunt.parent_hunt_name && (
+                        <div className="mb-4 p-3 bg-bg-tertiary rounded-lg">
+                          <span className="text-text-muted text-sm">Found in chest from: </span>
+                          <span className="text-accent font-medium">{selectedHunt.parent_hunt_name}</span>
+                        </div>
+                      )}
+
                       {selectedHunt.description && (
                         <p className="text-text-secondary mb-6">{selectedHunt.description}</p>
+                      )}
+
+                      {/* Screenshot */}
+                      {selectedHunt.screenshot_url && (
+                        <div className="mb-6">
+                          <h3 className="font-semibold mb-2">Screenshot</h3>
+                          <img
+                            src={selectedHunt.screenshot_url}
+                            alt="Treasure map screenshot"
+                            className="max-w-full rounded-lg border border-border max-h-64 object-contain"
+                          />
+                        </div>
                       )}
 
                       {/* Loot Section */}
@@ -566,12 +768,20 @@ export default function TreasuresPage() {
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="font-semibold">Loot ({huntLoot.length})</h3>
                           {selectedHunt.status === "completed" && (
-                            <button
-                              onClick={openLootModal}
-                              className="px-3 py-1 bg-accent rounded hover:bg-accent-hover text-sm"
-                            >
-                              + Add Loot
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => openCreateModal(selectedHunt.id)}
+                                className="px-3 py-1 bg-warning/20 text-warning rounded hover:bg-warning/30 text-sm"
+                              >
+                                + Map from Chest
+                              </button>
+                              <button
+                                onClick={openLootModal}
+                                className="px-3 py-1 bg-accent rounded hover:bg-accent-hover text-sm"
+                              >
+                                + Add Loot
+                              </button>
+                            </div>
                           )}
                         </div>
 
@@ -589,11 +799,7 @@ export default function TreasuresPage() {
                                 <div className="text-text-muted">
                                   {loot.quantity}x {loot.quality && `QL${loot.quality}`}
                                   {loot.rarity && (
-                                    <span className={`ml-1 ${
-                                      loot.rarity === "fantastic" ? "text-purple-400" :
-                                      loot.rarity === "supreme" ? "text-cyan-400" :
-                                      loot.rarity === "rare" ? "text-warning" : ""
-                                    }`}>
+                                    <span className={`ml-1 ${RARITY_COLORS[loot.rarity] || ""}`}>
                                       ({loot.rarity})
                                     </span>
                                   )}
@@ -603,6 +809,55 @@ export default function TreasuresPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Chained Maps Section */}
+                      {childHunts.length > 0 && (
+                        <div className="border-t border-border pt-4 mt-4">
+                          <h3 className="font-semibold mb-4">Maps Found in This Chest ({childHunts.length})</h3>
+                          <div className="space-y-2">
+                            {childHunts.map((child) => (
+                              <div
+                                key={child.id}
+                                onClick={() => selectHunt(child)}
+                                className="p-3 bg-bg-tertiary rounded-lg cursor-pointer hover:bg-bg-hover flex items-center justify-between"
+                              >
+                                <div>
+                                  <span className="font-medium">{child.name}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded text-xs ${STATUS_LABELS[child.status].color}`}>
+                                    {STATUS_LABELS[child.status].label}
+                                  </span>
+                                </div>
+                                <span className={`text-xs ${DIFFICULTY_LABELS[child.difficulty].color}`}>
+                                  {DIFFICULTY_LABELS[child.difficulty].label}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shared With Section */}
+                      {huntShares.length > 0 && (
+                        <div className="border-t border-border pt-4 mt-4">
+                          <h3 className="font-semibold mb-4">Shared With ({huntShares.length})</h3>
+                          <div className="space-y-2">
+                            {huntShares.map((share) => (
+                              <div
+                                key={share.id}
+                                className="p-3 bg-bg-tertiary rounded-lg flex items-center justify-between"
+                              >
+                                <span className="font-medium">{share.shared_with_username}</span>
+                                <button
+                                  onClick={() => removeShare(share.id)}
+                                  className="text-danger hover:text-danger/80 text-sm"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="bg-bg-secondary rounded-lg p-8 text-center text-text-muted">
@@ -613,6 +868,48 @@ export default function TreasuresPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Shared with Me Tab */}
+        {activeTab === "shared-with-me" && (
+          <div>
+            {sharedWithMe.length === 0 ? (
+              <div className="text-center py-12 bg-bg-secondary rounded-lg">
+                <p className="text-text-secondary">No treasure hunts have been shared with you yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sharedWithMe.map((hunt) => (
+                  <div
+                    key={hunt.id}
+                    className="p-4 bg-bg-secondary rounded-lg border border-border hover:border-accent cursor-pointer"
+                    onClick={() => selectHunt(hunt)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold truncate">{hunt.name}</h3>
+                      <span className={`px-2 py-0.5 rounded text-xs ${STATUS_LABELS[hunt.status].color}`}>
+                        {STATUS_LABELS[hunt.status].label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-text-secondary mb-2">
+                      <span>{hunt.server}</span>
+                      <span className={`px-2 py-0.5 rounded text-xs ${DIFFICULTY_LABELS[hunt.difficulty].color}`}>
+                        {DIFFICULTY_LABELS[hunt.difficulty].label}
+                      </span>
+                    </div>
+                    <div className="text-xs text-info">
+                      Shared by: {hunt.shared_by_username}
+                    </div>
+                    {hunt.x && hunt.y && (
+                      <div className="text-xs text-text-muted mt-1">
+                        Location: {hunt.x}, {hunt.y}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Community Tab */}
@@ -746,10 +1043,11 @@ export default function TreasuresPage() {
             <div className="bg-bg-secondary rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
               <div className="p-4 border-b border-border flex items-center justify-between">
                 <h2 className="text-xl font-bold">
-                  {modalMode === "create" && "New Treasure Hunt"}
+                  {modalMode === "create" && (formData.parent_hunt_id ? "Add Map from Chest" : "New Treasure Hunt")}
                   {modalMode === "edit" && "Edit Hunt"}
                   {modalMode === "loot" && "Add Loot"}
-                  {modalMode === "share" && "Share Location"}
+                  {modalMode === "share" && "Share to Community"}
+                  {modalMode === "share-friend" && "Share with Friend"}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="text-text-secondary hover:text-text-primary">
                   ×
@@ -851,6 +1149,24 @@ export default function TreasuresPage() {
                         rows={3}
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Screenshot URL</label>
+                      <input
+                        type="url"
+                        value={formData.screenshot_url}
+                        onChange={(e) => setFormData({ ...formData, screenshot_url: e.target.value })}
+                        placeholder="https://imgur.com/..."
+                        className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
+                      />
+                      <p className="text-xs text-text-muted mt-1">Link to screenshot of your treasure map</p>
+                    </div>
+                    {formData.parent_hunt_id && (
+                      <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
+                        <p className="text-warning text-sm">
+                          This map will be linked as found in the chest from the parent hunt.
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -978,23 +1294,118 @@ export default function TreasuresPage() {
                   </>
                 )}
 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2 bg-bg-tertiary hover:bg-bg-hover rounded"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 px-4 py-2 bg-accent hover:bg-accent-hover rounded disabled:opacity-50"
-                  >
-                    {saving ? "Saving..." : "Save"}
-                  </button>
-                </div>
+                {modalMode !== "share-friend" && (
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      className="flex-1 px-4 py-2 bg-bg-tertiary hover:bg-bg-hover rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex-1 px-4 py-2 bg-accent hover:bg-accent-hover rounded disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                )}
               </form>
+
+              {/* Share with Friend content - outside form */}
+              {modalMode === "share-friend" && selectedHunt && (
+                <div className="p-4 space-y-4">
+                  <p className="text-text-secondary text-sm">
+                    Share &quot;{selectedHunt.name}&quot; with another user
+                  </p>
+
+                  {/* User search */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Search User</label>
+                    <input
+                      type="text"
+                      value={userSearchQuery}
+                      onChange={(e) => {
+                        setUserSearchQuery(e.target.value);
+                        searchUsers(e.target.value);
+                      }}
+                      placeholder="Enter username..."
+                      className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Search results */}
+                  {userSearchResults.length > 0 && !selectedShareUser && (
+                    <div className="border border-border rounded max-h-40 overflow-y-auto">
+                      {userSearchResults.map((u) => (
+                        <div
+                          key={u.id}
+                          onClick={() => {
+                            setSelectedShareUser({ id: u.id, username: u.username });
+                            setUserSearchResults([]);
+                            setUserSearchQuery(u.username);
+                          }}
+                          className="p-2 hover:bg-bg-tertiary cursor-pointer"
+                        >
+                          <span className="font-medium">{u.username}</span>
+                          {u.display_name && (
+                            <span className="text-text-muted ml-2">({u.display_name})</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Selected user */}
+                  {selectedShareUser && (
+                    <div className="p-3 bg-success/10 border border-success/30 rounded-lg flex items-center justify-between">
+                      <span>Sharing with: <strong>{selectedShareUser.username}</strong></span>
+                      <button
+                        onClick={() => {
+                          setSelectedShareUser(null);
+                          setUserSearchQuery("");
+                        }}
+                        className="text-danger text-sm"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Optional message */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Message (optional)</label>
+                    <textarea
+                      value={shareMessage}
+                      onChange={(e) => setShareMessage(e.target.value)}
+                      placeholder="Add a note for the recipient..."
+                      className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none resize-none"
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      className="flex-1 px-4 py-2 bg-bg-tertiary hover:bg-bg-hover rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={shareWithUser}
+                      disabled={saving || !selectedShareUser}
+                      className="flex-1 px-4 py-2 bg-info hover:bg-info/80 rounded disabled:opacity-50"
+                    >
+                      {saving ? "Sharing..." : "Share"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
