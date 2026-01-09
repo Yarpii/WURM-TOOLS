@@ -1,0 +1,349 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import {
+  getUserTreasureHunts,
+  getTreasureHuntById,
+  createTreasureHunt,
+  updateTreasureHunt,
+  deleteTreasureHunt,
+  getTreasureLoot,
+  addTreasureLoot,
+  deleteTreasureLoot,
+  getTreasureStats,
+  getSharedTreasures,
+  getSharedTreasureById,
+  createSharedTreasure,
+  updateSharedTreasure,
+  deleteSharedTreasure,
+  voteSharedTreasure,
+  verifySharedTreasure,
+} from "@/lib/database";
+import { sanitizeError, validateStringLength, INPUT_LIMITS } from "@/lib/security";
+import type {
+  CreateTreasureHuntInput,
+  UpdateTreasureHuntInput,
+  AddTreasureLootInput,
+  CreateSharedTreasureInput,
+  UpdateSharedTreasureInput,
+  TreasureHuntStatus,
+  SharedTreasureStatus,
+} from "@/lib/types";
+
+export async function GET(request: NextRequest) {
+  try {
+    const sessionId = request.cookies.get("session")?.value;
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+    const huntId = searchParams.get("id");
+    const sharedId = searchParams.get("shared_id");
+
+    // Public endpoints - shared treasures
+    if (action === "shared" || sharedId) {
+      const result = sessionId ? await getSession(sessionId) : null;
+      const userId = result?.user?.id;
+
+      if (sharedId) {
+        const treasure = await getSharedTreasureById(parseInt(sharedId), userId);
+        if (!treasure) {
+          return NextResponse.json({ error: "Treasure not found" }, { status: 404 });
+        }
+        return NextResponse.json(treasure);
+      }
+
+      const filters = {
+        server: searchParams.get("server") || undefined,
+        treasure_type: searchParams.get("type") || undefined,
+        status: (searchParams.get("status") as SharedTreasureStatus) || undefined,
+        verified_only: searchParams.get("verified") === "true",
+      };
+
+      const treasures = await getSharedTreasures(filters, userId);
+      return NextResponse.json(treasures);
+    }
+
+    // Protected endpoints - require authentication
+    if (!sessionId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const result = await getSession(sessionId);
+    if (!result) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
+    const userId = result.user.id;
+
+    // Get single treasure hunt
+    if (huntId) {
+      const hunt = await getTreasureHuntById(parseInt(huntId));
+      if (!hunt) {
+        return NextResponse.json({ error: "Treasure hunt not found" }, { status: 404 });
+      }
+
+      // Check access
+      if (hunt.user_id !== userId && !hunt.is_public) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+
+      // Get loot if requested
+      if (action === "loot") {
+        const loot = await getTreasureLoot(parseInt(huntId));
+        return NextResponse.json(loot);
+      }
+
+      return NextResponse.json(hunt);
+    }
+
+    // Get stats
+    if (action === "stats") {
+      const stats = await getTreasureStats(userId);
+      return NextResponse.json(stats);
+    }
+
+    // Get user's treasure hunts with filters
+    const filters = {
+      status: (searchParams.get("status") as TreasureHuntStatus) || undefined,
+      server: searchParams.get("server") || undefined,
+      difficulty: searchParams.get("difficulty") || undefined,
+    };
+
+    const hunts = await getUserTreasureHunts(userId, filters);
+    return NextResponse.json(hunts);
+  } catch (error) {
+    return NextResponse.json(
+      { error: sanitizeError(error, "Fetch treasures") },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const sessionId = request.cookies.get("session")?.value;
+    if (!sessionId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const result = await getSession(sessionId);
+    if (!result) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
+    const userId = result.user.id;
+    const isAdmin = result.user.role === "admin";
+    const body = await request.json();
+    const { action } = body;
+
+    // ========== PERSONAL TREASURE HUNTS ==========
+
+    if (action === "create") {
+      const { name, description, server, map_quality, difficulty, character_id, is_public, alliance_id } = body;
+
+      const nameError = validateStringLength(name, "Name", INPUT_LIMITS.name, true);
+      if (nameError) return NextResponse.json({ error: nameError }, { status: 400 });
+
+      if (description) {
+        const descError = validateStringLength(description, "Description", INPUT_LIMITS.description, false);
+        if (descError) return NextResponse.json({ error: descError }, { status: 400 });
+      }
+
+      if (!server) {
+        return NextResponse.json({ error: "Server is required" }, { status: 400 });
+      }
+
+      const input: CreateTreasureHuntInput = {
+        name,
+        description,
+        server,
+        map_quality: map_quality ? parseInt(map_quality) : undefined,
+        difficulty: difficulty || "easy",
+        character_id: character_id ? parseInt(character_id) : undefined,
+        is_public: is_public || false,
+        alliance_id: alliance_id ? parseInt(alliance_id) : undefined,
+      };
+
+      const huntId = await createTreasureHunt(userId, input);
+      return NextResponse.json({ success: true, id: huntId });
+    }
+
+    if (action === "update") {
+      const { hunt_id, ...updateData } = body;
+      if (!hunt_id) {
+        return NextResponse.json({ error: "Hunt ID required" }, { status: 400 });
+      }
+
+      if (updateData.name) {
+        const nameError = validateStringLength(updateData.name, "Name", INPUT_LIMITS.name, true);
+        if (nameError) return NextResponse.json({ error: nameError }, { status: 400 });
+      }
+
+      const input: UpdateTreasureHuntInput = {};
+      if (updateData.name !== undefined) input.name = updateData.name;
+      if (updateData.description !== undefined) input.description = updateData.description;
+      if (updateData.server !== undefined) input.server = updateData.server;
+      if (updateData.map_quality !== undefined) input.map_quality = parseInt(updateData.map_quality);
+      if (updateData.difficulty !== undefined) input.difficulty = updateData.difficulty;
+      if (updateData.x !== undefined) input.x = parseInt(updateData.x);
+      if (updateData.y !== undefined) input.y = parseInt(updateData.y);
+      if (updateData.status !== undefined) input.status = updateData.status;
+      if (updateData.chest_type !== undefined) input.chest_type = updateData.chest_type;
+      if (updateData.requires_key !== undefined) input.requires_key = updateData.requires_key;
+      if (updateData.is_public !== undefined) input.is_public = updateData.is_public;
+
+      const success = await updateTreasureHunt(parseInt(hunt_id), userId, input, isAdmin);
+      if (!success) {
+        return NextResponse.json({ error: "Update failed or access denied" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "delete") {
+      const { hunt_id } = body;
+      if (!hunt_id) {
+        return NextResponse.json({ error: "Hunt ID required" }, { status: 400 });
+      }
+
+      const success = await deleteTreasureHunt(parseInt(hunt_id), userId, isAdmin);
+      if (!success) {
+        return NextResponse.json({ error: "Delete failed or access denied" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    // ========== TREASURE LOOT ==========
+
+    if (action === "add-loot") {
+      const { hunt_id, item_name, quantity, quality, rarity, notes } = body;
+      if (!hunt_id || !item_name) {
+        return NextResponse.json({ error: "Hunt ID and item name required" }, { status: 400 });
+      }
+
+      const input: AddTreasureLootInput = {
+        item_name,
+        quantity: quantity ? parseInt(quantity) : 1,
+        quality: quality ? parseInt(quality) : undefined,
+        rarity,
+        notes,
+      };
+
+      const lootId = await addTreasureLoot(parseInt(hunt_id), userId, input);
+      if (!lootId) {
+        return NextResponse.json({ error: "Failed to add loot" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true, id: lootId });
+    }
+
+    if (action === "delete-loot") {
+      const { loot_id } = body;
+      if (!loot_id) {
+        return NextResponse.json({ error: "Loot ID required" }, { status: 400 });
+      }
+
+      const success = await deleteTreasureLoot(parseInt(loot_id), userId);
+      if (!success) {
+        return NextResponse.json({ error: "Delete failed or access denied" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    // ========== SHARED TREASURES ==========
+
+    if (action === "share") {
+      const { name, description, server, x, y, treasure_type } = body;
+
+      const nameError = validateStringLength(name, "Name", INPUT_LIMITS.name, true);
+      if (nameError) return NextResponse.json({ error: nameError }, { status: 400 });
+
+      if (!server || x === undefined || y === undefined || !treasure_type) {
+        return NextResponse.json({ error: "Server, coordinates, and type are required" }, { status: 400 });
+      }
+
+      const input: CreateSharedTreasureInput = {
+        name,
+        description,
+        server,
+        x: parseInt(x),
+        y: parseInt(y),
+        treasure_type,
+      };
+
+      const treasureId = await createSharedTreasure(userId, input);
+      return NextResponse.json({ success: true, id: treasureId });
+    }
+
+    if (action === "update-shared") {
+      const { treasure_id, ...updateData } = body;
+      if (!treasure_id) {
+        return NextResponse.json({ error: "Treasure ID required" }, { status: 400 });
+      }
+
+      const input: UpdateSharedTreasureInput = {};
+      if (updateData.name !== undefined) input.name = updateData.name;
+      if (updateData.description !== undefined) input.description = updateData.description;
+      if (updateData.x !== undefined) input.x = parseInt(updateData.x);
+      if (updateData.y !== undefined) input.y = parseInt(updateData.y);
+      if (updateData.treasure_type !== undefined) input.treasure_type = updateData.treasure_type;
+      if (updateData.status !== undefined && isAdmin) input.status = updateData.status;
+
+      const success = await updateSharedTreasure(parseInt(treasure_id), userId, input, isAdmin);
+      if (!success) {
+        return NextResponse.json({ error: "Update failed or access denied" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "delete-shared") {
+      const { treasure_id } = body;
+      if (!treasure_id) {
+        return NextResponse.json({ error: "Treasure ID required" }, { status: 400 });
+      }
+
+      const success = await deleteSharedTreasure(parseInt(treasure_id), userId, isAdmin);
+      if (!success) {
+        return NextResponse.json({ error: "Delete failed or access denied" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "vote") {
+      const { treasure_id, vote_type } = body;
+      if (!treasure_id || !vote_type) {
+        return NextResponse.json({ error: "Treasure ID and vote type required" }, { status: 400 });
+      }
+
+      if (!["up", "down"].includes(vote_type)) {
+        return NextResponse.json({ error: "Invalid vote type" }, { status: 400 });
+      }
+
+      await voteSharedTreasure(parseInt(treasure_id), userId, vote_type);
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "verify" && isAdmin) {
+      const { treasure_id, verified } = body;
+      if (!treasure_id) {
+        return NextResponse.json({ error: "Treasure ID required" }, { status: 400 });
+      }
+
+      const success = await verifySharedTreasure(parseInt(treasure_id), userId, verified !== false);
+      if (!success) {
+        return NextResponse.json({ error: "Verification failed" }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: sanitizeError(error, "Treasure operation") },
+      { status: 500 }
+    );
+  }
+}
