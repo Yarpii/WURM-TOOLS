@@ -530,20 +530,12 @@ export default function TreasuresPage() {
             </p>
           </div>
           {user && (
-            <div className="flex gap-2">
-              <button
-                onClick={openCreateModal}
-                className="px-4 py-2 bg-accent rounded-lg hover:bg-accent-hover flex items-center gap-2"
-              >
-                <span>+</span> New Hunt
-              </button>
-              <button
-                onClick={openShareModal}
-                className="px-4 py-2 bg-bg-secondary border border-border rounded-lg hover:bg-bg-tertiary"
-              >
-                Share Location
-              </button>
-            </div>
+            <button
+              onClick={() => openCreateModal()}
+              className="px-4 py-2 bg-accent rounded-lg hover:bg-accent-hover flex items-center gap-2"
+            >
+              <span>+</span> New Hunt
+            </button>
           )}
         </div>
 
@@ -956,11 +948,9 @@ export default function TreasuresPage() {
             {sharedTreasures.length === 0 ? (
               <div className="text-center py-12 bg-bg-secondary rounded-lg">
                 <p className="text-text-secondary mb-4">No shared treasure locations yet.</p>
-                {user && (
-                  <button onClick={openShareModal} className="px-4 py-2 bg-accent rounded hover:bg-accent-hover">
-                    Share a Location
-                  </button>
-                )}
+                <p className="text-text-muted text-sm">
+                  Complete a treasure hunt with coordinates to share it with the community.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
