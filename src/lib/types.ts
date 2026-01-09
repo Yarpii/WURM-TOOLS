@@ -906,3 +906,142 @@ export interface ReviewRecipeSubmissionInput {
   status: "approved" | "rejected";
   admin_notes?: string;
 }
+
+// ========== TREASURE HUNTING ==========
+
+export type TreasureDifficulty = "easy" | "challenging" | "difficult";
+export type TreasureHuntStatus = "new" | "reading" | "searching" | "found" | "digging" | "completed" | "abandoned";
+export type TreasureChestType = "open" | "locked" | "high_security";
+export type TreasureLootRarity = "common" | "rare" | "supreme" | "fantastic";
+export type SharedTreasureType = "treasure_chest" | "rare_spawn" | "unique_item" | "hidden_cache" | "archaeology" | "other";
+export type SharedTreasureStatus = "active" | "claimed" | "expired" | "invalid";
+
+// Personal treasure hunt tracking
+export interface TreasureHunt {
+  id: number;
+  user_id: number;
+  username?: string;
+  character_id?: number;
+  character_name?: string;
+  name: string;
+  description?: string;
+  server: string;
+  map_quality?: number;
+  difficulty: TreasureDifficulty;
+  x?: number;
+  y?: number;
+  status: TreasureHuntStatus;
+  chest_type?: TreasureChestType;
+  requires_key: boolean;
+  is_public: boolean;
+  alliance_id?: number;
+  alliance_name?: string;
+  found_at?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  // Computed fields
+  loot_count?: number;
+}
+
+export interface CreateTreasureHuntInput {
+  name: string;
+  description?: string;
+  server: string;
+  map_quality?: number;
+  difficulty?: TreasureDifficulty;
+  character_id?: number;
+  is_public?: boolean;
+  alliance_id?: number;
+}
+
+export interface UpdateTreasureHuntInput {
+  name?: string;
+  description?: string;
+  server?: string;
+  map_quality?: number;
+  difficulty?: TreasureDifficulty;
+  x?: number;
+  y?: number;
+  status?: TreasureHuntStatus;
+  chest_type?: TreasureChestType;
+  requires_key?: boolean;
+  is_public?: boolean;
+}
+
+// Treasure loot tracking
+export interface TreasureLoot {
+  id: number;
+  treasure_hunt_id: number;
+  item_name: string;
+  quantity: number;
+  quality?: number;
+  rarity?: TreasureLootRarity;
+  notes?: string;
+  created_at: string;
+}
+
+export interface AddTreasureLootInput {
+  item_name: string;
+  quantity?: number;
+  quality?: number;
+  rarity?: TreasureLootRarity;
+  notes?: string;
+}
+
+// Shared/community treasure locations
+export interface SharedTreasure {
+  id: number;
+  user_id: number;
+  username?: string;
+  name: string;
+  description?: string;
+  server: string;
+  x: number;
+  y: number;
+  treasure_type: SharedTreasureType;
+  status: SharedTreasureStatus;
+  is_verified: boolean;
+  verified_by?: number;
+  verified_by_username?: string;
+  verified_at?: string;
+  upvotes: number;
+  downvotes: number;
+  user_vote?: "up" | "down" | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSharedTreasureInput {
+  name: string;
+  description?: string;
+  server: string;
+  x: number;
+  y: number;
+  treasure_type: SharedTreasureType;
+}
+
+export interface UpdateSharedTreasureInput {
+  name?: string;
+  description?: string;
+  x?: number;
+  y?: number;
+  treasure_type?: SharedTreasureType;
+  status?: SharedTreasureStatus;
+}
+
+// Treasure statistics
+export interface TreasureStats {
+  total_hunts: number;
+  completed_hunts: number;
+  abandoned_hunts: number;
+  in_progress_hunts: number;
+  total_loot_items: number;
+  rare_finds: number;
+  by_difficulty: {
+    easy: number;
+    challenging: number;
+    difficult: number;
+  };
+  by_server: Record<string, number>;
+}
