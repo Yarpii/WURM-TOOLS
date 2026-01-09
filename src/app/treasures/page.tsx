@@ -46,6 +46,12 @@ const TREASURE_TYPES: Record<SharedTreasureType, { label: string; icon: string }
 
 type TabType = "my-hunts" | "community" | "stats";
 
+const RARITY_COLORS: Record<string, string> = {
+  rare: "text-warning",
+  supreme: "text-cyan-400",
+  fantastic: "text-purple-400",
+};
+
 export default function TreasuresPage() {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("my-hunts");
@@ -80,9 +86,12 @@ export default function TreasuresPage() {
     y: "",
     status: "new" as TreasureHuntStatus,
     treasure_type: "treasure_chest" as SharedTreasureType,
+    parent_hunt_id: "",
+    screenshot_url: "",
   });
   const [lootData, setLootData] = useState({ item_name: "", quantity: "1", quality: "", rarity: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [childHunts, setChildHunts] = useState<TreasureHunt[]>([]);
 
   // Fetch hunts
   const fetchHunts = useCallback(async () => {
@@ -161,20 +170,33 @@ export default function TreasuresPage() {
   const selectHunt = async (hunt: TreasureHunt) => {
     setSelectedHunt(hunt);
     await fetchHuntLoot(hunt.id);
+    // Fetch child hunts (chained maps)
+    try {
+      const res = await fetch(`/api/treasures?id=${hunt.id}&action=children`);
+      const data = await res.json();
+      if (res.ok) {
+        setChildHunts(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch child hunts:", err);
+      setChildHunts([]);
+    }
   };
 
   // Create new hunt
-  const openCreateModal = () => {
+  const openCreateModal = (parentHuntId?: number) => {
     setFormData({
       name: "",
       description: "",
-      server: "Harmony",
+      server: parentHuntId && selectedHunt ? selectedHunt.server : "Harmony",
       map_quality: "",
       difficulty: "easy",
       x: "",
       y: "",
       status: "new",
       treasure_type: "treasure_chest",
+      parent_hunt_id: parentHuntId?.toString() || "",
+      screenshot_url: "",
     });
     setModalMode("create");
     setShowModal(true);
@@ -192,6 +214,8 @@ export default function TreasuresPage() {
       y: hunt.y?.toString() || "",
       status: hunt.status,
       treasure_type: "treasure_chest",
+      parent_hunt_id: hunt.parent_hunt_id?.toString() || "",
+      screenshot_url: hunt.screenshot_url || "",
     });
     setSelectedHunt(hunt);
     setModalMode("edit");
@@ -217,6 +241,8 @@ export default function TreasuresPage() {
       y: "",
       status: "new",
       treasure_type: "treasure_chest",
+      parent_hunt_id: "",
+      screenshot_url: "",
     });
     setModalMode("share");
     setShowModal(true);
@@ -485,8 +511,13 @@ export default function TreasuresPage() {
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold truncate">{hunt.name}</h3>
-                            <span className={`px-2 py-0.5 rounded text-xs ${STATUS_LABELS[hunt.status].color}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {hunt.parent_hunt_id && (
+                                <span className="text-warning" title="Chained map">↳</span>
+                              )}
+                              <h3 className="font-semibold truncate">{hunt.name}</h3>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-xs flex-shrink-0 ${STATUS_LABELS[hunt.status].color}`}>
                               {STATUS_LABELS[hunt.status].label}
                             </span>
                           </div>
@@ -557,8 +588,28 @@ export default function TreasuresPage() {
                         </div>
                       </div>
 
+                      {/* Parent Hunt Link */}
+                      {selectedHunt.parent_hunt_id && selectedHunt.parent_hunt_name && (
+                        <div className="mb-4 p-3 bg-bg-tertiary rounded-lg">
+                          <span className="text-text-muted text-sm">Found in chest from: </span>
+                          <span className="text-accent font-medium">{selectedHunt.parent_hunt_name}</span>
+                        </div>
+                      )}
+
                       {selectedHunt.description && (
                         <p className="text-text-secondary mb-6">{selectedHunt.description}</p>
+                      )}
+
+                      {/* Screenshot */}
+                      {selectedHunt.screenshot_url && (
+                        <div className="mb-6">
+                          <h3 className="font-semibold mb-2">Screenshot</h3>
+                          <img
+                            src={selectedHunt.screenshot_url}
+                            alt="Treasure map screenshot"
+                            className="max-w-full rounded-lg border border-border max-h-64 object-contain"
+                          />
+                        </div>
                       )}
 
                       {/* Loot Section */}
@@ -566,12 +617,20 @@ export default function TreasuresPage() {
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="font-semibold">Loot ({huntLoot.length})</h3>
                           {selectedHunt.status === "completed" && (
-                            <button
-                              onClick={openLootModal}
-                              className="px-3 py-1 bg-accent rounded hover:bg-accent-hover text-sm"
-                            >
-                              + Add Loot
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => openCreateModal(selectedHunt.id)}
+                                className="px-3 py-1 bg-warning/20 text-warning rounded hover:bg-warning/30 text-sm"
+                              >
+                                + Map from Chest
+                              </button>
+                              <button
+                                onClick={openLootModal}
+                                className="px-3 py-1 bg-accent rounded hover:bg-accent-hover text-sm"
+                              >
+                                + Add Loot
+                              </button>
+                            </div>
                           )}
                         </div>
 
@@ -589,11 +648,7 @@ export default function TreasuresPage() {
                                 <div className="text-text-muted">
                                   {loot.quantity}x {loot.quality && `QL${loot.quality}`}
                                   {loot.rarity && (
-                                    <span className={`ml-1 ${
-                                      loot.rarity === "fantastic" ? "text-purple-400" :
-                                      loot.rarity === "supreme" ? "text-cyan-400" :
-                                      loot.rarity === "rare" ? "text-warning" : ""
-                                    }`}>
+                                    <span className={`ml-1 ${RARITY_COLORS[loot.rarity] || ""}`}>
                                       ({loot.rarity})
                                     </span>
                                   )}
@@ -603,6 +658,32 @@ export default function TreasuresPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Chained Maps Section */}
+                      {childHunts.length > 0 && (
+                        <div className="border-t border-border pt-4 mt-4">
+                          <h3 className="font-semibold mb-4">Maps Found in This Chest ({childHunts.length})</h3>
+                          <div className="space-y-2">
+                            {childHunts.map((child) => (
+                              <div
+                                key={child.id}
+                                onClick={() => selectHunt(child)}
+                                className="p-3 bg-bg-tertiary rounded-lg cursor-pointer hover:bg-bg-hover flex items-center justify-between"
+                              >
+                                <div>
+                                  <span className="font-medium">{child.name}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded text-xs ${STATUS_LABELS[child.status].color}`}>
+                                    {STATUS_LABELS[child.status].label}
+                                  </span>
+                                </div>
+                                <span className={`text-xs ${DIFFICULTY_LABELS[child.difficulty].color}`}>
+                                  {DIFFICULTY_LABELS[child.difficulty].label}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="bg-bg-secondary rounded-lg p-8 text-center text-text-muted">
@@ -746,7 +827,7 @@ export default function TreasuresPage() {
             <div className="bg-bg-secondary rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
               <div className="p-4 border-b border-border flex items-center justify-between">
                 <h2 className="text-xl font-bold">
-                  {modalMode === "create" && "New Treasure Hunt"}
+                  {modalMode === "create" && (formData.parent_hunt_id ? "Add Map from Chest" : "New Treasure Hunt")}
                   {modalMode === "edit" && "Edit Hunt"}
                   {modalMode === "loot" && "Add Loot"}
                   {modalMode === "share" && "Share Location"}
@@ -851,6 +932,24 @@ export default function TreasuresPage() {
                         rows={3}
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Screenshot URL</label>
+                      <input
+                        type="url"
+                        value={formData.screenshot_url}
+                        onChange={(e) => setFormData({ ...formData, screenshot_url: e.target.value })}
+                        placeholder="https://imgur.com/..."
+                        className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
+                      />
+                      <p className="text-xs text-text-muted mt-1">Link to screenshot of your treasure map</p>
+                    </div>
+                    {formData.parent_hunt_id && (
+                      <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
+                        <p className="text-warning text-sm">
+                          This map will be linked as found in the chest from the parent hunt.
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
 

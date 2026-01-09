@@ -3483,6 +3483,7 @@ export async function getUserTreasureHunts(
     status?: TreasureHuntStatus;
     server?: string;
     difficulty?: string;
+    parent_hunt_id?: number;
   }
 ): Promise<TreasureHunt[]> {
   let sql = `
@@ -3490,10 +3491,12 @@ export async function getUserTreasureHunts(
       th.*,
       c.name as character_name,
       a.name as alliance_name,
+      p.name as parent_hunt_name,
       (SELECT COUNT(*) FROM treasure_loot WHERE treasure_hunt_id = th.id) as loot_count
     FROM treasure_hunts th
     LEFT JOIN characters c ON th.character_id = c.id
     LEFT JOIN alliances a ON th.alliance_id = a.id
+    LEFT JOIN treasure_hunts p ON th.parent_hunt_id = p.id
     WHERE th.user_id = ?
   `;
   const params: unknown[] = [userId];
@@ -3510,6 +3513,10 @@ export async function getUserTreasureHunts(
     sql += " AND th.difficulty = ?";
     params.push(filters.difficulty);
   }
+  if (filters?.parent_hunt_id) {
+    sql += " AND th.parent_hunt_id = ?";
+    params.push(filters.parent_hunt_id);
+  }
 
   sql += " ORDER BY th.created_at DESC";
 
@@ -3525,14 +3532,31 @@ export async function getTreasureHuntById(huntId: number): Promise<TreasureHunt 
       u.username,
       c.name as character_name,
       a.name as alliance_name,
+      p.name as parent_hunt_name,
       (SELECT COUNT(*) FROM treasure_loot WHERE treasure_hunt_id = th.id) as loot_count
     FROM treasure_hunts th
     LEFT JOIN users u ON th.user_id = u.id
     LEFT JOIN characters c ON th.character_id = c.id
     LEFT JOIN alliances a ON th.alliance_id = a.id
+    LEFT JOIN treasure_hunts p ON th.parent_hunt_id = p.id
     WHERE th.id = ?
   `, [huntId]);
   return result.rows[0] || null;
+}
+
+// Get child hunts (maps found in this chest)
+export async function getChildHunts(parentHuntId: number): Promise<TreasureHunt[]> {
+  const result = await query<TreasureHunt>(`
+    SELECT
+      th.*,
+      c.name as character_name,
+      (SELECT COUNT(*) FROM treasure_loot WHERE treasure_hunt_id = th.id) as loot_count
+    FROM treasure_hunts th
+    LEFT JOIN characters c ON th.character_id = c.id
+    WHERE th.parent_hunt_id = ?
+    ORDER BY th.created_at DESC
+  `, [parentHuntId]);
+  return result.rows;
 }
 
 // Create new treasure hunt
@@ -3541,11 +3565,12 @@ export async function createTreasureHunt(
   input: CreateTreasureHuntInput
 ): Promise<number> {
   await query(
-    `INSERT INTO treasure_hunts (user_id, character_id, name, description, server, map_quality, difficulty, is_public, alliance_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO treasure_hunts (user_id, character_id, parent_hunt_id, name, description, server, map_quality, difficulty, is_public, alliance_id, screenshot_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       input.character_id || null,
+      input.parent_hunt_id || null,
       input.name,
       input.description || null,
       input.server,
@@ -3553,6 +3578,7 @@ export async function createTreasureHunt(
       input.difficulty || "easy",
       input.is_public ? 1 : 0,
       input.alliance_id || null,
+      input.screenshot_url || null,
     ]
   );
 
@@ -3625,6 +3651,14 @@ export async function updateTreasureHunt(
   if (input.is_public !== undefined) {
     updates.push("is_public = ?");
     values.push(input.is_public ? 1 : 0);
+  }
+  if (input.parent_hunt_id !== undefined) {
+    updates.push("parent_hunt_id = ?");
+    values.push(input.parent_hunt_id || null);
+  }
+  if (input.screenshot_url !== undefined) {
+    updates.push("screenshot_url = ?");
+    values.push(input.screenshot_url || null);
   }
 
   if (updates.length === 0) return true;

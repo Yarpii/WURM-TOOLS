@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import {
   getUserTreasureHunts,
   getTreasureHuntById,
+  getChildHunts,
   createTreasureHunt,
   updateTreasureHunt,
   deleteTreasureHunt,
@@ -91,7 +92,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(loot);
       }
 
-      return NextResponse.json(hunt);
+      // Get child hunts (chained maps) if requested
+      if (action === "children") {
+        const children = await getChildHunts(parseInt(huntId));
+        return NextResponse.json(children);
+      }
+
+      // Include child hunts in the response
+      const childHunts = await getChildHunts(parseInt(huntId));
+      return NextResponse.json({ ...hunt, child_hunts: childHunts });
     }
 
     // Get stats
@@ -137,7 +146,7 @@ export async function POST(request: NextRequest) {
     // ========== PERSONAL TREASURE HUNTS ==========
 
     if (action === "create") {
-      const { name, description, server, map_quality, difficulty, character_id, is_public, alliance_id } = body;
+      const { name, description, server, map_quality, difficulty, character_id, is_public, alliance_id, parent_hunt_id, screenshot_url } = body;
 
       const nameError = validateStringLength(name, "Name", INPUT_LIMITS.name, true);
       if (nameError) return NextResponse.json({ error: nameError }, { status: 400 });
@@ -151,6 +160,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Server is required" }, { status: 400 });
       }
 
+      // Validate parent hunt exists and belongs to user
+      if (parent_hunt_id) {
+        const parentHunt = await getTreasureHuntById(parseInt(parent_hunt_id));
+        if (!parentHunt || parentHunt.user_id !== userId) {
+          return NextResponse.json({ error: "Invalid parent hunt" }, { status: 400 });
+        }
+      }
+
       const input: CreateTreasureHuntInput = {
         name,
         description,
@@ -160,6 +177,8 @@ export async function POST(request: NextRequest) {
         character_id: character_id ? parseInt(character_id) : undefined,
         is_public: is_public || false,
         alliance_id: alliance_id ? parseInt(alliance_id) : undefined,
+        parent_hunt_id: parent_hunt_id ? parseInt(parent_hunt_id) : undefined,
+        screenshot_url: screenshot_url || undefined,
       };
 
       const huntId = await createTreasureHunt(userId, input);
@@ -189,6 +208,8 @@ export async function POST(request: NextRequest) {
       if (updateData.chest_type !== undefined) input.chest_type = updateData.chest_type;
       if (updateData.requires_key !== undefined) input.requires_key = updateData.requires_key;
       if (updateData.is_public !== undefined) input.is_public = updateData.is_public;
+      if (updateData.parent_hunt_id !== undefined) input.parent_hunt_id = updateData.parent_hunt_id ? parseInt(updateData.parent_hunt_id) : undefined;
+      if (updateData.screenshot_url !== undefined) input.screenshot_url = updateData.screenshot_url;
 
       const success = await updateTreasureHunt(parseInt(hunt_id), userId, input, isAdmin);
       if (!success) {

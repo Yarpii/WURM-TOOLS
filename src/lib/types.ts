@@ -912,7 +912,7 @@ export interface ReviewRecipeSubmissionInput {
 export type TreasureDifficulty = "easy" | "challenging" | "difficult";
 export type TreasureHuntStatus = "new" | "reading" | "searching" | "found" | "digging" | "completed" | "abandoned";
 export type TreasureChestType = "open" | "locked" | "high_security";
-export type TreasureLootRarity = "common" | "rare" | "supreme" | "fantastic";
+export type TreasureLootRarity = "rare" | "supreme" | "fantastic";
 export type SharedTreasureType = "treasure_chest" | "rare_spawn" | "unique_item" | "hidden_cache" | "archaeology" | "other";
 export type SharedTreasureStatus = "active" | "claimed" | "expired" | "invalid";
 
@@ -923,6 +923,8 @@ export interface TreasureHunt {
   username?: string;
   character_id?: number;
   character_name?: string;
+  parent_hunt_id?: number; // For chained maps (map found in another chest)
+  parent_hunt_name?: string;
   name: string;
   description?: string;
   server: string;
@@ -936,12 +938,14 @@ export interface TreasureHunt {
   is_public: boolean;
   alliance_id?: number;
   alliance_name?: string;
+  screenshot_url?: string; // Screenshot of map or location
   found_at?: string;
   completed_at?: string;
   created_at: string;
   updated_at: string;
   // Computed fields
   loot_count?: number;
+  child_hunts?: TreasureHunt[]; // Maps found in this chest
 }
 
 export interface CreateTreasureHuntInput {
@@ -953,6 +957,8 @@ export interface CreateTreasureHuntInput {
   character_id?: number;
   is_public?: boolean;
   alliance_id?: number;
+  parent_hunt_id?: number; // Link to parent hunt if this map was found in a chest
+  screenshot_url?: string;
 }
 
 export interface UpdateTreasureHuntInput {
@@ -967,6 +973,8 @@ export interface UpdateTreasureHuntInput {
   chest_type?: TreasureChestType;
   requires_key?: boolean;
   is_public?: boolean;
+  parent_hunt_id?: number;
+  screenshot_url?: string;
 }
 
 // Treasure loot tracking
