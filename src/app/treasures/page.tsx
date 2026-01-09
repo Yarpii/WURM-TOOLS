@@ -701,34 +701,36 @@ export default function TreasuresPage() {
                           <h2 className="text-2xl font-bold">{selectedHunt.name}</h2>
                           <p className="text-text-secondary">{selectedHunt.server}</p>
                         </div>
-                        <div className="flex gap-2">
-                          {selectedHunt.user_id === user?.id && selectedHunt.x && selectedHunt.y && (
+                        {selectedHunt.user_id === user?.id && (
+                          <div className="flex gap-2">
+                            {selectedHunt.x && selectedHunt.y && (
+                              <button
+                                onClick={() => openShareModal(selectedHunt)}
+                                className="px-3 py-1 bg-accent/20 text-accent rounded hover:bg-accent/30 text-sm"
+                              >
+                                Share to Community
+                              </button>
+                            )}
                             <button
-                              onClick={() => openShareModal(selectedHunt)}
-                              className="px-3 py-1 bg-accent/20 text-accent rounded hover:bg-accent/30 text-sm"
+                              onClick={openShareFriendModal}
+                              className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
                             >
-                              Share to Community
+                              Share with Friend
                             </button>
-                          )}
-                          <button
-                            onClick={openShareFriendModal}
-                            className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
-                          >
-                            Share with Friend
-                          </button>
-                          <button
-                            onClick={() => openEditModal(selectedHunt)}
-                            className="px-3 py-1 bg-bg-tertiary rounded hover:bg-bg-hover text-sm"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteHunt(selectedHunt.id)}
-                            className="px-3 py-1 bg-danger/20 text-danger rounded hover:bg-danger/30 text-sm"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                            <button
+                              onClick={() => openEditModal(selectedHunt)}
+                              className="px-3 py-1 bg-bg-tertiary rounded hover:bg-bg-hover text-sm"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteHunt(selectedHunt.id)}
+                              className="px-3 py-1 bg-danger/20 text-danger rounded hover:bg-danger/30 text-sm"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Status & Info */}

@@ -365,8 +365,8 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stats Grid - Row 1 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
         {/* Orders */}
         <div className="bg-bg-secondary rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -448,34 +448,77 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Treasure Hunts */}
-        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+      </div>
+
+      {/* Treasure Hunts - Featured Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/20 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-text-primary">Treasure Hunts</h3>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🗺️</span>
+              <h3 className="font-semibold text-text-primary">Treasure Hunts</h3>
+            </div>
             <Link href="/treasures" className="text-accent text-sm hover:underline">View all</Link>
           </div>
-          <div className="text-3xl font-bold text-text-primary mb-2">{stats.treasures.total_hunts}</div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-warning"></span>
-              <span className="text-text-muted">Active:</span>
-              <span className="text-text-primary font-medium">{stats.treasures.active_hunts}</span>
+          <div className="grid grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-text-primary">{stats.treasures.total_hunts}</div>
+              <div className="text-xs text-text-muted">Total</div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success"></span>
-              <span className="text-text-muted">Done:</span>
-              <span className="text-text-primary font-medium">{stats.treasures.completed_hunts}</span>
+            <div>
+              <div className="text-2xl font-bold text-warning">{stats.treasures.active_hunts}</div>
+              <div className="text-xs text-text-muted">Active</div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-text-muted">Loot:</span>
-              <span className="text-text-primary">{stats.treasures.total_loot} items</span>
+            <div>
+              <div className="text-2xl font-bold text-success">{stats.treasures.completed_hunts}</div>
+              <div className="text-xs text-text-muted">Completed</div>
             </div>
-            {stats.treasures.shared_with_me > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-info">📨 {stats.treasures.shared_with_me} shared</span>
-              </div>
-            )}
+            <div>
+              <div className="text-2xl font-bold text-accent">{stats.treasures.total_loot}</div>
+              <div className="text-xs text-text-muted">Loot Items</div>
+            </div>
           </div>
+          {stats.treasures.shared_with_me > 0 && (
+            <div className="mt-4 pt-4 border-t border-accent/20 text-center">
+              <span className="text-info text-sm">📨 {stats.treasures.shared_with_me} hunt{stats.treasures.shared_with_me !== 1 ? 's' : ''} shared with you</span>
+            </div>
+          )}
+        </div>
+
+        {/* Active Timers Summary */}
+        <div className="bg-bg-secondary rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⏱️</span>
+              <h3 className="font-semibold text-text-primary">Timers</h3>
+            </div>
+            <Link href="/timers" className="text-accent text-sm hover:underline">View all</Link>
+          </div>
+          {stats.timers.active > 0 ? (
+            <div className="space-y-3">
+              <div className="text-center mb-4">
+                <div className="text-2xl font-bold text-warning">{stats.timers.active}</div>
+                <div className="text-xs text-text-muted">Active Timers</div>
+              </div>
+              {stats.timers.recent.slice(0, 2).map((timer) => (
+                <div key={timer.id} className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3">
+                  <span className="text-lg">{TIMER_TYPE_ICONS[timer.timer_type] || "⏰"}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-text-primary truncate">{timer.name}</div>
+                    <div className="text-xs text-warning">{formatTimerRemaining(timer.end_time)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-text-muted">
+              <div className="text-4xl mb-2">😴</div>
+              <p className="text-sm">No active timers</p>
+              <Link href="/timers" className="text-accent text-xs hover:underline mt-2 inline-block">
+                Create a timer
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
@@ -559,27 +602,6 @@ export default function DashboardPage() {
             <div className="text-4xl font-bold text-accent mb-1">{stats.achievements.unlocked}</div>
             <div className="text-text-muted">Achievements Unlocked</div>
           </div>
-
-          {/* Active Timers */}
-          {stats.timers.recent.length > 0 && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-text-secondary">Active Timers</h4>
-                <Link href="/timers" className="text-accent text-xs hover:underline">View all</Link>
-              </div>
-              <div className="space-y-2">
-                {stats.timers.recent.map((timer) => (
-                  <div key={timer.id} className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3">
-                    <span className="text-lg">{TIMER_TYPE_ICONS[timer.timer_type] || "⏰"}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-text-primary truncate">{timer.name}</div>
-                      <div className="text-xs text-warning">{formatTimerRemaining(timer.end_time)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Character Info */}
           {stats.characters.total > 0 && (
