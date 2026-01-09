@@ -1053,3 +1053,24 @@ export interface TreasureStats {
   };
   by_server: Record<string, number>;
 }
+
+// Private treasure hunt sharing with friends
+export interface TreasureHuntShare {
+  id: number;
+  treasure_hunt_id: number;
+  hunt_name?: string;
+  shared_by_user_id: number;
+  shared_by_username?: string;
+  shared_with_user_id: number;
+  shared_with_username?: string;
+  message?: string;
+  can_edit: boolean;
+  created_at: string;
+}
+
+export interface ShareTreasureHuntInput {
+  treasure_hunt_id: number;
+  shared_with_user_id: number;
+  message?: string;
+  can_edit?: boolean;
+}

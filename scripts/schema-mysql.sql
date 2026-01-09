@@ -478,6 +478,26 @@ CREATE TABLE IF NOT EXISTS shared_treasure_votes (
     CONSTRAINT chk_treasure_vote_type CHECK (vote_type IN ('up', 'down'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Private treasure hunt shares (sharing with specific users/friends)
+CREATE TABLE IF NOT EXISTS treasure_hunt_shares (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    treasure_hunt_id INT NOT NULL,
+    shared_by_user_id INT NOT NULL,
+    shared_with_user_id INT NOT NULL,
+    message TEXT,
+    can_edit BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_hunt_shares_hunt FOREIGN KEY (treasure_hunt_id) REFERENCES treasure_hunts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hunt_shares_by FOREIGN KEY (shared_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hunt_shares_with FOREIGN KEY (shared_with_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_hunt_share (treasure_hunt_id, shared_with_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_hunt_shares_hunt ON treasure_hunt_shares(treasure_hunt_id);
+CREATE INDEX idx_hunt_shares_by ON treasure_hunt_shares(shared_by_user_id);
+CREATE INDEX idx_hunt_shares_with ON treasure_hunt_shares(shared_with_user_id);
+
 -- ========== GAMIFICATION ==========
 
 CREATE TABLE IF NOT EXISTS user_xp (
