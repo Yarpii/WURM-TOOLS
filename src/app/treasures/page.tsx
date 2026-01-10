@@ -99,6 +99,11 @@ export default function TreasuresPage() {
   const [shareMessage, setShareMessage] = useState("");
   const [huntShares, setHuntShares] = useState<TreasureHuntShare[]>([]);
 
+  // Screenshot upload state
+  const [screenshotMode, setScreenshotMode] = useState<"upload" | "url">("upload");
+  const [uploading, setUploading] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+
   // Fetch hunts
   const fetchHunts = useCallback(async () => {
     try {
@@ -236,6 +241,61 @@ export default function TreasuresPage() {
     }
   };
 
+  // Handle screenshot upload
+  const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type)) {
+      setError("Invalid file type. Please use JPEG, PNG, GIF, or WebP");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File too large. Maximum size is 5MB");
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadPreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload file
+    setUploading(true);
+    setError("");
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      formDataUpload.append("category", "screenshots");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Upload failed");
+        setUploadPreview(null);
+      } else {
+        setFormData({ ...formData, screenshot_url: data.url });
+        setSuccess("Screenshot uploaded!");
+      }
+    } catch (err) {
+      setError("Upload failed: " + String(err));
+      setUploadPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // Create new hunt
   const openCreateModal = (parentHuntId?: number) => {
     setFormData({
@@ -251,6 +311,8 @@ export default function TreasuresPage() {
       parent_hunt_id: parentHuntId?.toString() || "",
       screenshot_url: "",
     });
+    setUploadPreview(null);
+    setScreenshotMode("upload");
     setModalMode("create");
     setShowModal(true);
   };
@@ -270,6 +332,8 @@ export default function TreasuresPage() {
       parent_hunt_id: hunt.parent_hunt_id?.toString() || "",
       screenshot_url: hunt.screenshot_url || "",
     });
+    setUploadPreview(hunt.screenshot_url || null);
+    setScreenshotMode(hunt.screenshot_url ? "url" : "upload");
     setSelectedHunt(hunt);
     setModalMode("edit");
     setShowModal(true);
@@ -1161,15 +1225,98 @@ export default function TreasuresPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Screenshot URL</label>
-                      <input
-                        type="url"
-                        value={formData.screenshot_url}
-                        onChange={(e) => setFormData({ ...formData, screenshot_url: e.target.value })}
-                        placeholder="https://imgur.com/..."
-                        className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
-                      />
-                      <p className="text-xs text-text-muted mt-1">Link to screenshot of your treasure map</p>
+                      <label className="block text-sm font-medium mb-2">Screenshot</label>
+
+                      {/* Mode Toggle */}
+                      <div className="flex gap-2 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setScreenshotMode("upload")}
+                          className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
+                            screenshotMode === "upload"
+                              ? "bg-accent text-white"
+                              : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
+                          }`}
+                        >
+                          Upload Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setScreenshotMode("url")}
+                          className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
+                            screenshotMode === "url"
+                              ? "bg-accent text-white"
+                              : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
+                          }`}
+                        >
+                          Use URL
+                        </button>
+                      </div>
+
+                      {screenshotMode === "upload" ? (
+                        <div>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/gif,image/webp"
+                              onChange={handleScreenshotUpload}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              disabled={uploading}
+                            />
+                            <div className={`w-full px-3 py-4 bg-bg-tertiary border-2 border-dashed border-border rounded text-center transition-colors ${
+                              uploading ? "opacity-50" : "hover:border-accent"
+                            }`}>
+                              {uploading ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent"></div>
+                                  <span className="text-text-muted">Uploading...</span>
+                                </div>
+                              ) : uploadPreview || formData.screenshot_url ? (
+                                <span className="text-success">Click to replace image</span>
+                              ) : (
+                                <span className="text-text-muted">Click or drag image here (max 5MB)</span>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-xs text-text-muted mt-1">Supports JPEG, PNG, GIF, WebP</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="url"
+                            value={formData.screenshot_url}
+                            onChange={(e) => {
+                              setFormData({ ...formData, screenshot_url: e.target.value });
+                              setUploadPreview(e.target.value || null);
+                            }}
+                            placeholder="https://imgur.com/..."
+                            className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
+                          />
+                          <p className="text-xs text-text-muted mt-1">Link to screenshot of your treasure map</p>
+                        </div>
+                      )}
+
+                      {/* Preview */}
+                      {(uploadPreview || formData.screenshot_url) && (
+                        <div className="mt-3 relative">
+                          <img
+                            src={uploadPreview || formData.screenshot_url}
+                            alt="Screenshot preview"
+                            className="max-h-32 rounded border border-border"
+                            onError={() => setUploadPreview(null)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, screenshot_url: "" });
+                              setUploadPreview(null);
+                            }}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-danger text-white rounded-full text-sm hover:bg-danger/80"
+                          >
+                            x
+                          </button>
+                        </div>
+                      )}
                     </div>
                     {formData.parent_hunt_id && (
                       <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
