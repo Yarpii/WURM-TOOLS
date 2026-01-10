@@ -126,6 +126,11 @@ export async function createUser(
     return { success: false, error: "This character name is already registered" };
   }
 
+  // Check if this is the first user - make them admin
+  const userCount = await query<{ count: number }>("SELECT COUNT(*) as count FROM users");
+  const isFirstUser = (userCount.rows[0]?.count || 0) === 0;
+  const role = isFirstUser ? "admin" : "user";
+
   // Generate placeholder email for database compatibility (not used for anything)
   const placeholderEmail = `${username.toLowerCase()}@wurmtools.local`;
 
@@ -136,7 +141,7 @@ export async function createUser(
   try {
     await query(
       "INSERT INTO users (username, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?)",
-      [username.toLowerCase(), placeholderEmail, hash, salt, "user"]
+      [username.toLowerCase(), placeholderEmail, hash, salt, role]
     );
 
     const user = await getUserByUsername(username.toLowerCase());

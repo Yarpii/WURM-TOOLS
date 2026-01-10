@@ -47,11 +47,6 @@ export default function Footer() {
                   Marketplace
                 </Link>
               </li>
-              <li>
-                <Link href="/data" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Game Data
-                </Link>
-              </li>
             </ul>
           </div>
 

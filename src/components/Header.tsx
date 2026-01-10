@@ -6,8 +6,22 @@ import { useState, useRef, useEffect } from "react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
 
+// Navigation item type
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  description: string;
+  adminOnly?: boolean;
+}
+
+interface NavCategory {
+  label: string;
+  items: NavItem[];
+}
+
 // Navigation structure with categories and icons
-const navCategories = [
+const navCategories: NavCategory[] = [
   {
     label: "Market",
     items: [
@@ -42,7 +56,7 @@ const navCategories = [
     items: [
       { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
       { href: "/projects", label: "Projects", icon: "folder", description: "Crafting project planning" },
-      { href: "/data", label: "Data", icon: "database", description: "Game data management" },
+      { href: "/data", label: "Data", icon: "database", description: "Game data management", adminOnly: true },
     ],
   },
 ];
@@ -136,15 +150,19 @@ const icons: Record<string, React.ReactNode> = {
   ),
 };
 
-function NavDropdown({ category, isOpen, onOpen, onClose }: {
-  category: typeof navCategories[0];
+function NavDropdown({ category, isOpen, onOpen, onClose, isAdmin }: {
+  category: NavCategory;
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
+  isAdmin: boolean;
 }) {
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Filter items based on admin status
+  const visibleItems = category.items.filter(item => !item.adminOnly || isAdmin);
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
@@ -159,9 +177,12 @@ function NavDropdown({ category, isOpen, onOpen, onClose }: {
     }, 150);
   };
 
-  const isActiveCategory = category.items.some(
+  const isActiveCategory = visibleItems.some(
     item => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
   );
+
+  // Don't render if no visible items
+  if (visibleItems.length === 0) return null;
 
   return (
     <div
@@ -195,7 +216,7 @@ function NavDropdown({ category, isOpen, onOpen, onClose }: {
         }`}
       >
         <div className="bg-bg-secondary/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl shadow-black/20 p-2 min-w-[240px]">
-          {category.items.map((item) => {
+          {visibleItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
             return (
               <Link
@@ -301,6 +322,7 @@ export default function Header() {
                 isOpen={openDropdown === category.label}
                 onOpen={() => setOpenDropdown(category.label)}
                 onClose={() => setOpenDropdown(null)}
+                isAdmin={user?.role === "admin"}
               />
             ))}
 
@@ -472,7 +494,9 @@ export default function Header() {
                 }`}
               >
                 <div className="pl-4 space-y-1">
-                  {category.items.map((item) => {
+                  {category.items
+                    .filter(item => !item.adminOnly || user?.role === "admin")
+                    .map((item) => {
                     const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
                     return (
                       <Link
