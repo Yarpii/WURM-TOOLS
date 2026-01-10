@@ -32,7 +32,14 @@ export async function GET(request: NextRequest) {
     const webhookId = searchParams.get("id");
 
     if (webhookId) {
-      const webhook = await getWebhookById(parseInt(webhookId));
+      const parsedId = parseInt(webhookId);
+      if (isNaN(parsedId) || parsedId < 1) {
+        return NextResponse.json(
+          { error: "Invalid webhook ID" },
+          { status: 400 }
+        );
+      }
+      const webhook = await getWebhookById(parsedId);
       if (!webhook || webhook.user_id !== result.user.id) {
         return NextResponse.json(
           { error: "Webhook not found" },
@@ -155,9 +162,12 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Send test notification
+        // Send test notification with timeout
         try {
-          await fetch(webhook.webhook_url, {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+          const response = await fetch(webhook.webhook_url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -169,12 +179,28 @@ export async function POST(request: NextRequest) {
                 timestamp: new Date().toISOString(),
               }],
             }),
+            signal: controller.signal,
           });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            return NextResponse.json(
+              { error: `Discord returned error: ${response.status}` },
+              { status: 400 }
+            );
+          }
 
           return NextResponse.json({ success: true, message: "Test notification sent!" });
         } catch (error) {
+          if (error instanceof Error && error.name === "AbortError") {
+            return NextResponse.json(
+              { error: "Webhook request timed out - URL may be unreachable" },
+              { status: 408 }
+            );
+          }
           return NextResponse.json(
-            { error: "Failed to send test notification" },
+            { error: "Failed to send test notification - check webhook URL" },
             { status: 500 }
           );
         }

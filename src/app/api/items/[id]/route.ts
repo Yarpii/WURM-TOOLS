@@ -8,7 +8,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const item = await getItem(parseInt(id));
+  const itemId = parseInt(id);
+
+  if (isNaN(itemId) || itemId < 1) {
+    return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
+  }
+
+  const item = await getItem(itemId);
 
   if (!item) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
@@ -47,6 +53,12 @@ export async function PUT(
     }
 
     const { id } = await params;
+    const itemId = parseInt(id);
+
+    if (isNaN(itemId) || itemId < 1) {
+      return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
+    }
+
     const body = await request.json();
     const { name, category, is_base_material, description } = body;
 
@@ -60,7 +72,7 @@ export async function PUT(
     const sanitizedDescription = String(description || "").trim().slice(0, 500);
 
     const existing = await getItemByName(sanitizedName);
-    if (existing && existing.id !== parseInt(id)) {
+    if (existing && existing.id !== itemId) {
       return NextResponse.json(
         { error: "Another item with this name exists" },
         { status: 400 }
@@ -68,7 +80,7 @@ export async function PUT(
     }
 
     const success = await updateItem(
-      parseInt(id),
+      itemId,
       sanitizedName,
       sanitizedCategory,
       is_base_material || false,
@@ -111,7 +123,13 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const success = await deleteItem(parseInt(id));
+    const itemId = parseInt(id);
+
+    if (isNaN(itemId) || itemId < 1) {
+      return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
+    }
+
+    const success = await deleteItem(itemId);
     return NextResponse.json({ success });
   } catch (error) {
     return NextResponse.json({ error: sanitizeError(error, "Delete item") }, { status: 500 });

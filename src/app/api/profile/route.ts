@@ -77,6 +77,14 @@ export async function PUT(request: NextRequest) {
     if (avatar_url !== undefined && avatar_url !== null && avatar_url !== "") {
       try {
         const url = new URL(avatar_url);
+        // Prevent dangerous protocols first (before HTTPS check catches them)
+        const dangerousProtocols = ["javascript:", "data:", "vbscript:", "file:"];
+        if (dangerousProtocols.includes(url.protocol)) {
+          return NextResponse.json(
+            { error: "Invalid avatar URL protocol" },
+            { status: 400 }
+          );
+        }
         // Only allow HTTPS URLs
         if (url.protocol !== "https:") {
           return NextResponse.json(
@@ -84,10 +92,10 @@ export async function PUT(request: NextRequest) {
             { status: 400 }
           );
         }
-        // Prevent javascript: and data: URLs
-        if (["javascript:", "data:", "vbscript:"].includes(url.protocol)) {
+        // Validate URL length to prevent DoS
+        if (avatar_url.length > 500) {
           return NextResponse.json(
-            { error: "Invalid avatar URL protocol" },
+            { error: "Avatar URL is too long (max 500 characters)" },
             { status: 400 }
           );
         }

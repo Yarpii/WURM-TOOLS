@@ -100,8 +100,15 @@ export async function POST(request: NextRequest) {
       alliance_id: allianceId,
     });
   } catch (error) {
+    // Check for duplicate entry errors (MySQL: ER_DUP_ENTRY, SQLite: UNIQUE constraint)
     const errorMessage = String(error);
-    if (errorMessage.includes("UNIQUE constraint failed")) {
+    const errorCode = (error as { code?: string })?.code;
+    if (
+      errorCode === "ER_DUP_ENTRY" ||
+      errorCode === "SQLITE_CONSTRAINT" ||
+      errorMessage.includes("UNIQUE constraint failed") ||
+      errorMessage.includes("Duplicate entry")
+    ) {
       return NextResponse.json(
         { error: "An alliance with this name already exists" },
         { status: 400 }

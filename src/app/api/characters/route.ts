@@ -7,27 +7,10 @@ import {
   getCharacterCount,
 } from "@/lib/database";
 import { sanitizeError, validateStringFields, INPUT_LIMITS } from "@/lib/security";
-import type { CreateCharacterInput, WurmReligion, Playstyle } from "@/lib/types";
+import { WURM_SERVERS, WURM_RELIGIONS, PLAYSTYLES } from "@/lib/constants";
+import type { CreateCharacterInput } from "@/lib/types";
 
 const MAX_CHARACTERS = 5;
-
-const VALID_RELIGIONS: WurmReligion[] = ["Fo", "Vynora", "Magranon", "Libila", "None"];
-const VALID_PLAYSTYLES: Playstyle[] = ["pve", "pvp", "both", "casual", "hardcore"];
-
-const WURM_SERVERS = [
-  "Xanadu",
-  "Deliverance",
-  "Exodus",
-  "Celebration",
-  "Pristine",
-  "Release",
-  "Independence",
-  "Chaos",
-  "Harmony",
-  "Melody",
-  "Cadence",
-  "Defiance",
-];
 
 // GET /api/characters - Get user's characters
 export async function GET(request: NextRequest) {
@@ -129,17 +112,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate religion if provided
-    if (religion && !VALID_RELIGIONS.includes(religion)) {
+    if (religion && !WURM_RELIGIONS.includes(religion)) {
       return NextResponse.json(
-        { error: "Invalid religion. Must be one of: " + VALID_RELIGIONS.join(", ") },
+        { error: "Invalid religion. Must be one of: " + WURM_RELIGIONS.join(", ") },
         { status: 400 }
       );
     }
 
     // Validate playstyle if provided
-    if (playstyle && !VALID_PLAYSTYLES.includes(playstyle)) {
+    if (playstyle && !PLAYSTYLES.includes(playstyle)) {
       return NextResponse.json(
-        { error: "Invalid playstyle. Must be one of: " + VALID_PLAYSTYLES.join(", ") },
+        { error: "Invalid playstyle. Must be one of: " + PLAYSTYLES.join(", ") },
         { status: 400 }
       );
     }

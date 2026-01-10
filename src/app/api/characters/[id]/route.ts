@@ -8,25 +8,8 @@ import {
   setPrimaryCharacter,
 } from "@/lib/database";
 import { sanitizeError, validateStringFields, INPUT_LIMITS } from "@/lib/security";
-import type { UpdateCharacterInput, WurmReligion, Playstyle } from "@/lib/types";
-
-const VALID_RELIGIONS: WurmReligion[] = ["Fo", "Vynora", "Magranon", "Libila", "None"];
-const VALID_PLAYSTYLES: Playstyle[] = ["pve", "pvp", "both", "casual", "hardcore"];
-
-const WURM_SERVERS = [
-  "Xanadu",
-  "Deliverance",
-  "Exodus",
-  "Celebration",
-  "Pristine",
-  "Release",
-  "Independence",
-  "Chaos",
-  "Harmony",
-  "Melody",
-  "Cadence",
-  "Defiance",
-];
+import { WURM_SERVERS, WURM_RELIGIONS, PLAYSTYLES } from "@/lib/constants";
+import type { UpdateCharacterInput } from "@/lib/types";
 
 // GET /api/characters/[id] - Get a specific character
 export async function GET(
@@ -161,17 +144,17 @@ export async function PUT(
     }
 
     // Validate religion if provided
-    if (religion !== undefined && religion !== null && religion !== "" && !VALID_RELIGIONS.includes(religion)) {
+    if (religion !== undefined && religion !== null && religion !== "" && !WURM_RELIGIONS.includes(religion)) {
       return NextResponse.json(
-        { error: "Invalid religion. Must be one of: " + VALID_RELIGIONS.join(", ") },
+        { error: "Invalid religion. Must be one of: " + WURM_RELIGIONS.join(", ") },
         { status: 400 }
       );
     }
 
     // Validate playstyle if provided
-    if (playstyle !== undefined && playstyle !== null && playstyle !== "" && !VALID_PLAYSTYLES.includes(playstyle)) {
+    if (playstyle !== undefined && playstyle !== null && playstyle !== "" && !PLAYSTYLES.includes(playstyle)) {
       return NextResponse.json(
-        { error: "Invalid playstyle. Must be one of: " + VALID_PLAYSTYLES.join(", ") },
+        { error: "Invalid playstyle. Must be one of: " + PLAYSTYLES.join(", ") },
         { status: 400 }
       );
     }
@@ -196,7 +179,16 @@ export async function PUT(
     }
 
     const input: UpdateCharacterInput = {};
-    if (name !== undefined) input.name = name?.trim();
+    if (name !== undefined) {
+      const trimmedName = name?.trim();
+      if (trimmedName === "") {
+        return NextResponse.json(
+          { error: "Character name cannot be empty" },
+          { status: 400 }
+        );
+      }
+      input.name = trimmedName;
+    }
     if (server !== undefined) input.server = server?.trim() || undefined;
     if (religion !== undefined) input.religion = religion || undefined;
     if (avatar_url !== undefined) input.avatar_url = avatar_url?.trim() || undefined;
