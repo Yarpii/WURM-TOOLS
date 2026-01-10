@@ -202,11 +202,11 @@ export async function GET(request: NextRequest) {
       SELECT
         p.id, p.name,
         COUNT(pi.id) as total_items,
-        SUM(CASE WHEN pi.is_complete = 1 THEN 1 ELSE 0 END) as completed_items
+        SUM(CASE WHEN pi.completed_quantity >= pi.quantity THEN 1 ELSE 0 END) as completed_items
       FROM projects p
       LEFT JOIN project_items pi ON p.id = pi.project_id
       WHERE p.user_id = ? AND p.status = 'in_progress'
-      GROUP BY p.id
+      GROUP BY p.id, p.name, p.updated_at
       ORDER BY p.updated_at DESC
       LIMIT 3
     `, [userId]);
@@ -275,7 +275,7 @@ export async function GET(request: NextRequest) {
       query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunt_shares WHERE shared_with_user_id = ?", [userId]),
       query<{ count: number }>(`
         SELECT COUNT(*) as count FROM treasure_loot tl
-        JOIN treasure_hunts th ON tl.hunt_id = th.id
+        JOIN treasure_hunts th ON tl.treasure_hunt_id = th.id
         WHERE th.user_id = ?
       `, [userId]),
     ]);
@@ -284,8 +284,8 @@ export async function GET(request: NextRequest) {
     const timersResult = await query<{ count: number; active: number }>(`
       SELECT
         COUNT(*) as count,
-        SUM(CASE WHEN end_time > datetime('now') THEN 1 ELSE 0 END) as active
-      FROM timers WHERE user_id = ?
+        SUM(CASE WHEN end_time > NOW() THEN 1 ELSE 0 END) as active
+      FROM user_timers WHERE user_id = ?
     `, [userId]);
     const timersStats = timersResult.rows[0] || { count: 0, active: 0 };
 
@@ -295,8 +295,8 @@ export async function GET(request: NextRequest) {
       timer_type: string;
       end_time: string;
     }>(`
-      SELECT id, name, timer_type, end_time FROM timers
-      WHERE user_id = ? AND end_time > datetime('now')
+      SELECT id, name, timer_type, end_time FROM user_timers
+      WHERE user_id = ? AND end_time > NOW()
       ORDER BY end_time ASC LIMIT 3
     `, [userId]);
     const recentTimers = recentTimersResult.rows;
@@ -311,10 +311,10 @@ export async function GET(request: NextRequest) {
     const mainCharacterResult = await query<{
       name: string;
       server: string;
-      is_premium: number;
+      is_premium: boolean;
     }>(`
-      SELECT name, server, is_premium
-      FROM characters WHERE user_id = ? AND is_main = 1
+      SELECT name, server, (premium_until > NOW()) as is_premium
+      FROM characters WHERE user_id = ? AND is_primary = 1
       LIMIT 1
     `, [userId]);
     const mainChar = mainCharacterResult.rows[0];
@@ -366,7 +366,7 @@ export async function GET(request: NextRequest) {
       FROM events e
       JOIN event_attendees ea ON e.id = ea.event_id
       WHERE ea.user_id = ? AND ea.status IN ('going', 'maybe')
-        AND e.start_date >= datetime('now')
+        AND e.start_date >= NOW()
       ORDER BY e.start_date ASC
       LIMIT 3
     `, [userId]);
@@ -464,7 +464,7 @@ export async function GET(request: NextRequest) {
         main_character: mainChar ? {
           name: mainChar.name,
           server: mainChar.server,
-          is_premium: mainChar.is_premium === 1,
+          is_premium: !!mainChar.is_premium,
         } : null,
       },
       leaderboard: {

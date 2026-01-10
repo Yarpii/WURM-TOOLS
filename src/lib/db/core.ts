@@ -57,10 +57,14 @@ export async function query<T = Record<string, unknown>>(
   const pool = getMySQLPool();
 
   // Convert PostgreSQL $1, $2 to MySQL ?
+  // Use regex with global flag to replace ALL occurrences of each parameter
   let convertedSql = sql;
   let paramIndex = 1;
   while (convertedSql.includes(`$${paramIndex}`)) {
-    convertedSql = convertedSql.replace(`$${paramIndex}`, "?");
+    // Use regex to replace ALL occurrences of this parameter number
+    // Negative lookahead (?![0-9]) prevents $1 from matching in $10, $11, etc.
+    const regex = new RegExp(`\\$${paramIndex}(?![0-9])`, 'g');
+    convertedSql = convertedSql.replace(regex, "?");
     paramIndex++;
   }
 
@@ -111,7 +115,8 @@ export async function getClient(): Promise<DbClient> {
       let convertedSql = sql;
       let paramIndex = 1;
       while (convertedSql.includes(`$${paramIndex}`)) {
-        convertedSql = convertedSql.replace(`$${paramIndex}`, "?");
+        const regex = new RegExp(`\\$${paramIndex}(?![0-9])`, 'g');
+        convertedSql = convertedSql.replace(regex, "?");
         paramIndex++;
       }
 
@@ -145,7 +150,8 @@ export async function withTransaction<T>(
       let convertedSql = sql;
       let paramIndex = 1;
       while (convertedSql.includes(`$${paramIndex}`)) {
-        convertedSql = convertedSql.replace(`$${paramIndex}`, "?");
+        const regex = new RegExp(`\\$${paramIndex}(?![0-9])`, 'g');
+        convertedSql = convertedSql.replace(regex, "?");
         paramIndex++;
       }
 
