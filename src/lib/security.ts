@@ -31,6 +31,10 @@ export const INPUT_LIMITS = {
   itemName: { min: 1, max: 200 },
   tradeFor: { min: 0, max: 500 },
 
+  // URLs
+  avatarUrl: { min: 0, max: 500 },
+  url: { min: 0, max: 2000 },
+
   // Generic
   short: { min: 0, max: 100 },
   medium: { min: 0, max: 500 },

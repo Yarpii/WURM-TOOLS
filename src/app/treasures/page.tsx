@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { WURM_SERVERS } from "@/lib/constants";
 import type {
   TreasureHunt,
   TreasureLoot,
@@ -13,12 +14,6 @@ import type {
   SharedTreasureType,
   TreasureHuntShare,
 } from "@/lib/types";
-
-const WURM_SERVERS = [
-  "Harmony", "Melody", "Cadence", "Defiance",
-  "Xanadu", "Deliverance", "Exodus", "Celebration",
-  "Pristine", "Release", "Independence", "Chaos",
-];
 
 const DIFFICULTY_LABELS: Record<TreasureDifficulty, { label: string; color: string; radius: string }> = {
   easy: { label: "Easy", color: "bg-success/20 text-success", radius: "15 tiles" },
@@ -650,7 +645,7 @@ export default function TreasuresPage() {
                   ) : hunts.length === 0 ? (
                     <div className="text-center py-8 bg-bg-secondary rounded-lg">
                       <p className="text-text-secondary mb-4">No treasure hunts yet.</p>
-                      <button onClick={openCreateModal} className="px-4 py-2 bg-accent rounded hover:bg-accent-hover">
+                      <button onClick={() => openCreateModal()} className="px-4 py-2 bg-accent rounded hover:bg-accent-hover">
                         Start Your First Hunt
                       </button>
                     </div>

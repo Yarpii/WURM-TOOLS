@@ -12,8 +12,10 @@ import type { OrderType, OrderStatus, CreateOrderInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
   try {
-    // Expire old orders first
-    expireOldOrders();
+    // Expire old orders first (non-blocking, log errors but don't fail the request)
+    expireOldOrders().catch((err) => {
+      console.warn("[orders] Failed to expire old orders:", err);
+    });
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as OrderStatus | null;
@@ -34,11 +36,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(stats);
     }
 
+    // Parse and validate user_id if provided
+    let parsedUserId: number | undefined;
+    if (user_id) {
+      parsedUserId = parseInt(user_id);
+      if (isNaN(parsedUserId) || parsedUserId < 1) {
+        return NextResponse.json(
+          { error: "Invalid user ID" },
+          { status: 400 }
+        );
+      }
+    }
+
     const filters = {
       status: status || undefined,
       type: order_type || undefined,
       item: item_name || undefined,
-      userId: user_id ? parseInt(user_id) : undefined,
+      userId: parsedUserId,
     };
 
     // SECURITY: Use paginated version for large datasets

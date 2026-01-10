@@ -109,8 +109,8 @@ export async function createUser(
   if (!username || username.length < 3) {
     return { success: false, error: "Character name must be at least 3 characters" };
   }
-  if (!password || password.length < 6) {
-    return { success: false, error: "Password must be at least 6 characters" };
+  if (!password || password.length < 8) {
+    return { success: false, error: "Password must be at least 8 characters" };
   }
 
   // Check if username already exists
