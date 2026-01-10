@@ -16,25 +16,28 @@ export async function GET(request: NextRequest) {
 
     const session = await getSession();
 
+    // Build SQL with proper parameter placeholders for MySQL
+    // Each ? needs its own value in the params array
     let sql = `
       SELECT e.*, u.username,
         (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going') as attendee_count
-        ${session ? `, (SELECT status FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = $1) as user_status` : ""}
+        ${session ? `, (SELECT status FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = ?) as user_status` : ""}
       FROM events e
       LEFT JOIN users u ON u.id = e.user_id
-      WHERE (e.is_public = true ${session ? "OR e.user_id = $1" : ""})
+      WHERE (e.is_public = true ${session ? "OR e.user_id = ?" : ""})
     `;
 
-    const params: unknown[] = session ? [session.userId] : [];
-    let paramCount = session ? 2 : 1;
+    // When session exists, userId is used twice in the query (subquery + WHERE)
+    const params: unknown[] = session ? [session.userId, session.userId] : [];
+    let paramCount = session ? 3 : 1;
 
     if (server) {
-      sql += ` AND e.server = $${paramCount++}`;
+      sql += ` AND e.server = ?`;
       params.push(server);
     }
 
     if (type) {
-      sql += ` AND e.event_type = $${paramCount++}`;
+      sql += ` AND e.event_type = ?`;
       params.push(type);
     }
 
@@ -47,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (userId) {
-      sql += ` AND e.user_id = $${paramCount++}`;
+      sql += ` AND e.user_id = ?`;
       params.push(parseInt(userId));
     }
 
@@ -78,13 +81,12 @@ export async function POST(request: NextRequest) {
       case "create": {
         const input: CreateEventInput = body;
 
-        const result = await query(
+        await query(
           `INSERT INTO events (
             user_id, title, description, event_type, server, location, coordinates,
             start_date, end_date, is_all_day, is_public, max_attendees,
             contact_info, external_link, image_url
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-          RETURNING *`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             session.userId,
             input.title,
@@ -104,6 +106,11 @@ export async function POST(request: NextRequest) {
           ]
         );
 
+        // Fetch the inserted event
+        const result = await query(
+          `SELECT * FROM events WHERE id = LAST_INSERT_ID()`
+        );
+
         return NextResponse.json(result.rows[0]);
       }
 
@@ -112,7 +119,7 @@ export async function POST(request: NextRequest) {
 
         // Check ownership or admin
         const event = await query(
-          `SELECT user_id FROM events WHERE id = $1`,
+          `SELECT user_id FROM events WHERE id = ?`,
           [event_id]
         );
 
@@ -127,7 +134,6 @@ export async function POST(request: NextRequest) {
 
         const updates: string[] = [];
         const values: unknown[] = [];
-        let paramCount = 1;
 
         const fields = [
           "title", "description", "event_type", "server", "location", "coordinates",
@@ -137,7 +143,7 @@ export async function POST(request: NextRequest) {
 
         for (const field of fields) {
           if ((input as Record<string, unknown>)[field] !== undefined) {
-            updates.push(`${field} = $${paramCount++}`);
+            updates.push(`${field} = ?`);
             values.push((input as Record<string, unknown>)[field]);
           }
         }
@@ -153,11 +159,15 @@ export async function POST(request: NextRequest) {
 
         values.push(event_id);
 
-        const result = await query(
-          `UPDATE events SET ${updates.join(", ")}
-           WHERE id = $${paramCount}
-           RETURNING *`,
+        await query(
+          `UPDATE events SET ${updates.join(", ")} WHERE id = ?`,
           values
+        );
+
+        // Fetch the updated event
+        const result = await query(
+          `SELECT * FROM events WHERE id = ?`,
+          [event_id]
         );
 
         return NextResponse.json(result.rows[0]);
@@ -167,7 +177,7 @@ export async function POST(request: NextRequest) {
         const { event_id } = body;
 
         const event = await query(
-          `SELECT user_id FROM events WHERE id = $1`,
+          `SELECT user_id FROM events WHERE id = ?`,
           [event_id]
         );
 
@@ -180,7 +190,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Not authorized" }, { status: 403 });
         }
 
-        await query(`DELETE FROM events WHERE id = $1`, [event_id]);
+        await query(`DELETE FROM events WHERE id = ?`, [event_id]);
         return NextResponse.json({ success: true });
       }
 
@@ -189,7 +199,7 @@ export async function POST(request: NextRequest) {
 
         // Check if event exists and is public
         const event = await query(
-          `SELECT * FROM events WHERE id = $1`,
+          `SELECT * FROM events WHERE id = ?`,
           [event_id]
         );
 
@@ -206,7 +216,7 @@ export async function POST(request: NextRequest) {
         if (e.max_attendees && input.status === "going") {
           const currentCount = await query(
             `SELECT COUNT(*) as count FROM event_attendees
-             WHERE event_id = $1 AND status = 'going' AND user_id != $2`,
+             WHERE event_id = ? AND status = 'going' AND user_id != ?`,
             [event_id, session.userId]
           );
 
@@ -215,14 +225,18 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Upsert attendance
-        const result = await query(
+        // Upsert attendance (MySQL syntax)
+        await query(
           `INSERT INTO event_attendees (event_id, user_id, status, character_name, notes)
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (event_id, user_id)
-           DO UPDATE SET status = $3, character_name = $4, notes = $5
-           RETURNING *`,
+           VALUES (?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE status = VALUES(status), character_name = VALUES(character_name), notes = VALUES(notes)`,
           [event_id, session.userId, input.status, input.character_name || null, input.notes || null]
+        );
+
+        // Fetch the updated/inserted row
+        const result = await query(
+          `SELECT * FROM event_attendees WHERE event_id = ? AND user_id = ?`,
+          [event_id, session.userId]
         );
 
         return NextResponse.json(result.rows[0]);
@@ -232,7 +246,7 @@ export async function POST(request: NextRequest) {
         const { event_id } = body;
 
         await query(
-          `DELETE FROM event_attendees WHERE event_id = $1 AND user_id = $2`,
+          `DELETE FROM event_attendees WHERE event_id = ? AND user_id = ?`,
           [event_id, session.userId]
         );
 
@@ -246,7 +260,7 @@ export async function POST(request: NextRequest) {
           `SELECT ea.*, u.username
            FROM event_attendees ea
            LEFT JOIN users u ON u.id = ea.user_id
-           WHERE ea.event_id = $1
+           WHERE ea.event_id = ?
            ORDER BY ea.status, ea.created_at`,
           [event_id]
         );
