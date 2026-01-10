@@ -83,6 +83,11 @@ export default function CharactersPage() {
   });
   const [saving, setSaving] = useState(false);
 
+  // Avatar upload state
+  const [avatarMode, setAvatarMode] = useState<"upload" | "url">("upload");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
   const fetchCharacters = useCallback(async () => {
     try {
       const res = await fetch("/api/characters?stats=true");
@@ -109,6 +114,57 @@ export default function CharactersPage() {
     }
   }, [user, authLoading, fetchCharacters]);
 
+  // Handle avatar upload
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type)) {
+      setError("Invalid file type. Please use JPEG, PNG, GIF, or WebP");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File too large. Maximum size is 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAvatarPreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setAvatarUploading(true);
+    setError("");
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      formDataUpload.append("category", "avatars");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Upload failed");
+        setAvatarPreview(null);
+      } else {
+        setFormData({ ...formData, avatar_url: data.url });
+        setSuccess("Avatar uploaded!");
+      }
+    } catch (err) {
+      setError("Upload failed: " + String(err));
+      setAvatarPreview(null);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const openCreateModal = () => {
     setEditingCharacter(null);
     setFormData({
@@ -121,6 +177,8 @@ export default function CharactersPage() {
       deed_name: "",
       playstyle: "",
     });
+    setAvatarPreview(null);
+    setAvatarMode("upload");
     setShowModal(true);
   };
 
@@ -136,6 +194,8 @@ export default function CharactersPage() {
       deed_name: character.deed_name || "",
       playstyle: character.playstyle || "",
     });
+    setAvatarPreview(character.avatar_url || null);
+    setAvatarMode(character.avatar_url ? "url" : "upload");
     setShowModal(true);
   };
 
@@ -532,16 +592,99 @@ export default function CharactersPage() {
                   />
                 </div>
 
-                {/* Avatar URL */}
+                {/* Avatar */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Avatar URL</label>
-                  <input
-                    type="url"
-                    value={formData.avatar_url}
-                    onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                    className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
-                    placeholder="https://..."
-                  />
+                  <label className="block text-sm font-medium mb-2">Avatar</label>
+
+                  {/* Mode Toggle */}
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setAvatarMode("upload")}
+                      className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
+                        avatarMode === "upload"
+                          ? "bg-accent text-white"
+                          : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
+                      }`}
+                    >
+                      Upload Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAvatarMode("url")}
+                      className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
+                        avatarMode === "url"
+                          ? "bg-accent text-white"
+                          : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
+                      }`}
+                    >
+                      Use URL
+                    </button>
+                  </div>
+
+                  {avatarMode === "upload" ? (
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={handleAvatarUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          disabled={avatarUploading}
+                        />
+                        <div className={`w-full px-3 py-4 bg-bg-tertiary border-2 border-dashed border-border rounded text-center transition-colors ${
+                          avatarUploading ? "opacity-50" : "hover:border-accent"
+                        }`}>
+                          {avatarUploading ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent"></div>
+                              <span className="text-text-muted">Uploading...</span>
+                            </div>
+                          ) : avatarPreview || formData.avatar_url ? (
+                            <span className="text-success">Click to replace image</span>
+                          ) : (
+                            <span className="text-text-muted">Click to upload (max 5MB)</span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-text-muted mt-1">Supports JPEG, PNG, GIF, WebP</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        type="url"
+                        value={formData.avatar_url}
+                        onChange={(e) => {
+                          setFormData({ ...formData, avatar_url: e.target.value });
+                          setAvatarPreview(e.target.value || null);
+                        }}
+                        placeholder="https://..."
+                        className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Preview */}
+                  {(avatarPreview || formData.avatar_url) && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <img
+                        src={avatarPreview || formData.avatar_url}
+                        alt="Avatar preview"
+                        className="w-16 h-16 rounded-full object-cover border border-border"
+                        onError={() => setAvatarPreview(null)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, avatar_url: "" });
+                          setAvatarPreview(null);
+                        }}
+                        className="text-sm text-danger hover:text-danger/80"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bio */}

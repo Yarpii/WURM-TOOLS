@@ -45,7 +45,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { display_name, bio, avatar_url, location, wurm_server } = body;
+    const { display_name, bio, avatar_url, banner_url, location, wurm_server } = body;
 
     // SECURITY: Input validation and sanitization
     if (display_name !== undefined && display_name.length > 50) {
@@ -73,37 +73,47 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // SECURITY: Validate avatar_url to prevent XSS and only allow safe URLs
-    if (avatar_url !== undefined && avatar_url !== null && avatar_url !== "") {
+    // Helper to validate image URLs (supports local uploads and HTTPS)
+    const validateImageUrl = (url: string, fieldName: string): string | null => {
+      // Allow local uploads (start with /uploads/)
+      if (url.startsWith("/uploads/")) {
+        if (url.length > 500) {
+          return `${fieldName} URL is too long (max 500 characters)`;
+        }
+        return null;
+      }
+
       try {
-        const url = new URL(avatar_url);
-        // Prevent dangerous protocols first (before HTTPS check catches them)
+        const parsedUrl = new URL(url);
         const dangerousProtocols = ["javascript:", "data:", "vbscript:", "file:"];
-        if (dangerousProtocols.includes(url.protocol)) {
-          return NextResponse.json(
-            { error: "Invalid avatar URL protocol" },
-            { status: 400 }
-          );
+        if (dangerousProtocols.includes(parsedUrl.protocol)) {
+          return `Invalid ${fieldName} URL protocol`;
         }
-        // Only allow HTTPS URLs
-        if (url.protocol !== "https:") {
-          return NextResponse.json(
-            { error: "Avatar URL must use HTTPS" },
-            { status: 400 }
-          );
+        if (parsedUrl.protocol !== "https:") {
+          return `${fieldName} URL must use HTTPS`;
         }
-        // Validate URL length to prevent DoS
-        if (avatar_url.length > 500) {
-          return NextResponse.json(
-            { error: "Avatar URL is too long (max 500 characters)" },
-            { status: 400 }
-          );
+        if (url.length > 500) {
+          return `${fieldName} URL is too long (max 500 characters)`;
         }
+        return null;
       } catch {
-        return NextResponse.json(
-          { error: "Invalid avatar URL format" },
-          { status: 400 }
-        );
+        return `Invalid ${fieldName} URL format`;
+      }
+    };
+
+    // SECURITY: Validate avatar_url
+    if (avatar_url !== undefined && avatar_url !== null && avatar_url !== "") {
+      const avatarError = validateImageUrl(avatar_url, "Avatar");
+      if (avatarError) {
+        return NextResponse.json({ error: avatarError }, { status: 400 });
+      }
+    }
+
+    // SECURITY: Validate banner_url
+    if (banner_url !== undefined && banner_url !== null && banner_url !== "") {
+      const bannerError = validateImageUrl(banner_url, "Banner");
+      if (bannerError) {
+        return NextResponse.json({ error: bannerError }, { status: 400 });
       }
     }
 
@@ -123,6 +133,7 @@ export async function PUT(request: NextRequest) {
       display_name: sanitizeText(display_name),
       bio: sanitizeText(bio),
       avatar_url,
+      banner_url,
       location: sanitizeText(location),
       wurm_server: sanitizeText(wurm_server),
     });
