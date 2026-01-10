@@ -74,7 +74,7 @@ export default function TreasuresPage() {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit" | "loot" | "share" | "share-friend">("create");
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "loot" | "share" | "share-friend" | "share-options">("create");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -315,6 +315,12 @@ export default function TreasuresPage() {
       });
     }
     setModalMode("share");
+    setShowModal(true);
+  };
+
+  // Share options modal (choose between friend or community)
+  const openShareOptionsModal = () => {
+    setModalMode("share-options");
     setShowModal(true);
   };
 
@@ -698,19 +704,11 @@ export default function TreasuresPage() {
                         </div>
                         {selectedHunt.user_id === user?.id && (
                           <div className="flex gap-2">
-                            {selectedHunt.x && selectedHunt.y && (
-                              <button
-                                onClick={() => openShareModal(selectedHunt)}
-                                className="px-3 py-1 bg-accent/20 text-accent rounded hover:bg-accent/30 text-sm"
-                              >
-                                Share to Community
-                              </button>
-                            )}
                             <button
-                              onClick={openShareFriendModal}
+                              onClick={openShareOptionsModal}
                               className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
                             >
-                              Share with Friend
+                              Share
                             </button>
                             <button
                               onClick={() => openEditModal(selectedHunt)}
@@ -1060,6 +1058,7 @@ export default function TreasuresPage() {
                   {modalMode === "loot" && "Add Loot"}
                   {modalMode === "share" && "Share to Community"}
                   {modalMode === "share-friend" && "Share with Friend"}
+                  {modalMode === "share-options" && "Share Hunt"}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="text-text-secondary hover:text-text-primary">
                   ×
@@ -1414,6 +1413,76 @@ export default function TreasuresPage() {
                       className="flex-1 px-4 py-2 bg-info hover:bg-info/80 rounded disabled:opacity-50"
                     >
                       {saving ? "Sharing..." : "Share"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Share Options - Choose between Friend or Community */}
+              {modalMode === "share-options" && selectedHunt && (
+                <div className="p-4 space-y-4">
+                  <p className="text-text-secondary text-sm">
+                    How would you like to share &quot;{selectedHunt.name}&quot;?
+                  </p>
+
+                  <div className="space-y-3">
+                    {/* Share with Friend option */}
+                    <button
+                      onClick={() => {
+                        openShareFriendModal();
+                      }}
+                      className="w-full p-4 bg-bg-tertiary hover:bg-bg-hover rounded-lg border border-border hover:border-info transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center text-info text-xl">
+                          👤
+                        </div>
+                        <div>
+                          <div className="font-semibold">Share with Friend</div>
+                          <div className="text-sm text-text-muted">
+                            Private share with a specific user
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Share to Community option */}
+                    <button
+                      onClick={() => {
+                        if (selectedHunt) {
+                          openShareModal(selectedHunt);
+                        }
+                      }}
+                      disabled={!selectedHunt.x || !selectedHunt.y}
+                      className={`w-full p-4 bg-bg-tertiary rounded-lg border border-border text-left transition-colors ${
+                        selectedHunt.x && selectedHunt.y
+                          ? "hover:bg-bg-hover hover:border-accent"
+                          : "opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center text-accent text-xl">
+                          🌍
+                        </div>
+                        <div>
+                          <div className="font-semibold">Share to Community</div>
+                          <div className="text-sm text-text-muted">
+                            {selectedHunt.x && selectedHunt.y
+                              ? "Make location visible to everyone"
+                              : "Requires coordinates to share publicly"}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      className="flex-1 px-4 py-2 bg-bg-tertiary hover:bg-bg-hover rounded"
+                    >
+                      Cancel
                     </button>
                   </div>
                 </div>
