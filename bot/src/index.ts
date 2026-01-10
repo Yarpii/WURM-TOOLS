@@ -82,7 +82,9 @@ async function main() {
     try {
       await command(interaction);
     } catch (error) {
-      console.error(`Error executing ${interaction.commandName}:`, error);
+      // Sanitized error logging - don't log full error details that may contain user data
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Command error (${interaction.commandName}): ${errorMsg}`);
 
       const errorMessage = {
         content: 'There was an error executing this command.',

@@ -87,6 +87,23 @@ export class TimerNotificationService {
     }
   }
 
+  // Discord ID format validation (17-19 digits)
+  private static readonly DISCORD_ID_REGEX = /^\d{17,19}$/;
+
+  // Webhook URL validation
+  private isValidWebhookUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      const validHosts = ['discord.com', 'discordapp.com'];
+      return validHosts.includes(parsed.hostname.toLowerCase()) &&
+             parsed.protocol === 'https:' &&
+             parsed.pathname.startsWith('/api/webhooks/') &&
+             !parsed.username && !parsed.password;
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Send notification for an expiring timer
    */
@@ -105,31 +122,48 @@ export class TimerNotificationService {
       .setFooter({ text: 'BlackForge Timer Notification' })
       .setTimestamp();
 
-    // Try to send via DM if user has Discord linked
-    if (timer.discord_id) {
+    // Try to send via DM if user has Discord linked (with validation)
+    if (timer.discord_id && TimerNotificationService.DISCORD_ID_REGEX.test(timer.discord_id)) {
       try {
         const user = await this.client.users.fetch(timer.discord_id);
         await user.send({ embeds: [embed] });
-        console.log(`Sent timer notification DM to user ${timer.discord_id}`);
+        // Sanitized log - no user IDs
+        console.log('Sent timer notification via DM');
         return;
-      } catch (error) {
-        console.warn(`Could not send DM to user ${timer.discord_id}:`, error);
+      } catch {
+        // Sanitized log - no sensitive data
+        console.warn('Could not send DM notification');
       }
     }
 
-    // Fall back to webhook if available
-    if (timer.webhook_url) {
+    // Fall back to webhook if available (with validation and timeout)
+    if (timer.webhook_url && this.isValidWebhookUrl(timer.webhook_url)) {
       try {
-        await fetch(timer.webhook_url, {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        const response = await fetch(timer.webhook_url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             embeds: [embed.toJSON()],
           }),
+          signal: controller.signal,
         });
-        console.log(`Sent timer notification via webhook for user ${timer.user_id}`);
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          console.log('Sent timer notification via webhook');
+        } else {
+          console.warn(`Webhook notification failed with status ${response.status}`);
+        }
       } catch (error) {
-        console.error(`Failed to send webhook notification:`, error);
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.warn('Webhook notification timed out');
+        } else {
+          console.error('Failed to send webhook notification');
+        }
       }
     }
   }

@@ -3,13 +3,37 @@ import { getSessionAsync as getSession } from "@/lib/auth";
 import { query } from "@/lib/database";
 import { sanitizeError } from "@/lib/security";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
+import { randomBytes } from "crypto";
 
-// Generate a random 8-character code
+// In-memory rate limiting (use Redis in production for multiple instances)
+const rateLimitMap = new Map<number, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 3; // Max 3 code generations per window
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(userId: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+// Generate a cryptographically secure 8-character code
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing characters like 0, O, 1, I
+  const bytes = randomBytes(8);
   let code = '';
   for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return code;
 }
@@ -72,6 +96,14 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === 'generate') {
+      // Rate limit check
+      if (!checkRateLimit(session.userId)) {
+        return NextResponse.json(
+          { error: "Too many requests. Please wait before generating a new code." },
+          { status: 429 }
+        );
+      }
+
       // Check if already linked
       const users = await query<RowDataPacket>(
         'SELECT discord_id FROM users WHERE id = ?',

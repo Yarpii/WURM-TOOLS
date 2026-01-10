@@ -91,9 +91,24 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Validate webhook URL format
-        if (!webhook_url.startsWith("https://discord.com/api/webhooks/") &&
-            !webhook_url.startsWith("https://discordapp.com/api/webhooks/")) {
+        // Validate webhook URL format (SSRF-safe validation)
+        try {
+          const parsedUrl = new URL(webhook_url);
+          const validHosts = ['discord.com', 'discordapp.com'];
+          if (!validHosts.includes(parsedUrl.hostname.toLowerCase())) {
+            throw new Error('Invalid host');
+          }
+          if (parsedUrl.protocol !== 'https:') {
+            throw new Error('Must use HTTPS');
+          }
+          if (!parsedUrl.pathname.startsWith('/api/webhooks/')) {
+            throw new Error('Invalid path');
+          }
+          // Ensure no auth credentials in URL
+          if (parsedUrl.username || parsedUrl.password) {
+            throw new Error('URL cannot contain credentials');
+          }
+        } catch {
           return NextResponse.json(
             { error: "Invalid Discord webhook URL" },
             { status: 400 }
@@ -123,7 +138,25 @@ export async function POST(request: NextRequest) {
 
         const updates: Partial<CreateWebhookInput> & { is_active?: boolean } = {};
         if (data.name !== undefined) updates.name = data.name.trim();
-        if (data.webhook_url !== undefined) updates.webhook_url = data.webhook_url.trim();
+        if (data.webhook_url !== undefined) {
+          // Validate webhook URL on update (SSRF-safe)
+          try {
+            const parsedUrl = new URL(data.webhook_url);
+            const validHosts = ['discord.com', 'discordapp.com'];
+            if (!validHosts.includes(parsedUrl.hostname.toLowerCase()) ||
+                parsedUrl.protocol !== 'https:' ||
+                !parsedUrl.pathname.startsWith('/api/webhooks/') ||
+                parsedUrl.username || parsedUrl.password) {
+              throw new Error('Invalid webhook URL');
+            }
+            updates.webhook_url = data.webhook_url.trim();
+          } catch {
+            return NextResponse.json(
+              { error: "Invalid Discord webhook URL" },
+              { status: 400 }
+            );
+          }
+        }
         if (data.is_active !== undefined) updates.is_active = data.is_active;
         if (data.notify_trades !== undefined) updates.notify_trades = data.notify_trades;
         if (data.notify_matches !== undefined) updates.notify_matches = data.notify_matches;

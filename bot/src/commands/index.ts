@@ -193,8 +193,24 @@ export const commandHandlers = {
         const minutes = interaction.options.getInteger('minutes', true);
         const customName = interaction.options.getString('name');
 
+        // Validate and sanitize timer name
+        let name: string;
+        if (customName) {
+          const trimmedName = customName.trim();
+          if (trimmedName.length === 0 || trimmedName.length > 100) {
+            return interaction.reply({
+              content: 'Timer name must be between 1 and 100 characters.',
+              ephemeral: true,
+            });
+          }
+          // Remove any Discord markdown that could cause embed issues
+          name = trimmedName.replace(/[`*_~|]/g, '');
+        } else {
+          const icon = BOT_CONFIG.timerIcons[timerType] || '⏰';
+          name = `${icon} ${timerType.replace('_', ' ')}`;
+        }
+
         const icon = BOT_CONFIG.timerIcons[timerType] || '⏰';
-        const name = customName || `${icon} ${timerType.replace('_', ' ')}`;
 
         const timerId = await db.createTimer(user.id, name, timerType, minutes, {
           notifyDiscord: true,

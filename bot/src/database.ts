@@ -17,7 +17,9 @@ export function getPool(): Pool {
       database: url.pathname.slice(1),
       waitForConnections: true,
       connectionLimit: 5,
-      queueLimit: 0,
+      queueLimit: 10, // Limit queued requests to prevent memory exhaustion
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0,
     });
   }
   return pool;
@@ -55,6 +57,14 @@ export async function closePool(): Promise<void> {
     await pool.end();
     pool = null;
   }
+}
+
+/**
+ * Escape special characters in LIKE patterns to prevent SQL LIKE injection
+ * Escapes %, _, and \ characters
+ */
+function escapeLikeString(str: string): string {
+  return str.replace(/[%_\\]/g, '\\$&');
 }
 
 // ==================== USER FUNCTIONS ====================
@@ -197,6 +207,7 @@ export interface DbPriceHistory extends RowDataPacket {
  * Get price info for an item
  */
 export async function getItemPrice(itemName: string): Promise<DbPriceHistory | null> {
+  const escaped = escapeLikeString(itemName);
   const results = await query<DbPriceHistory>(
     `SELECT
       item_name,
@@ -206,10 +217,10 @@ export async function getItemPrice(itemName: string): Promise<DbPriceHistory | n
       COUNT(*) as total_orders,
       (SELECT price FROM price_history WHERE LOWER(item_name) = LOWER(?) ORDER BY recorded_at DESC LIMIT 1) as latest_price
      FROM price_history
-     WHERE LOWER(item_name) LIKE LOWER(?)
+     WHERE LOWER(item_name) LIKE LOWER(?) ESCAPE '\\\\'
      GROUP BY item_name
      LIMIT 1`,
-    [itemName, `%${itemName}%`]
+    [itemName, `%${escaped}%`]
   );
   return results[0] || null;
 }
@@ -218,6 +229,7 @@ export async function getItemPrice(itemName: string): Promise<DbPriceHistory | n
  * Search for items by name
  */
 export async function searchPrices(searchTerm: string, limit = 10): Promise<DbPriceHistory[]> {
+  const escaped = escapeLikeString(searchTerm);
   return query<DbPriceHistory>(
     `SELECT
       item_name,
@@ -226,11 +238,11 @@ export async function searchPrices(searchTerm: string, limit = 10): Promise<DbPr
       MAX(price) as max_price,
       COUNT(*) as total_orders
      FROM price_history
-     WHERE LOWER(item_name) LIKE LOWER(?)
+     WHERE LOWER(item_name) LIKE LOWER(?) ESCAPE '\\\\'
      GROUP BY item_name
      ORDER BY total_orders DESC
      LIMIT ?`,
-    [`%${searchTerm}%`, limit]
+    [`%${escaped}%`, limit]
   );
 }
 
@@ -256,13 +268,14 @@ export interface DbRecipe extends RowDataPacket {
  * Search for items
  */
 export async function searchItems(searchTerm: string, limit = 10): Promise<DbItem[]> {
+  const escaped = escapeLikeString(searchTerm);
   return query<DbItem>(
     `SELECT id, name, category, is_base_material, description, difficulty, skill_type
      FROM items
-     WHERE LOWER(name) LIKE LOWER(?)
+     WHERE LOWER(name) LIKE LOWER(?) ESCAPE '\\\\'
      ORDER BY name
      LIMIT ?`,
-    [`%${searchTerm}%`, limit]
+    [`%${escaped}%`, limit]
   );
 }
 
@@ -277,10 +290,11 @@ export async function getItemByName(name: string): Promise<DbItem | null> {
   );
 
   if (items.length === 0) {
-    // Try partial match
+    // Try partial match with escaped LIKE
+    const escaped = escapeLikeString(name);
     items = await query<DbItem>(
-      'SELECT * FROM items WHERE LOWER(name) LIKE LOWER(?) ORDER BY LENGTH(name) LIMIT 1',
-      [`%${name}%`]
+      `SELECT * FROM items WHERE LOWER(name) LIKE LOWER(?) ESCAPE '\\\\' ORDER BY LENGTH(name) LIMIT 1`,
+      [`%${escaped}%`]
     );
   }
 
@@ -382,13 +396,14 @@ export async function getMarketOrders(
   orderType?: 'buy' | 'sell',
   limit = 10
 ): Promise<DbMarketOrder[]> {
+  const escaped = escapeLikeString(itemName);
   let sql = `
     SELECT o.*, u.username
     FROM orders o
     JOIN users u ON o.user_id = u.id
-    WHERE LOWER(o.item_name) LIKE LOWER(?) AND o.status = 'active'
+    WHERE LOWER(o.item_name) LIKE LOWER(?) ESCAPE '\\\\' AND o.status = 'active'
   `;
-  const params: unknown[] = [`%${itemName}%`];
+  const params: unknown[] = [`%${escaped}%`];
 
   if (orderType) {
     sql += ' AND o.order_type = ?';
