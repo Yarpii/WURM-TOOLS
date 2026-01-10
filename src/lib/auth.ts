@@ -28,6 +28,7 @@ export interface User {
   display_name?: string;
   bio?: string;
   avatar_url?: string;
+  banner_url?: string;
   location?: string;
   wurm_server?: string;
   // Visibility settings
@@ -64,6 +65,7 @@ interface UserDbRow {
   display_name?: string | null;
   bio?: string | null;
   avatar_url?: string | null;
+  banner_url?: string | null;
   location?: string | null;
   wurm_server?: string | null;
   show_in_members_list: number;
@@ -87,6 +89,7 @@ function dbRowToUser(row: UserDbRow): User {
     display_name: row.display_name || undefined,
     bio: row.bio || undefined,
     avatar_url: row.avatar_url || undefined,
+    banner_url: row.banner_url || undefined,
     location: row.location || undefined,
     wurm_server: row.wurm_server || undefined,
     show_in_members_list: Boolean(row.show_in_members_list),
@@ -150,7 +153,7 @@ export async function createUser(
 export async function getUserById(id: number): Promise<User | null> {
   const result = await query<UserDbRow>(
     `SELECT id, username, email, role, created_at,
-            display_name, bio, avatar_url, location, wurm_server,
+            display_name, bio, avatar_url, banner_url, location, wurm_server,
             show_in_members_list, show_email, show_location,
             is_banned, ban_reason, banned_at, banned_by
      FROM users WHERE id = ?`,
@@ -518,6 +521,7 @@ export interface ProfileUpdateInput {
   display_name?: string;
   bio?: string;
   avatar_url?: string;
+  banner_url?: string;
   location?: string;
   wurm_server?: string;
 }
@@ -543,6 +547,10 @@ export async function updateUserProfile(userId: number, input: ProfileUpdateInpu
   if (input.avatar_url !== undefined) {
     fields.push("avatar_url = ?");
     values.push(input.avatar_url || null);
+  }
+  if (input.banner_url !== undefined) {
+    fields.push("banner_url = ?");
+    values.push(input.banner_url || null);
   }
   if (input.location !== undefined) {
     fields.push("location = ?");
