@@ -49,7 +49,11 @@ export async function GET(request: NextRequest) {
       const userId = result?.user?.id;
 
       if (sharedId) {
-        const treasure = await getSharedTreasureById(parseInt(sharedId), userId);
+        const parsedSharedId = parseInt(sharedId);
+        if (isNaN(parsedSharedId)) {
+          return NextResponse.json({ error: "Invalid shared ID" }, { status: 400 });
+        }
+        const treasure = await getSharedTreasureById(parsedSharedId, userId);
         if (!treasure) {
           return NextResponse.json({ error: "Treasure not found" }, { status: 404 });
         }
@@ -81,7 +85,11 @@ export async function GET(request: NextRequest) {
 
     // Get single treasure hunt
     if (huntId) {
-      const hunt = await getTreasureHuntById(parseInt(huntId));
+      const parsedHuntId = parseInt(huntId);
+      if (isNaN(parsedHuntId)) {
+        return NextResponse.json({ error: "Invalid hunt ID" }, { status: 400 });
+      }
+      const hunt = await getTreasureHuntById(parsedHuntId);
       if (!hunt) {
         return NextResponse.json({ error: "Treasure hunt not found" }, { status: 404 });
       }
@@ -93,13 +101,13 @@ export async function GET(request: NextRequest) {
 
       // Get loot if requested
       if (action === "loot") {
-        const loot = await getTreasureLoot(parseInt(huntId));
+        const loot = await getTreasureLoot(parsedHuntId);
         return NextResponse.json(loot);
       }
 
       // Get child hunts (chained maps) if requested
       if (action === "children") {
-        const children = await getChildHunts(parseInt(huntId));
+        const children = await getChildHunts(parsedHuntId);
         return NextResponse.json(children);
       }
 
@@ -108,12 +116,12 @@ export async function GET(request: NextRequest) {
         if (hunt.user_id !== userId) {
           return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
-        const shares = await getTreasureHuntShares(parseInt(huntId), userId);
+        const shares = await getTreasureHuntShares(parsedHuntId, userId);
         return NextResponse.json(shares);
       }
 
       // Include child hunts in the response
-      const childHunts = await getChildHunts(parseInt(huntId));
+      const childHunts = await getChildHunts(parsedHuntId);
       return NextResponse.json({ ...hunt, child_hunts: childHunts });
     }
 
@@ -192,7 +200,11 @@ export async function POST(request: NextRequest) {
 
       // Validate parent hunt exists and belongs to user
       if (parent_hunt_id) {
-        const parentHunt = await getTreasureHuntById(parseInt(parent_hunt_id));
+        const parsedParentHuntId = parseInt(parent_hunt_id);
+        if (isNaN(parsedParentHuntId)) {
+          return NextResponse.json({ error: "Invalid parent hunt ID" }, { status: 400 });
+        }
+        const parentHunt = await getTreasureHuntById(parsedParentHuntId);
         if (!parentHunt || parentHunt.user_id !== userId) {
           return NextResponse.json({ error: "Invalid parent hunt" }, { status: 400 });
         }
@@ -220,6 +232,10 @@ export async function POST(request: NextRequest) {
       if (!hunt_id) {
         return NextResponse.json({ error: "Hunt ID required" }, { status: 400 });
       }
+      const parsedHuntId = parseInt(hunt_id);
+      if (isNaN(parsedHuntId)) {
+        return NextResponse.json({ error: "Invalid hunt ID" }, { status: 400 });
+      }
 
       if (updateData.name) {
         const nameError = validateStringLength(updateData.name, "Name", INPUT_LIMITS.name, true);
@@ -241,7 +257,7 @@ export async function POST(request: NextRequest) {
       if (updateData.parent_hunt_id !== undefined) input.parent_hunt_id = updateData.parent_hunt_id ? parseInt(updateData.parent_hunt_id) : undefined;
       if (updateData.screenshot_url !== undefined) input.screenshot_url = updateData.screenshot_url;
 
-      const success = await updateTreasureHunt(parseInt(hunt_id), userId, input, isAdmin);
+      const success = await updateTreasureHunt(parsedHuntId, userId, input, isAdmin);
       if (!success) {
         return NextResponse.json({ error: "Update failed or access denied" }, { status: 400 });
       }
@@ -254,8 +270,12 @@ export async function POST(request: NextRequest) {
       if (!hunt_id) {
         return NextResponse.json({ error: "Hunt ID required" }, { status: 400 });
       }
+      const parsedHuntId = parseInt(hunt_id);
+      if (isNaN(parsedHuntId)) {
+        return NextResponse.json({ error: "Invalid hunt ID" }, { status: 400 });
+      }
 
-      const success = await deleteTreasureHunt(parseInt(hunt_id), userId, isAdmin);
+      const success = await deleteTreasureHunt(parsedHuntId, userId, isAdmin);
       if (!success) {
         return NextResponse.json({ error: "Delete failed or access denied" }, { status: 400 });
       }
@@ -270,6 +290,10 @@ export async function POST(request: NextRequest) {
       if (!hunt_id || !item_name) {
         return NextResponse.json({ error: "Hunt ID and item name required" }, { status: 400 });
       }
+      const parsedHuntId = parseInt(hunt_id);
+      if (isNaN(parsedHuntId)) {
+        return NextResponse.json({ error: "Invalid hunt ID" }, { status: 400 });
+      }
 
       const input: AddTreasureLootInput = {
         item_name,
@@ -279,7 +303,7 @@ export async function POST(request: NextRequest) {
         notes,
       };
 
-      const lootId = await addTreasureLoot(parseInt(hunt_id), userId, input);
+      const lootId = await addTreasureLoot(parsedHuntId, userId, input);
       if (!lootId) {
         return NextResponse.json({ error: "Failed to add loot" }, { status: 400 });
       }
@@ -292,8 +316,12 @@ export async function POST(request: NextRequest) {
       if (!loot_id) {
         return NextResponse.json({ error: "Loot ID required" }, { status: 400 });
       }
+      const parsedLootId = parseInt(loot_id);
+      if (isNaN(parsedLootId)) {
+        return NextResponse.json({ error: "Invalid loot ID" }, { status: 400 });
+      }
 
-      const success = await deleteTreasureLoot(parseInt(loot_id), userId);
+      const success = await deleteTreasureLoot(parsedLootId, userId);
       if (!success) {
         return NextResponse.json({ error: "Delete failed or access denied" }, { status: 400 });
       }
@@ -331,6 +359,10 @@ export async function POST(request: NextRequest) {
       if (!treasure_id) {
         return NextResponse.json({ error: "Treasure ID required" }, { status: 400 });
       }
+      const parsedTreasureId = parseInt(treasure_id);
+      if (isNaN(parsedTreasureId)) {
+        return NextResponse.json({ error: "Invalid treasure ID" }, { status: 400 });
+      }
 
       const input: UpdateSharedTreasureInput = {};
       if (updateData.name !== undefined) input.name = updateData.name;
@@ -340,7 +372,7 @@ export async function POST(request: NextRequest) {
       if (updateData.treasure_type !== undefined) input.treasure_type = updateData.treasure_type;
       if (updateData.status !== undefined && isAdmin) input.status = updateData.status;
 
-      const success = await updateSharedTreasure(parseInt(treasure_id), userId, input, isAdmin);
+      const success = await updateSharedTreasure(parsedTreasureId, userId, input, isAdmin);
       if (!success) {
         return NextResponse.json({ error: "Update failed or access denied" }, { status: 400 });
       }
@@ -353,8 +385,12 @@ export async function POST(request: NextRequest) {
       if (!treasure_id) {
         return NextResponse.json({ error: "Treasure ID required" }, { status: 400 });
       }
+      const parsedTreasureId = parseInt(treasure_id);
+      if (isNaN(parsedTreasureId)) {
+        return NextResponse.json({ error: "Invalid treasure ID" }, { status: 400 });
+      }
 
-      const success = await deleteSharedTreasure(parseInt(treasure_id), userId, isAdmin);
+      const success = await deleteSharedTreasure(parsedTreasureId, userId, isAdmin);
       if (!success) {
         return NextResponse.json({ error: "Delete failed or access denied" }, { status: 400 });
       }
@@ -367,12 +403,16 @@ export async function POST(request: NextRequest) {
       if (!treasure_id || !vote_type) {
         return NextResponse.json({ error: "Treasure ID and vote type required" }, { status: 400 });
       }
+      const parsedTreasureId = parseInt(treasure_id);
+      if (isNaN(parsedTreasureId)) {
+        return NextResponse.json({ error: "Invalid treasure ID" }, { status: 400 });
+      }
 
       if (!["up", "down"].includes(vote_type)) {
         return NextResponse.json({ error: "Invalid vote type" }, { status: 400 });
       }
 
-      await voteSharedTreasure(parseInt(treasure_id), userId, vote_type);
+      await voteSharedTreasure(parsedTreasureId, userId, vote_type);
       return NextResponse.json({ success: true });
     }
 
@@ -381,8 +421,12 @@ export async function POST(request: NextRequest) {
       if (!treasure_id) {
         return NextResponse.json({ error: "Treasure ID required" }, { status: 400 });
       }
+      const parsedTreasureId = parseInt(treasure_id);
+      if (isNaN(parsedTreasureId)) {
+        return NextResponse.json({ error: "Invalid treasure ID" }, { status: 400 });
+      }
 
-      const success = await verifySharedTreasure(parseInt(treasure_id), userId, verified !== false);
+      const success = await verifySharedTreasure(parsedTreasureId, userId, verified !== false);
       if (!success) {
         return NextResponse.json({ error: "Verification failed" }, { status: 400 });
       }
@@ -397,11 +441,16 @@ export async function POST(request: NextRequest) {
       if (!hunt_id || !shareWithUserId) {
         return NextResponse.json({ error: "Hunt ID and user ID required" }, { status: 400 });
       }
+      const parsedHuntId = parseInt(hunt_id);
+      const parsedShareWithUserId = parseInt(shareWithUserId);
+      if (isNaN(parsedHuntId) || isNaN(parsedShareWithUserId)) {
+        return NextResponse.json({ error: "Invalid hunt ID or user ID" }, { status: 400 });
+      }
 
       const shareId = await shareTreasureHuntWithUser(
-        parseInt(hunt_id),
+        parsedHuntId,
         userId,
-        parseInt(shareWithUserId),
+        parsedShareWithUserId,
         message,
         can_edit || false
       );
@@ -418,8 +467,12 @@ export async function POST(request: NextRequest) {
       if (!share_id) {
         return NextResponse.json({ error: "Share ID required" }, { status: 400 });
       }
+      const parsedShareId = parseInt(share_id);
+      if (isNaN(parsedShareId)) {
+        return NextResponse.json({ error: "Invalid share ID" }, { status: 400 });
+      }
 
-      const success = await unshareTreasureHunt(parseInt(share_id), userId);
+      const success = await unshareTreasureHunt(parsedShareId, userId);
       if (!success) {
         return NextResponse.json({ error: "Unshare failed or access denied" }, { status: 400 });
       }
