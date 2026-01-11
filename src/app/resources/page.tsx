@@ -55,6 +55,9 @@ export default function ResourcesPage() {
     tags: "",
   });
   const [formError, setFormError] = useState("");
+  const [uploadMode, setUploadMode] = useState<"url" | "file">("url");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchResources = async () => {
     try {
@@ -111,28 +114,63 @@ export default function ResourcesPage() {
     e.preventDefault();
     setFormError("");
 
-    if (!addForm.name || !addForm.category || !addForm.external_url) {
-      setFormError("Please fill in all required fields");
+    // Validation
+    if (!addForm.name || !addForm.category) {
+      setFormError("Please fill in name and category");
+      return;
+    }
+
+    if (uploadMode === "url" && !addForm.external_url) {
+      setFormError("Please provide an external URL");
+      return;
+    }
+
+    if (uploadMode === "file" && !selectedFile) {
+      setFormError("Please select a file to upload");
       return;
     }
 
     try {
-      const tags = addForm.tags
-        ? addForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
-        : [];
+      setUploading(true);
 
-      const response = await fetch("/api/resources", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...addForm,
-          tags,
-        }),
-      });
+      if (uploadMode === "file" && selectedFile) {
+        // Upload file
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("name", addForm.name);
+        formData.append("category", addForm.category);
+        formData.append("resource_type", addForm.resource_type);
+        if (addForm.description) formData.append("description", addForm.description);
+        if (addForm.tags) formData.append("tags", addForm.tags);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to add resource");
+        const response = await fetch("/api/resources/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to upload file");
+        }
+      } else {
+        // Add external URL
+        const tags = addForm.tags
+          ? addForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
+          : [];
+
+        const response = await fetch("/api/resources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...addForm,
+            tags,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to add resource");
+        }
       }
 
       // Reset form
@@ -144,11 +182,14 @@ export default function ResourcesPage() {
         external_url: "",
         tags: "",
       });
+      setSelectedFile(null);
       setShowAddForm(false);
       fetchResources();
       fetchFeatured();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -202,7 +243,7 @@ export default function ResourcesPage() {
         </div>
 
         <div className="flex gap-2">
-          {resource.external_url && (
+          {resource.external_url ? (
             <a
               href={resource.external_url}
               target="_blank"
@@ -219,7 +260,23 @@ export default function ResourcesPage() {
             >
               Open Resource
             </a>
-          )}
+          ) : resource.file_path ? (
+            <a
+              href={resource.file_path}
+              download
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded text-center transition-colors"
+              onClick={async () => {
+                // Track download
+                await fetch(`/api/resources/${resource.id}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "download" }),
+                });
+              }}
+            >
+              Download
+            </a>
+          ) : null}
           <Link
             href={`/resources/${resource.id}`}
             className="bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-3 rounded transition-colors"
@@ -288,20 +345,51 @@ export default function ResourcesPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={addForm.category}
-                  onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  placeholder="e.g., Crafting Guides, Spreadsheets, Maps"
-                  required
-                />
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={addForm.category}
+                onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                placeholder="e.g., Crafting Guides, Spreadsheets, Maps"
+                required
+              />
+            </div>
+
+            {/* Upload Mode Toggle */}
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">Source</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUploadMode("url")}
+                  className={`flex-1 py-2 px-4 rounded transition-colors ${
+                    uploadMode === "url"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  🔗 External URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode("file")}
+                  className={`flex-1 py-2 px-4 rounded transition-colors ${
+                    uploadMode === "file"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  📁 Upload File
+                </button>
               </div>
+            </div>
+
+            {/* URL Input */}
+            {uploadMode === "url" && (
               <div>
                 <label className="block text-sm text-gray-300 mb-1">
                   External URL <span className="text-red-500">*</span>
@@ -312,10 +400,37 @@ export default function ResourcesPage() {
                   onChange={(e) => setAddForm({ ...addForm, external_url: e.target.value })}
                   className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
                   placeholder="https://..."
-                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Link to Google Drive, Dropbox, or any external resource
+                </p>
               </div>
-            </div>
+            )}
+
+            {/* File Upload */}
+            {uploadMode === "file" && (
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">
+                  Upload File <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-600 file:text-white file:cursor-pointer hover:file:bg-gray-500"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.json"
+                  />
+                </div>
+                {selectedFile && (
+                  <p className="text-sm text-gray-400 mt-2">
+                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Max 100MB. Supported: Images, PDFs, Office docs, Archives
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm text-gray-300 mb-1">Description</label>
@@ -350,15 +465,17 @@ export default function ResourcesPage() {
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded transition-colors"
+                disabled={uploading}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-6 py-2 rounded transition-colors"
               >
-                Add Resource
+                {uploading ? "Uploading..." : uploadMode === "file" ? "Upload Resource" : "Add Resource"}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setShowAddForm(false);
                   setFormError("");
+                  setSelectedFile(null);
                 }}
                 className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded transition-colors"
               >
