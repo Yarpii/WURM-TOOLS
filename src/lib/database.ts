@@ -1188,7 +1188,7 @@ export async function createOrder(userId: number, input: CreateOrderInput): Prom
       input.trade_for || null,
       input.location || null,
       input.notes || null,
-      expiresAt.toISOString(),
+      expiresAt,
     ]
   );
 
@@ -2978,7 +2978,7 @@ export async function checkAndUpdateAchievements(userId: number): Promise<string
       await query(
         `INSERT INTO user_achievements (user_id, achievement_id, progress, completed, completed_at)
          VALUES (?, ?, ?, ?, ?)`,
-        [userId, achievement.id, progress, completed ? 1 : 0, completed ? new Date().toISOString() : null]
+        [userId, achievement.id, progress, completed ? 1 : 0, completed ? new Date() : null]
       );
 
       if (completed) {
