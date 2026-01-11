@@ -49,6 +49,7 @@ const navCategories: NavCategory[] = [
       { href: "/members", label: "Members", icon: "users", description: "Player directory" },
       { href: "/alliances", label: "Alliances", icon: "shield", description: "Guild management" },
       { href: "/events", label: "Events", icon: "calendar", description: "Community calendar" },
+      { href: "/resources", label: "Resources", icon: "folder", description: "Community guides & tools" },
     ],
   },
   {

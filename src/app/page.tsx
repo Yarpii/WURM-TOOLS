@@ -83,9 +83,9 @@ export default function Home() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
         </svg>
       ),
-      title: "Crafting",
-      description: "Material calculator, success predictions, and skill optimizer",
-      features: ["Recipe & base material modes", "Success rate predictions", "Skill grinding paths"],
+      title: "Forge & Craft",
+      description: "Calculate materials, predict quality, and master the arts of smithing",
+      features: ["Recipe & base material tree", "Success rate by skill level", "Optimal grinding paths"],
       color: "from-orange-500 to-amber-600",
     },
     {
@@ -95,9 +95,9 @@ export default function Home() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
-      title: "Skill Tracker",
-      description: "Track your progress and estimate time to goals",
-      features: ["Skill gain calculations", "Sleep bonus estimates", "Progress tracking"],
+      title: "Skill Mastery",
+      description: "Track your journey from peasant to master craftsman",
+      features: ["Skill gain calculations", "Sleep bonus tracking", "Time-to-goal estimates"],
       color: "from-yellow-500 to-orange-600",
     },
     {
@@ -108,8 +108,8 @@ export default function Home() {
         </svg>
       ),
       title: "Timer Dashboard",
-      description: "Never miss a cooldown or harvest again",
-      features: ["Sleep bonus & fatigue", "Crop & animal timers", "Custom timers"],
+      description: "Never miss a harvest, meditation tick, or sleep bonus again",
+      features: ["Sleep bonus & fatigue", "Crop & animal timers", "Meditation cooldowns"],
       color: "from-emerald-500 to-teal-600",
     },
     {
@@ -119,9 +119,9 @@ export default function Home() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       ),
-      title: "Event Calendar",
-      description: "Discover Impalongs, Rifts, and community events",
-      features: ["Impalongs & Rifts", "RSVP system", "Server filtering"],
+      title: "Community Events",
+      description: "Join Impalongs, slay rift beasts, and gather with fellow Wurmians",
+      features: ["Impalongs & Rifts", "RSVP & attendance", "Cross-server events"],
       color: "from-pink-500 to-rose-600",
     },
     {
@@ -131,9 +131,9 @@ export default function Home() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
         </svg>
       ),
-      title: "World Map",
-      description: "Interactive map with locations and merchants",
-      features: ["Deed locations", "Merchant finder", "Resource spots"],
+      title: "World Atlas",
+      description: "Navigate the realm, discover deeds, and locate merchants",
+      features: ["Deed & settlement locations", "Merchant shops", "Mining & foraging spots"],
       color: "from-blue-500 to-indigo-600",
     },
     {
@@ -143,9 +143,9 @@ export default function Home() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
-      title: "Marketplace",
-      description: "Buy, sell, and trade items with the community",
-      features: ["Buy & sell orders", "Trade offers", "Price tracking"],
+      title: "Trade Hub",
+      description: "Buy, sell, and barter items with merchants and adventurers",
+      features: ["Buy & sell orders", "Trade matching", "Historical prices"],
       color: "from-violet-500 to-purple-600",
     },
   ];
@@ -253,19 +253,19 @@ export default function Home() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            Community-driven toolkit for Wurm Online
+            Forged by the community, for the community
           </div>
 
           <h1 className={`text-4xl md:text-6xl font-bold text-text-primary mb-6 ${isLoaded ? 'animate-fade-in-up animation-delay-100' : 'opacity-0'}`}>
-            Welcome to{" "}
+            Welcome to the{" "}
             <span className="gradient-text-animated">
               Blackforge
             </span>
           </h1>
 
           <p className={`text-lg md:text-xl text-text-secondary mb-10 max-w-2xl mx-auto ${isLoaded ? 'animate-fade-in-up animation-delay-200' : 'opacity-0'}`}>
-            Your all-in-one companion for Wurm Online. Calculate materials, optimize skill training,
-            trade with players, and connect with the community.
+            Where knowledge is forged into tools. Master your crafts, plan your deeds,
+            trade with merchants, and forge bonds with fellow Wurmians across the realm.
           </p>
 
           <div className={`flex flex-col sm:flex-row gap-4 justify-center ${isLoaded ? 'animate-fade-in-up animation-delay-300' : 'opacity-0'}`}>
@@ -273,13 +273,13 @@ export default function Home() {
               href="/crafting"
               className="glow-button px-8 py-4 bg-accent text-white rounded-xl font-semibold hover:bg-accent-hover transition-all hover:scale-105 shadow-lg shadow-accent/25"
             >
-              Open Crafting Calculator
+              Enter the Forge
             </Link>
             <Link
               href="/register"
               className="px-8 py-4 bg-bg-secondary text-text-primary rounded-xl font-semibold hover:bg-bg-hover transition-all border border-border hover:border-accent shimmer-border"
             >
-              Join the Community
+              Join Our Fellowship
             </Link>
           </div>
         </div>
@@ -314,10 +314,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className={`text-center mb-12 ${isLoaded ? 'animate-fade-in-up animation-delay-500' : 'opacity-0'}`}>
             <h2 className="text-3xl font-bold text-text-primary mb-4">
-              Everything You Need
+              Tools of the Trade
             </h2>
             <p className="text-text-secondary max-w-2xl mx-auto">
-              From crafting calculations to community features, Blackforge has the tools to enhance your Wurm experience.
+              Whether you're a novice builder or a master blacksmith, the Blackforge provides the tools
+              to thrive in the world of Wurm.
             </p>
           </div>
 
