@@ -1074,3 +1074,109 @@ export interface ShareTreasureHuntInput {
   message?: string;
   can_edit?: boolean;
 }
+
+// ========== COMMUNITY RESOURCES ==========
+
+export type ResourceType = 'guide' | 'tool' | 'data' | 'media' | 'template' | 'other';
+
+export interface CommunityResource {
+  id: number;
+  alliance_id?: number;
+  alliance_name?: string;
+  resource_type: ResourceType;
+  name: string;
+  description?: string;
+  external_url?: string;
+  file_path?: string;
+  file_size?: number;
+  category: string;
+  tags?: string[];
+  created_by: number;
+  creator_username?: string;
+  created_at: string;
+  updated_at: string;
+  view_count: number;
+  download_count: number;
+  is_approved: boolean;
+  is_featured: boolean;
+  average_rating?: number;
+  rating_count?: number;
+}
+
+export interface ResourceVersion {
+  id: number;
+  resource_id: number;
+  version: string;
+  file_path: string;
+  file_size?: number;
+  uploaded_by: number;
+  uploader_username?: string;
+  uploaded_at: string;
+  changelog?: string;
+}
+
+export interface ResourceRating {
+  id: number;
+  resource_id: number;
+  user_id: number;
+  username?: string;
+  rating: number;
+  review?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResourceComment {
+  id: number;
+  resource_id: number;
+  user_id: number;
+  username?: string;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateResourceInput {
+  alliance_id?: number;
+  resource_type: ResourceType;
+  name: string;
+  description?: string;
+  external_url?: string;
+  file_path?: string;
+  file_size?: number;
+  category: string;
+  tags?: string[];
+}
+
+export interface UpdateResourceInput {
+  name?: string;
+  description?: string;
+  external_url?: string;
+  category?: string;
+  tags?: string[];
+  is_featured?: boolean;
+}
+
+export interface CreateResourceVersionInput {
+  resource_id: number;
+  version: string;
+  file_path: string;
+  file_size?: number;
+  changelog?: string;
+}
+
+export interface CreateResourceRatingInput {
+  resource_id: number;
+  rating: number;
+  review?: string;
+}
+
+export interface ResourceFilters {
+  resource_type?: ResourceType;
+  category?: string;
+  tags?: string[];
+  alliance_id?: number;
+  created_by?: number;
+  is_featured?: boolean;
+  search?: string;
+}
