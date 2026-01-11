@@ -241,11 +241,11 @@ export async function POST(request: NextRequest) {
           [session.userId]
         );
 
-        // Restart recurring timers
+        // Restart recurring timers (MySQL compatible)
         await query(
           `UPDATE user_timers
            SET start_time = NOW(),
-               end_time = NOW() + (duration_minutes || ' minutes')::interval
+               end_time = DATE_ADD(NOW(), INTERVAL duration_minutes MINUTE)
            WHERE user_id = $1 AND end_time < NOW() AND is_recurring = true`,
           [session.userId]
         );
