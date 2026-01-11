@@ -320,12 +320,12 @@ export async function GET(request: NextRequest) {
     const mainChar = mainCharacterResult.rows[0];
 
     // Leaderboard position
-    const leaderboardResult = await query<{ rank: number; total: number }>(`
+    const leaderboardResult = await query<{ user_rank: number; total: number }>(`
       SELECT
-        (SELECT COUNT(*) + 1 FROM user_xp WHERE total_xp > COALESCE((SELECT total_xp FROM user_xp WHERE user_id = ?), 0)) as rank,
+        (SELECT COUNT(*) + 1 FROM user_xp WHERE total_xp > COALESCE((SELECT total_xp FROM user_xp WHERE user_id = ?), 0)) as user_rank,
         (SELECT COUNT(*) FROM user_xp) as total
     `, [userId]);
-    const leaderboard = leaderboardResult.rows[0] || { rank: 0, total: 0 };
+    const leaderboard = leaderboardResult.rows[0] || { user_rank: 0, total: 0 };
 
     // Skills stats
     const skillsStatsResult = await query<{ total: number; at_goal: number }>(`
@@ -468,7 +468,7 @@ export async function GET(request: NextRequest) {
         } : null,
       },
       leaderboard: {
-        rank: leaderboard.rank,
+        rank: leaderboard.user_rank,
         total_players: leaderboard.total,
       },
       skills: {
