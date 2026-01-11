@@ -385,7 +385,7 @@ export async function login(
 
   // Create session
   const sessionId = generateSessionId();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
   await query(
     "INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
@@ -406,7 +406,7 @@ export async function logout(sessionId: string): Promise<boolean> {
 export async function getSession(sessionId: string): Promise<{ session: Session; user: User } | null> {
   // Clean up expired sessions (non-blocking - don't fail session check if cleanup fails)
   try {
-    await query("DELETE FROM sessions WHERE expires_at < ?", [new Date().toISOString()]);
+    await query("DELETE FROM sessions WHERE expires_at < ?", [new Date()]);
   } catch (cleanupError) {
     // Log but don't throw - session validation should still proceed
     console.warn("Failed to clean up expired sessions:", cleanupError);
@@ -444,7 +444,7 @@ export async function getSession(sessionId: string): Promise<{ session: Session;
     FROM sessions s
     JOIN users u ON s.user_id = u.id
     WHERE s.id = ? AND s.expires_at > ?`,
-    [sessionId, new Date().toISOString()]
+    [sessionId, new Date()]
   );
 
   if (result.rows.length === 0) {
@@ -486,7 +486,7 @@ export async function getSession(sessionId: string): Promise<{ session: Session;
 }
 
 export async function refreshSession(sessionId: string): Promise<boolean> {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const result = await query(
     "UPDATE sessions SET expires_at = ? WHERE id = ?",
     [expiresAt, sessionId]

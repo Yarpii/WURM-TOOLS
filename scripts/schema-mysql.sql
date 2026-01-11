@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     display_name VARCHAR(100),
     bio TEXT,
     avatar_url VARCHAR(500),
+    banner_url VARCHAR(500),
     location VARCHAR(100),
     wurm_server VARCHAR(50),
     show_in_members_list BOOLEAN DEFAULT TRUE,
