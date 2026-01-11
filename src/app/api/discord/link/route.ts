@@ -52,11 +52,11 @@ export async function GET() {
       [session.userId]
     );
 
-    if (users.length === 0) {
+    if (users.rows.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const discordId = users[0].discord_id;
+    const discordId = users.rows[0].discord_id;
 
     // Get any pending verification code
     const codes = await query<RowDataPacket>(
@@ -71,9 +71,9 @@ export async function GET() {
     return NextResponse.json({
       linked: !!discordId,
       discordId: discordId || null,
-      pendingCode: codes.length > 0 ? {
-        code: codes[0].verification_code,
-        expiresAt: codes[0].expires_at,
+      pendingCode: codes.rows.length > 0 ? {
+        code: codes.rows[0].verification_code,
+        expiresAt: codes.rows[0].expires_at,
       } : null,
     });
   } catch (error) {
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         [session.userId]
       );
 
-      if (users[0]?.discord_id) {
+      if (users.rows[0]?.discord_id) {
         return NextResponse.json(
           { error: "Discord account already linked" },
           { status: 400 }

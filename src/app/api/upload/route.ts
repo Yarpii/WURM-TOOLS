@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
-import { verifySession } from "@/lib/auth";
+import { getSessionAsync } from "@/lib/auth";
 
 // Allowed image types
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -12,16 +11,9 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("session")?.value;
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const session = await verifySession(sessionToken);
+    const session = await getSessionAsync();
     if (!session) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     // Parse form data
