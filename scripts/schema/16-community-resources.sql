@@ -82,6 +82,43 @@ CREATE TABLE IF NOT EXISTS resource_comments (
   INDEX idx_created_at (created_at)
 );
 
+-- Google Drive Sync Metadata
+-- Tracks files synced from Google Drive to local storage
+CREATE TABLE IF NOT EXISTS resource_sync_metadata (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  drive_file_id VARCHAR(255) NOT NULL,
+  drive_folder_id VARCHAR(255) NOT NULL,
+  file_name VARCHAR(500) NOT NULL,
+  local_path VARCHAR(500) NOT NULL,
+  file_size BIGINT NOT NULL,
+  mime_type VARCHAR(255) NOT NULL,
+  drive_modified_time TIMESTAMP NOT NULL,
+  last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  checksum VARCHAR(64) NULL,
+
+  UNIQUE KEY unique_drive_file (drive_file_id),
+  INDEX idx_drive_folder_id (drive_folder_id),
+  INDEX idx_last_synced (last_synced_at)
+);
+
+-- Google Drive Sync Log
+-- Keeps history of sync operations
+CREATE TABLE IF NOT EXISTS resource_sync_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  folder_id VARCHAR(255) NOT NULL,
+  synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  files_downloaded INT DEFAULT 0,
+  files_updated INT DEFAULT 0,
+  files_skipped INT DEFAULT 0,
+  files_deleted INT DEFAULT 0,
+  total_size BIGINT DEFAULT 0,
+  errors JSON NULL,
+  duration INT DEFAULT 0,
+
+  INDEX idx_folder_id (folder_id),
+  INDEX idx_synced_at (synced_at)
+);
+
 -- Insert some example categories
 INSERT IGNORE INTO community_resources (
   name,
