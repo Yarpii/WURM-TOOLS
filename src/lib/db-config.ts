@@ -38,16 +38,41 @@ function parseMySQLConnectionString(url: string): Partial<DatabaseConfig> {
 
 /**
  * Get database configuration from environment variables
+ * Supports multiple connection formats for different platforms:
+ * - DATABASE_URL (Vercel, Plesk, etc.)
+ * - MYSQL_URL (Railway)
+ * - Individual variables (MYSQLHOST, MYSQLPORT, etc.)
  */
 export function getDatabaseConfig(): DatabaseConfig {
-  const databaseUrl = process.env.DATABASE_URL;
+  // Try DATABASE_URL first (most common)
+  let databaseUrl = process.env.DATABASE_URL;
+
+  // Fall back to MYSQL_URL (Railway)
+  if (!databaseUrl) {
+    databaseUrl = process.env.MYSQL_URL;
+  }
+
+  // Fall back to individual variables (Railway also provides these)
+  if (!databaseUrl && process.env.MYSQLHOST) {
+    const host = process.env.MYSQLHOST;
+    const port = process.env.MYSQLPORT || '3306';
+    const user = process.env.MYSQLUSER || 'root';
+    const password = process.env.MYSQLPASSWORD || '';
+    const database = process.env.MYSQLDATABASE || '';
+    databaseUrl = `mysql://${user}:${password}@${host}:${port}/${database}`;
+  }
 
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is required. Format: mysql://user:password@host:port/database');
+    throw new Error(
+      'Database connection not configured. Please set one of:\n' +
+      '  - DATABASE_URL (format: mysql://user:password@host:port/database)\n' +
+      '  - MYSQL_URL (Railway format)\n' +
+      '  - MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE (individual variables)'
+    );
   }
 
   if (!databaseUrl.startsWith('mysql://') && !databaseUrl.startsWith('mariadb://')) {
-    throw new Error('DATABASE_URL must start with mysql:// or mariadb://');
+    throw new Error('Database URL must start with mysql:// or mariadb://');
   }
 
   const parsed = parseMySQLConnectionString(databaseUrl);
