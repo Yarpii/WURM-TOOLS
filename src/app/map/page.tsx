@@ -27,15 +27,48 @@ const LOCATION_TYPES: { value: LocationType; label: string; color: string }[] = 
   { value: "other", label: "Other", color: "#6b7280" },
 ];
 
+// Custom map types with display labels
+const MAP_TYPE_LABELS: { [key: string]: string } = {
+  isometric: "Isometric",
+  terrain: "Terrain",
+  topographic: "Topographic",
+  routes: "Routes",
+  unknown: "Other",
+};
+
+interface CustomMapInfo {
+  server: string;
+  date: string;
+  mapTypes: {
+    type: string;
+    filename: string;
+  }[];
+}
+
+interface CustomMapsData {
+  servers: string[];
+  maps: CustomMapInfo[];
+}
+
 export default function MapPage() {
   const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [locations, setLocations] = useState<MapLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
+  // Map source: live or archive
+  const [mapSource, setMapSource] = useState<"live" | "archive">("live");
+
+  // Live map filters
   const [selectedServer, setSelectedServer] = useState<WurmServer>("harmony");
   const [selectedType, setSelectedType] = useState<LocationType | "all">("all");
+
+  // Archive map data
+  const [customMaps, setCustomMaps] = useState<CustomMapsData | null>(null);
+  const [customMapsLoading, setCustomMapsLoading] = useState(false);
+  const [selectedArchiveServer, setSelectedArchiveServer] = useState<string>("");
+  const [selectedArchiveDate, setSelectedArchiveDate] = useState<string>("");
+  const [selectedArchiveMapType, setSelectedArchiveMapType] = useState<string>("");
 
   // Map state - Wurm maps are typically 4096x4096 or 8192x8192, so we need a low initial zoom
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -64,6 +97,68 @@ export default function MapPage() {
   });
   const [formError, setFormError] = useState("");
 
+  // Fetch custom maps data
+  useEffect(() => {
+    if (mapSource === "archive" && !customMaps) {
+      setCustomMapsLoading(true);
+      fetch("/api/map/custom")
+        .then(res => res.json())
+        .then((data: CustomMapsData) => {
+          setCustomMaps(data);
+          // Set default selections
+          if (data.servers.length > 0 && !selectedArchiveServer) {
+            setSelectedArchiveServer(data.servers[0]);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch custom maps:", err);
+        })
+        .finally(() => {
+          setCustomMapsLoading(false);
+        });
+    }
+  }, [mapSource, customMaps, selectedArchiveServer]);
+
+  // Update date selection when server changes
+  useEffect(() => {
+    if (customMaps && selectedArchiveServer) {
+      const serverMaps = customMaps.maps.filter(m => m.server === selectedArchiveServer);
+      if (serverMaps.length > 0) {
+        setSelectedArchiveDate(serverMaps[0].date);
+      } else {
+        setSelectedArchiveDate("");
+      }
+    }
+  }, [selectedArchiveServer, customMaps]);
+
+  // Update map type selection when date changes
+  useEffect(() => {
+    if (customMaps && selectedArchiveServer && selectedArchiveDate) {
+      const mapInfo = customMaps.maps.find(
+        m => m.server === selectedArchiveServer && m.date === selectedArchiveDate
+      );
+      if (mapInfo && mapInfo.mapTypes.length > 0) {
+        // Prefer isometric/terrain type
+        const preferred = mapInfo.mapTypes.find(t => t.type === "isometric") ||
+                         mapInfo.mapTypes.find(t => t.type === "terrain") ||
+                         mapInfo.mapTypes[0];
+        setSelectedArchiveMapType(preferred.type);
+      } else {
+        setSelectedArchiveMapType("");
+      }
+    }
+  }, [selectedArchiveDate, selectedArchiveServer, customMaps]);
+
+  // Get available dates for selected archive server
+  const archiveDates = customMaps?.maps
+    .filter(m => m.server === selectedArchiveServer)
+    .map(m => m.date) || [];
+
+  // Get available map types for selected archive server and date
+  const archiveMapTypes = customMaps?.maps
+    .find(m => m.server === selectedArchiveServer && m.date === selectedArchiveDate)
+    ?.mapTypes || [];
+
   const fetchLocations = async () => {
     try {
       const params = new URLSearchParams();
@@ -87,12 +182,51 @@ export default function MapPage() {
     loadData();
   }, [selectedServer, selectedType]);
 
-  // Load map image when server changes
+  // Build map image URL based on source
+  const getMapImageUrl = () => {
+    if (mapSource === "live") {
+      return `/api/map/image?server=${selectedServer}`;
+    } else {
+      // Archive map
+      const mapInfo = customMaps?.maps.find(
+        m => m.server === selectedArchiveServer && m.date === selectedArchiveDate
+      );
+      const mapType = mapInfo?.mapTypes.find(t => t.type === selectedArchiveMapType);
+      if (mapType) {
+        const params = new URLSearchParams({
+          server: selectedArchiveServer,
+          date: selectedArchiveDate,
+          filename: mapType.filename
+        });
+        return `/api/map/custom/image?${params}`;
+      }
+      return null;
+    }
+  };
+
+  // Get current map size (for archive maps, use a default)
+  const getCurrentMapSize = () => {
+    if (mapSource === "live") {
+      const serverConfig = SERVERS.find(s => s.value === selectedServer);
+      return serverConfig?.size || 4096;
+    } else {
+      // For archive maps, try to match with known servers or use default
+      const lowerServer = selectedArchiveServer.toLowerCase();
+      const matchedServer = SERVERS.find(s =>
+        s.value === lowerServer || s.label.toLowerCase() === lowerServer
+      );
+      return matchedServer?.size || 4096;
+    }
+  };
+
+  // Load map image when source or selection changes
   useEffect(() => {
-    const serverConfig = SERVERS.find(s => s.value === selectedServer);
-    if (!serverConfig) {
+    const imageUrl = getMapImageUrl();
+    if (!imageUrl) {
       setMapImage(null);
-      setMapError("Invalid server selected");
+      if (mapSource === "archive") {
+        setMapError("Select a server, date, and map type");
+      }
       return;
     }
 
@@ -105,29 +239,31 @@ export default function MapPage() {
       setMapImage(img);
       setMapLoading(false);
       // Center the map initially
-      const serverSize = serverConfig.size;
-      const initialZoom = Math.min(canvasSize.width, canvasSize.height) / serverSize * 0.8;
+      const mapSize = getCurrentMapSize();
+      const initialZoom = Math.min(canvasSize.width, canvasSize.height) / mapSize * 0.8;
       setZoom(initialZoom);
       setOffset({
-        x: (canvasSize.width - serverSize * initialZoom) / 2,
-        y: (canvasSize.height - serverSize * initialZoom) / 2,
+        x: (canvasSize.width - mapSize * initialZoom) / 2,
+        y: (canvasSize.height - mapSize * initialZoom) / 2,
       });
     };
 
     img.onerror = () => {
       setMapImage(null);
       setMapLoading(false);
-      setMapError("Failed to load map image. The server may not have public map dumps available.");
+      setMapError(mapSource === "live"
+        ? "Failed to load map image. The server may not have public map dumps available."
+        : "Failed to load archive map image."
+      );
     };
 
-    // Use our API proxy to avoid CORS issues
-    img.src = `/api/map/image?server=${selectedServer}`;
+    img.src = imageUrl;
 
     return () => {
       img.onload = null;
       img.onerror = null;
     };
-  }, [selectedServer]);
+  }, [mapSource, selectedServer, selectedArchiveServer, selectedArchiveDate, selectedArchiveMapType, customMaps]);
 
   // Handle canvas resize to fill container
   useEffect(() => {
@@ -171,8 +307,7 @@ export default function MapPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const serverConfig = SERVERS.find(s => s.value === selectedServer);
-    const mapSize = serverConfig?.size || 4096;
+    const mapSize = getCurrentMapSize();
 
     const draw = () => {
       // Clear with water color
@@ -208,34 +343,36 @@ export default function MapPage() {
         }
       }
 
-      // Draw locations
-      for (const loc of locations) {
-        const x = (loc.x * zoom) + offset.x;
-        const y = (loc.y * zoom) + offset.y;
+      // Draw locations (only for live maps)
+      if (mapSource === "live") {
+        for (const loc of locations) {
+          const x = (loc.x * zoom) + offset.x;
+          const y = (loc.y * zoom) + offset.y;
 
-        // Skip if off-screen
-        if (x < -20 || x > canvasSize.width + 20 || y < -20 || y > canvasSize.height + 20) continue;
+          // Skip if off-screen
+          if (x < -20 || x > canvasSize.width + 20 || y < -20 || y > canvasSize.height + 20) continue;
 
-        const typeInfo = LOCATION_TYPES.find(t => t.value === loc.location_type);
-        const color = typeInfo?.color || "#6b7280";
+          const typeInfo = LOCATION_TYPES.find(t => t.value === loc.location_type);
+          const color = typeInfo?.color || "#6b7280";
 
-        // Draw marker
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
+          // Draw marker
+          ctx.beginPath();
+          ctx.arc(x, y, 8, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
 
-        if (loc.is_verified) {
-          ctx.strokeStyle = "#ffd700";
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          if (loc.is_verified) {
+            ctx.strokeStyle = "#ffd700";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+
+          // Draw label
+          ctx.fillStyle = "#fff";
+          ctx.font = "12px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(loc.name, x, y - 12);
         }
-
-        // Draw label
-        ctx.fillStyle = "#fff";
-        ctx.font = "12px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(loc.name, x, y - 12);
       }
 
       // Draw coordinates
@@ -244,11 +381,13 @@ export default function MapPage() {
       ctx.textAlign = "left";
       const mouseX = Math.round(-offset.x / zoom);
       const mouseY = Math.round(-offset.y / zoom);
-      ctx.fillText(`Server: ${selectedServer.toUpperCase()} | Offset: ${mouseX}, ${mouseY} | Zoom: ${zoom.toFixed(1)}x`, 10, 20);
+      const serverName = mapSource === "live" ? selectedServer.toUpperCase() : selectedArchiveServer;
+      const dateInfo = mapSource === "archive" ? ` | ${selectedArchiveDate}` : "";
+      ctx.fillText(`Server: ${serverName}${dateInfo} | Offset: ${mouseX}, ${mouseY} | Zoom: ${zoom.toFixed(1)}x`, 10, 20);
     };
 
     draw();
-  }, [locations, offset, zoom, selectedServer, canvasSize, mapImage]);
+  }, [locations, offset, zoom, selectedServer, canvasSize, mapImage, mapSource, selectedArchiveServer, selectedArchiveDate]);
 
   // Mouse handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -286,15 +425,17 @@ export default function MapPage() {
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
-    // Check if clicked on a location
-    for (const loc of locations) {
-      const x = (loc.x * zoom) + offset.x;
-      const y = (loc.y * zoom) + offset.y;
-      const dist = Math.sqrt(Math.pow(clickX - x, 2) + Math.pow(clickY - y, 2));
+    // Check if clicked on a location (only for live maps)
+    if (mapSource === "live") {
+      for (const loc of locations) {
+        const x = (loc.x * zoom) + offset.x;
+        const y = (loc.y * zoom) + offset.y;
+        const dist = Math.sqrt(Math.pow(clickX - x, 2) + Math.pow(clickY - y, 2));
 
-      if (dist < 12) {
-        setSelectedLocation(loc);
-        return;
+        if (dist < 12) {
+          setSelectedLocation(loc);
+          return;
+        }
       }
     }
 
@@ -360,37 +501,114 @@ export default function MapPage() {
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Controls */}
       <div className="bg-bg-secondary border-b border-border p-4">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center gap-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
           <h1 className="text-xl font-bold text-text-primary">World Map</h1>
 
-          <select
-            value={selectedServer}
-            onChange={(e) => setSelectedServer(e.target.value as WurmServer)}
-            className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
-          >
-            {SERVERS.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value as LocationType | "all")}
-            className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
-          >
-            <option value="all">All Types</option>
-            {LOCATION_TYPES.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-2 text-sm text-text-muted">
-            <span>{locations.length} locations</span>
+          {/* Map Source Toggle */}
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setMapSource("live")}
+              className={`px-3 py-2 text-sm font-medium transition-colors ${
+                mapSource === "live"
+                  ? "bg-accent text-white"
+                  : "bg-bg-tertiary text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Live
+            </button>
+            <button
+              onClick={() => setMapSource("archive")}
+              className={`px-3 py-2 text-sm font-medium transition-colors ${
+                mapSource === "archive"
+                  ? "bg-accent text-white"
+                  : "bg-bg-tertiary text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Archive
+            </button>
           </div>
+
+          {/* Live Map Controls */}
+          {mapSource === "live" && (
+            <>
+              <select
+                value={selectedServer}
+                onChange={(e) => setSelectedServer(e.target.value as WurmServer)}
+                className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
+              >
+                {SERVERS.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value as LocationType | "all")}
+                className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
+              >
+                <option value="all">All Types</option>
+                {LOCATION_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+
+              <div className="flex items-center gap-2 text-sm text-text-muted">
+                <span>{locations.length} locations</span>
+              </div>
+            </>
+          )}
+
+          {/* Archive Map Controls */}
+          {mapSource === "archive" && (
+            <>
+              {customMapsLoading ? (
+                <span className="text-sm text-text-muted">Loading archives...</span>
+              ) : (
+                <>
+                  <select
+                    value={selectedArchiveServer}
+                    onChange={(e) => setSelectedArchiveServer(e.target.value)}
+                    className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
+                  >
+                    <option value="">Select Server</option>
+                    {customMaps?.servers.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedArchiveDate}
+                    onChange={(e) => setSelectedArchiveDate(e.target.value)}
+                    className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
+                    disabled={!selectedArchiveServer}
+                  >
+                    <option value="">Select Date</option>
+                    {archiveDates.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedArchiveMapType}
+                    onChange={(e) => setSelectedArchiveMapType(e.target.value)}
+                    className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
+                    disabled={!selectedArchiveDate}
+                  >
+                    <option value="">Select Type</option>
+                    {archiveMapTypes.map(t => (
+                      <option key={t.type} value={t.type}>
+                        {MAP_TYPE_LABELS[t.type] || t.type}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </>
+          )}
 
           <div className="flex-1" />
 
-          {user && (
+          {user && mapSource === "live" && (
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -448,21 +666,38 @@ export default function MapPage() {
           style={{ touchAction: 'none' }}
         />
 
-        {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-bg-secondary/90 rounded-lg border border-border p-3">
-          <div className="text-xs font-medium text-text-primary mb-2">Legend</div>
-          <div className="grid grid-cols-2 gap-2">
-            {LOCATION_TYPES.map(t => (
-              <div key={t.value} className="flex items-center gap-2 text-xs">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
-                <span className="text-text-secondary">{t.label}</span>
-              </div>
-            ))}
+        {/* Legend - only show for live maps */}
+        {mapSource === "live" && (
+          <div className="absolute bottom-4 left-4 bg-bg-secondary/90 rounded-lg border border-border p-3">
+            <div className="text-xs font-medium text-text-primary mb-2">Legend</div>
+            <div className="grid grid-cols-2 gap-2">
+              {LOCATION_TYPES.map(t => (
+                <div key={t.value} className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
+                  <span className="text-text-secondary">{t.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Archive Map Info */}
+        {mapSource === "archive" && selectedArchiveServer && selectedArchiveDate && (
+          <div className="absolute bottom-4 left-4 bg-bg-secondary/90 rounded-lg border border-border p-3">
+            <div className="text-xs font-medium text-text-primary mb-1">Archive Map</div>
+            <div className="text-sm text-text-secondary">
+              {selectedArchiveServer} - {selectedArchiveDate}
+            </div>
+            {selectedArchiveMapType && (
+              <div className="text-xs text-text-muted mt-1">
+                Type: {MAP_TYPE_LABELS[selectedArchiveMapType] || selectedArchiveMapType}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Add Location Form */}
-        {showAddForm && user && (
+        {showAddForm && user && mapSource === "live" && (
           <div className="absolute top-4 right-4 bg-bg-secondary rounded-lg border border-border p-4 w-80">
             <h3 className="font-medium text-text-primary mb-3">Add Location</h3>
             <form onSubmit={handleAddLocation} className="space-y-3">
@@ -543,7 +778,7 @@ export default function MapPage() {
         )}
 
         {/* Selected Location Info */}
-        {selectedLocation && (
+        {selectedLocation && mapSource === "live" && (
           <div className="absolute top-4 left-4 bg-bg-secondary rounded-lg border border-border p-4 w-72">
             <div className="flex items-start justify-between mb-2">
               <h3 className="font-medium text-text-primary">{selectedLocation.name}</h3>
@@ -551,7 +786,7 @@ export default function MapPage() {
                 onClick={() => setSelectedLocation(null)}
                 className="text-text-muted hover:text-text-primary"
               >
-                ✕
+                X
               </button>
             </div>
 
