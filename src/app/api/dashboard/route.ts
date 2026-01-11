@@ -170,27 +170,45 @@ export async function GET(request: NextRequest) {
     const completeness = Math.round((filledCount / profileFields.length) * 100);
     const missingFields = profileFields.filter(f => !f.filled).map(f => f.name);
 
-    // Orders stats
-    const [ordersTotal, ordersActive, ordersCompleted, ordersBuy, ordersSell] = await Promise.all([
-      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ?", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'active'", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'completed'", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND order_type = 'buy'", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND order_type = 'sell'", [userId]),
-    ]);
+    // Combine all COUNT queries into parallel execution with optimized SQL
+    const [ordersStats, projectsStats] = await Promise.all([
+      // Combined orders stats in ONE query
+      query<{
+        total: number;
+        active: number;
+        completed: number;
+        buy: number;
+        sell: number;
+      }>(`
+        SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+          SUM(CASE WHEN order_type = 'buy' THEN 1 ELSE 0 END) as buy,
+          SUM(CASE WHEN order_type = 'sell' THEN 1 ELSE 0 END) as sell
+        FROM orders WHERE user_id = ?
+      `, [userId]),
 
-    // Projects stats
-    const [projectsTotal, projectsInProgress, projectsCompleted, projectItems] = await Promise.all([
-      query<{ count: number }>("SELECT COUNT(*) as count FROM projects WHERE user_id = ?", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM projects WHERE user_id = ? AND status = 'in_progress'", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM projects WHERE user_id = ? AND status = 'completed'", [userId]),
-      query<{ total: number }>(`
-        SELECT COALESCE(SUM(pi.quantity), 0) as total
-        FROM project_items pi
-        JOIN projects p ON pi.project_id = p.id
+      // Combined projects stats in ONE query
+      query<{
+        total: number;
+        in_progress: number;
+        completed: number;
+        total_items: number;
+      }>(`
+        SELECT
+          COUNT(DISTINCT p.id) as total,
+          SUM(CASE WHEN p.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+          SUM(CASE WHEN p.status = 'completed' THEN 1 ELSE 0 END) as completed,
+          COALESCE(SUM(pi.quantity), 0) as total_items
+        FROM projects p
+        LEFT JOIN project_items pi ON p.id = pi.project_id
         WHERE p.user_id = ?
       `, [userId]),
     ]);
+
+    const orders = ordersStats.rows[0] || { total: 0, active: 0, completed: 0, buy: 0, sell: 0 };
+    const projects = projectsStats.rows[0] || { total: 0, in_progress: 0, completed: 0, total_items: 0 };
 
     // Active projects with progress
     const activeProjectsResult = await query<{
@@ -217,11 +235,14 @@ export async function GET(request: NextRequest) {
       item_count: p.total_items,
     }));
 
-    // Merchants stats
-    const [merchantsTotal, merchantsActive] = await Promise.all([
-      query<{ count: number }>("SELECT COUNT(*) as count FROM merchants WHERE user_id = ?", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM merchants WHERE user_id = ? AND is_active = 1", [userId]),
-    ]);
+    // Merchants stats (combined)
+    const merchantsStatsResult = await query<{ total: number; active: number }>(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active
+      FROM merchants WHERE user_id = ?
+    `, [userId]);
+    const merchantsStats = merchantsStatsResult.rows[0] || { total: 0, active: 0 };
 
     // Alliance stats
     const allianceMembershipResult = await query<{ name: string; role: string }>(`
@@ -232,21 +253,16 @@ export async function GET(request: NextRequest) {
     `, [userId]);
     const allianceMembership = allianceMembershipResult.rows[0];
 
-    // Trade matches stats
-    const [tradesTotal, tradesCompleted, tradesPending] = await Promise.all([
-      query<{ count: number }>(`
-        SELECT COUNT(*) as count FROM trade_matches
-        WHERE buyer_id = ? OR seller_id = ?
-      `, [userId, userId]),
-      query<{ count: number }>(`
-        SELECT COUNT(*) as count FROM trade_matches
-        WHERE (buyer_id = ? OR seller_id = ?) AND status = 'completed'
-      `, [userId, userId]),
-      query<{ count: number }>(`
-        SELECT COUNT(*) as count FROM trade_matches
-        WHERE (buyer_id = ? OR seller_id = ?) AND status = 'pending'
-      `, [userId, userId]),
-    ]);
+    // Trade matches stats (combined)
+    const tradesStatsResult = await query<{ total: number; completed: number; pending: number }>(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+      FROM trade_matches
+      WHERE buyer_id = ? OR seller_id = ?
+    `, [userId, userId]);
+    const tradesStats = tradesStatsResult.rows[0] || { total: 0, completed: 0, pending: 0 };
 
     // Reputation stats
     const reputationResult = await query<{ avg_rating: number | null; total_ratings: number }>(`
@@ -267,11 +283,15 @@ export async function GET(request: NextRequest) {
     );
     const xp = xpResult.rows[0];
 
-    // Treasure hunts stats
-    const [treasuresTotal, treasuresActive, treasuresCompleted, treasuresShared, treasuresLoot] = await Promise.all([
-      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ?", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ? AND status NOT IN ('completed', 'abandoned')", [userId]),
-      query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunts WHERE user_id = ? AND status = 'completed'", [userId]),
+    // Treasure hunts stats (combined)
+    const [treasuresStatsResult, treasuresSharedResult, treasuresLootResult] = await Promise.all([
+      query<{ total: number; active: number; completed: number }>(`
+        SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN status NOT IN ('completed', 'abandoned') THEN 1 ELSE 0 END) as active,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+        FROM treasure_hunts WHERE user_id = ?
+      `, [userId]),
       query<{ count: number }>("SELECT COUNT(*) as count FROM treasure_hunt_shares WHERE shared_with_user_id = ?", [userId]),
       query<{ count: number }>(`
         SELECT COUNT(*) as count FROM treasure_loot tl
@@ -279,6 +299,7 @@ export async function GET(request: NextRequest) {
         WHERE th.user_id = ?
       `, [userId]),
     ]);
+    const treasuresStats = treasuresStatsResult.rows[0] || { total: 0, active: 0, completed: 0 };
 
     // Timers stats
     const timersResult = await query<{ count: number; active: number }>(`
@@ -411,22 +432,22 @@ export async function GET(request: NextRequest) {
         missing_fields: missingFields,
       },
       orders: {
-        total: ordersTotal.rows[0]?.count || 0,
-        active: ordersActive.rows[0]?.count || 0,
-        completed: ordersCompleted.rows[0]?.count || 0,
-        buy: ordersBuy.rows[0]?.count || 0,
-        sell: ordersSell.rows[0]?.count || 0,
+        total: orders.total,
+        active: orders.active,
+        completed: orders.completed,
+        buy: orders.buy,
+        sell: orders.sell,
       },
       projects: {
-        total: projectsTotal.rows[0]?.count || 0,
-        in_progress: projectsInProgress.rows[0]?.count || 0,
-        completed: projectsCompleted.rows[0]?.count || 0,
-        total_items: projectItems.rows[0]?.total || 0,
+        total: projects.total,
+        in_progress: projects.in_progress,
+        completed: projects.completed,
+        total_items: projects.total_items,
         active_projects: activeProjects,
       },
       merchants: {
-        total: merchantsTotal.rows[0]?.count || 0,
-        active: merchantsActive.rows[0]?.count || 0,
+        total: merchantsStats.total,
+        active: merchantsStats.active,
       },
       alliances: {
         member_of: allianceMembership ? 1 : 0,
@@ -434,9 +455,9 @@ export async function GET(request: NextRequest) {
         alliance_name: allianceMembership?.name || null,
       },
       trades: {
-        total_matches: tradesTotal.rows[0]?.count || 0,
-        completed: tradesCompleted.rows[0]?.count || 0,
-        pending: tradesPending.rows[0]?.count || 0,
+        total_matches: tradesStats.total,
+        completed: tradesStats.completed,
+        pending: tradesStats.pending,
       },
       reputation: {
         avg_rating: reputation.avg_rating ? Math.round(reputation.avg_rating * 10) / 10 : 0,
@@ -448,11 +469,11 @@ export async function GET(request: NextRequest) {
         level: xp?.level || 1,
       },
       treasures: {
-        total_hunts: treasuresTotal.rows[0]?.count || 0,
-        active_hunts: treasuresActive.rows[0]?.count || 0,
-        completed_hunts: treasuresCompleted.rows[0]?.count || 0,
-        shared_with_me: treasuresShared.rows[0]?.count || 0,
-        total_loot: treasuresLoot.rows[0]?.count || 0,
+        total_hunts: treasuresStats.total,
+        active_hunts: treasuresStats.active,
+        completed_hunts: treasuresStats.completed,
+        shared_with_me: treasuresSharedResult.rows[0]?.count || 0,
+        total_loot: treasuresLootResult.rows[0]?.count || 0,
       },
       timers: {
         total: timersStats.count,
