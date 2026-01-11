@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+# Build Next.js if .next doesn't exist
+if [ ! -d ".next" ]; then
+  echo "Building Next.js app..."
+  npm run build
+fi
+
+# Start Next.js server
+exec npm start
