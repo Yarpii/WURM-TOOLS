@@ -7,6 +7,30 @@ import type { MarketOrder, OrderType, OrderStatus } from "@/lib/types";
 
 type TabType = "browse" | "create" | "my-orders";
 
+// Character type for location quick-select
+interface CharacterLocation {
+  id: number;
+  name: string;
+  server?: string;
+  deed_name?: string;
+}
+
+// Wurm Online servers
+const WURM_SERVERS = [
+  "Xanadu",
+  "Deliverance",
+  "Exodus",
+  "Celebration",
+  "Pristine",
+  "Release",
+  "Independence",
+  "Chaos",
+  "Harmony",
+  "Melody",
+  "Cadence",
+  "Defiance",
+];
+
 export default function MarketPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("browse");
@@ -24,6 +48,9 @@ export default function MarketPage() {
   const [filterType, setFilterType] = useState<OrderType | "all">("all");
   const [filterItem, setFilterItem] = useState("");
 
+  // User's characters for quick location select
+  const [characters, setCharacters] = useState<CharacterLocation[]>([]);
+
   // Create form state
   const [formData, setFormData] = useState({
     order_type: "sell" as OrderType,
@@ -33,6 +60,7 @@ export default function MarketPage() {
     price: 0,
     currency: "silver",
     trade_for: "",
+    server: "",
     location: "",
     notes: "",
     expires_days: 30,
@@ -83,11 +111,27 @@ export default function MarketPage() {
     }
   };
 
+  const fetchCharacters = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch("/api/characters");
+      const data = await res.json();
+      if (data.characters && Array.isArray(data.characters)) {
+        setCharacters(data.characters);
+      }
+    } catch (err) {
+      console.error("Failed to fetch characters:", err);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       await Promise.all([fetchOrders(), fetchStats()]);
-      if (user) await fetchMyOrders();
+      if (user) {
+        await fetchMyOrders();
+        await fetchCharacters();
+      }
       setLoading(false);
     };
     loadData();
@@ -127,6 +171,7 @@ export default function MarketPage() {
         price: 0,
         currency: "silver",
         trade_for: "",
+        server: "",
         location: "",
         notes: "",
         expires_days: 30,
@@ -182,6 +227,23 @@ export default function MarketPage() {
     });
   };
 
+  // Format price to remove unnecessary decimal places
+  // e.g., 1.0000 -> "1", 1.5000 -> "1.5", 1.2500 -> "1.25"
+  const formatPrice = (price: number | string | undefined): string => {
+    if (price === undefined || price === null) return "0";
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "0";
+
+    // Remove trailing zeros after decimal point
+    // If it's a whole number, show without decimals
+    if (Number.isInteger(numPrice)) {
+      return numPrice.toString();
+    }
+
+    // Otherwise, show up to 2 decimal places (removing trailing zeros)
+    return parseFloat(numPrice.toFixed(2)).toString();
+  };
+
   const getOrderTypeStyles = (type: OrderType) => {
     switch (type) {
       case "buy":
@@ -230,7 +292,7 @@ export default function MarketPage() {
             )}
             {order.price && order.order_type !== "trade" && (
               <span>
-                Price: <span className="text-accent font-medium">{order.price} {order.currency}</span>
+                Price: <span className="text-accent font-medium">{formatPrice(order.price)} {order.currency}</span>
               </span>
             )}
             {order.order_type === "trade" && order.trade_for && (
@@ -559,14 +621,55 @@ export default function MarketPage() {
                 </div>
               )}
 
-              {/* Location */}
+              {/* Server */}
+              <div>
+                <label className="block text-sm text-text-secondary mb-2">Server</label>
+                <select
+                  value={formData.server}
+                  onChange={(e) => setFormData({ ...formData, server: e.target.value })}
+                  className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
+                >
+                  <option value="">Select server...</option>
+                  {WURM_SERVERS.map((server) => (
+                    <option key={server} value={server}>
+                      {server}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Location with quick-select */}
               <div>
                 <label className="block text-sm text-text-secondary mb-2">Location (Optional)</label>
+                {characters.length > 0 && characters.some(c => c.deed_name) && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <span className="text-xs text-text-muted py-1">Quick select:</span>
+                    {characters
+                      .filter((c) => c.deed_name)
+                      .map((character) => (
+                        <button
+                          key={character.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              location: character.deed_name || "",
+                              server: character.server || formData.server,
+                            });
+                          }}
+                          className="px-2 py-1 text-xs bg-bg-hover hover:bg-accent/20 rounded border border-border hover:border-accent/50 transition-colors"
+                          title={`${character.name}${character.server ? ` - ${character.server}` : ""}`}
+                        >
+                          {character.deed_name}
+                        </button>
+                      ))}
+                  </div>
+                )}
                 <input
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., Xanadu N15, Harmony coast"
+                  placeholder="e.g., My Deed, N15 coast"
                   className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
                 />
               </div>
