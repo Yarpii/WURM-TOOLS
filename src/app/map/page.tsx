@@ -27,6 +27,20 @@ const LOCATION_TYPES: { value: LocationType; label: string; color: string }[] = 
   { value: "other", label: "Other", color: "#6b7280" },
 ];
 
+// Extended location types for archive maps (includes roads, tunnels, etc.)
+const EXTENDED_LOCATION_TYPES: { value: string; label: string; color: string }[] = [
+  { value: "deed", label: "Deed", color: "#22c55e" },
+  { value: "merchant", label: "Merchant", color: "#eab308" },
+  { value: "road", label: "Road/Highway", color: "#f97316" },
+  { value: "tunnel", label: "Mine Tunnel", color: "#78716c" },
+  { value: "bridge", label: "Bridge", color: "#06b6d4" },
+  { value: "landmark", label: "Landmark", color: "#3b82f6" },
+  { value: "resource", label: "Resource Node", color: "#a855f7" },
+  { value: "spawn", label: "Spawn Point", color: "#ef4444" },
+  { value: "harbor", label: "Harbor/Port", color: "#0ea5e9" },
+  { value: "other", label: "Other", color: "#6b7280" },
+];
+
 // Custom map types with display labels
 const MAP_TYPE_LABELS: { [key: string]: string } = {
   isometric: "Isometric",
@@ -79,6 +93,9 @@ export default function MapPage() {
 
   // Selected location
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
+
+  // Archive locations (pins for archive maps)
+  const [archiveLocations, setArchiveLocations] = useState<MapLocation[]>([]);
 
   // Map image
   const [mapImage, setMapImage] = useState<HTMLImageElement | null>(null);
@@ -159,6 +176,12 @@ export default function MapPage() {
     .find(m => m.server === selectedArchiveServer && m.date === selectedArchiveDate)
     ?.mapTypes || [];
 
+  // Generate archive server key for storing/fetching pins
+  const getArchiveServerKey = () => {
+    if (!selectedArchiveServer || !selectedArchiveDate) return null;
+    return `archive_${selectedArchiveServer}_${selectedArchiveDate}`;
+  };
+
   const fetchLocations = async () => {
     try {
       const params = new URLSearchParams();
@@ -173,6 +196,26 @@ export default function MapPage() {
     }
   };
 
+  const fetchArchiveLocations = async () => {
+    const archiveKey = getArchiveServerKey();
+    if (!archiveKey) {
+      setArchiveLocations([]);
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.set("server", archiveKey);
+
+      const res = await fetch(`/api/map?${params}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setArchiveLocations(data);
+    } catch (err) {
+      console.error("Failed to fetch archive locations:", err);
+      setArchiveLocations([]);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -181,6 +224,13 @@ export default function MapPage() {
     };
     loadData();
   }, [selectedServer, selectedType]);
+
+  // Fetch archive locations when archive selection changes
+  useEffect(() => {
+    if (mapSource === "archive" && selectedArchiveServer && selectedArchiveDate) {
+      fetchArchiveLocations();
+    }
+  }, [mapSource, selectedArchiveServer, selectedArchiveDate]);
 
   // Build map image URL based on source
   const getMapImageUrl = () => {
@@ -343,36 +393,50 @@ export default function MapPage() {
         }
       }
 
-      // Draw locations (only for live maps)
-      if (mapSource === "live") {
-        for (const loc of locations) {
-          const x = (loc.x * zoom) + offset.x;
-          const y = (loc.y * zoom) + offset.y;
+      // Draw locations (for both live and archive maps)
+      const currentLocations = mapSource === "live" ? locations : archiveLocations;
+      for (const loc of currentLocations) {
+        const x = (loc.x * zoom) + offset.x;
+        const y = (loc.y * zoom) + offset.y;
 
-          // Skip if off-screen
-          if (x < -20 || x > canvasSize.width + 20 || y < -20 || y > canvasSize.height + 20) continue;
+        // Skip if off-screen
+        if (x < -20 || x > canvasSize.width + 20 || y < -20 || y > canvasSize.height + 20) continue;
 
-          const typeInfo = LOCATION_TYPES.find(t => t.value === loc.location_type);
-          const color = typeInfo?.color || "#6b7280";
+        const typeList = mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES;
+        const typeInfo = typeList.find(t => t.value === loc.location_type);
+        const color = typeInfo?.color || "#6b7280";
 
-          // Draw marker
-          ctx.beginPath();
-          ctx.arc(x, y, 8, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
+        // Draw marker shadow
+        ctx.beginPath();
+        ctx.arc(x + 2, y + 2, 8, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.3)";
+        ctx.fill();
 
-          if (loc.is_verified) {
-            ctx.strokeStyle = "#ffd700";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
+        // Draw marker
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
 
-          // Draw label
-          ctx.fillStyle = "#fff";
-          ctx.font = "12px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(loc.name, x, y - 12);
+        // Draw border
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (loc.is_verified) {
+          ctx.strokeStyle = "#ffd700";
+          ctx.lineWidth = 3;
+          ctx.stroke();
         }
+
+        // Draw label with background
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "center";
+        const textWidth = ctx.measureText(loc.name).width;
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(x - textWidth / 2 - 4, y - 26, textWidth + 8, 16);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(loc.name, x, y - 14);
       }
 
       // Draw coordinates
@@ -387,7 +451,7 @@ export default function MapPage() {
     };
 
     draw();
-  }, [locations, offset, zoom, selectedServer, canvasSize, mapImage, mapSource, selectedArchiveServer, selectedArchiveDate]);
+  }, [locations, archiveLocations, offset, zoom, selectedServer, canvasSize, mapImage, mapSource, selectedArchiveServer, selectedArchiveDate]);
 
   // Mouse handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -410,9 +474,28 @@ export default function MapPage() {
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    // Scale the delta based on current zoom level for smoother zooming
-    const delta = e.deltaY > 0 ? -zoom * 0.1 : zoom * 0.1;
-    setZoom(Math.max(0.05, Math.min(5, zoom + delta)));
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Calculate map position under cursor before zoom
+    const mapX = (mouseX - offset.x) / zoom;
+    const mapY = (mouseY - offset.y) / zoom;
+
+    // Calculate new zoom
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.05, Math.min(5, zoom * zoomFactor));
+
+    // Calculate new offset to keep the same map position under cursor
+    const newOffsetX = mouseX - mapX * newZoom;
+    const newOffsetY = mouseY - mapY * newZoom;
+
+    setZoom(newZoom);
+    setOffset({ x: newOffsetX, y: newOffsetY });
   };
 
   const handleCanvasClick = (e: React.MouseEvent) => {
@@ -425,17 +508,16 @@ export default function MapPage() {
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
-    // Check if clicked on a location (only for live maps)
-    if (mapSource === "live") {
-      for (const loc of locations) {
-        const x = (loc.x * zoom) + offset.x;
-        const y = (loc.y * zoom) + offset.y;
-        const dist = Math.sqrt(Math.pow(clickX - x, 2) + Math.pow(clickY - y, 2));
+    // Check if clicked on a location (for both live and archive maps)
+    const currentLocations = mapSource === "live" ? locations : archiveLocations;
+    for (const loc of currentLocations) {
+      const x = (loc.x * zoom) + offset.x;
+      const y = (loc.y * zoom) + offset.y;
+      const dist = Math.sqrt(Math.pow(clickX - x, 2) + Math.pow(clickY - y, 2));
 
-        if (dist < 12) {
-          setSelectedLocation(loc);
-          return;
-        }
+      if (dist < 12) {
+        setSelectedLocation(loc);
+        return;
       }
     }
 
@@ -453,6 +535,14 @@ export default function MapPage() {
     e.preventDefault();
     setFormError("");
 
+    // Use archive key for archive maps, or selected server for live maps
+    const serverKey = mapSource === "archive" ? getArchiveServerKey() : selectedServer;
+
+    if (!serverKey) {
+      setFormError("Please select a server and date first");
+      return;
+    }
+
     try {
       const res = await fetch("/api/map", {
         method: "POST",
@@ -460,7 +550,7 @@ export default function MapPage() {
         body: JSON.stringify({
           action: "create",
           ...addForm,
-          server: selectedServer,
+          server: serverKey,
         }),
       });
 
@@ -472,7 +562,13 @@ export default function MapPage() {
 
       setShowAddForm(false);
       setAddForm({ name: "", description: "", location_type: "deed", x: 500, y: 500, is_public: true });
-      await fetchLocations();
+
+      // Refresh locations
+      if (mapSource === "live") {
+        await fetchLocations();
+      } else {
+        await fetchArchiveLocations();
+      }
     } catch (err) {
       setFormError("Connection error");
     }
@@ -490,7 +586,12 @@ export default function MapPage() {
 
       if (res.ok) {
         setSelectedLocation(null);
-        await fetchLocations();
+        // Refresh the appropriate locations list
+        if (mapSource === "live") {
+          await fetchLocations();
+        } else {
+          await fetchArchiveLocations();
+        }
       }
     } catch (err) {
       console.error("Failed to delete location:", err);
@@ -608,7 +709,7 @@ export default function MapPage() {
 
           <div className="flex-1" />
 
-          {user && mapSource === "live" && (
+          {user && (mapSource === "live" || (mapSource === "archive" && selectedArchiveServer && selectedArchiveDate)) && (
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -617,7 +718,7 @@ export default function MapPage() {
                   : "bg-accent text-white hover:bg-accent-hover"
               }`}
             >
-              {showAddForm ? "Cancel" : "Add Location"}
+              {showAddForm ? "Cancel" : "Add Pin"}
             </button>
           )}
 
@@ -681,7 +782,7 @@ export default function MapPage() {
           </div>
         )}
 
-        {/* Archive Map Info */}
+        {/* Archive Map Info with Legend */}
         {mapSource === "archive" && selectedArchiveServer && selectedArchiveDate && (
           <div className="absolute bottom-4 left-4 bg-bg-secondary/90 rounded-lg border border-border p-3">
             <div className="text-xs font-medium text-text-primary mb-1">Archive Map</div>
@@ -693,13 +794,31 @@ export default function MapPage() {
                 Type: {MAP_TYPE_LABELS[selectedArchiveMapType] || selectedArchiveMapType}
               </div>
             )}
+            <div className="text-xs text-text-muted mt-1">
+              {archiveLocations.length} pins
+            </div>
+
+            {/* Legend */}
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="text-xs font-medium text-text-primary mb-2">Pin Types</div>
+              <div className="grid grid-cols-2 gap-1">
+                {EXTENDED_LOCATION_TYPES.map(t => (
+                  <div key={t.value} className="flex items-center gap-2 text-xs">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: t.color }} />
+                    <span className="text-text-secondary truncate">{t.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Add Location Form */}
-        {showAddForm && user && mapSource === "live" && (
+        {showAddForm && user && (
           <div className="absolute top-4 right-4 bg-bg-secondary rounded-lg border border-border p-4 w-80">
-            <h3 className="font-medium text-text-primary mb-3">Add Location</h3>
+            <h3 className="font-medium text-text-primary mb-3">
+              Add Pin {mapSource === "archive" && selectedArchiveServer && `to ${selectedArchiveServer}`}
+            </h3>
             <form onSubmit={handleAddLocation} className="space-y-3">
               {formError && (
                 <div className="p-2 bg-danger/10 border border-danger/30 rounded text-danger text-sm">
@@ -729,7 +848,7 @@ export default function MapPage() {
                 onChange={(e) => setAddForm({ ...addForm, location_type: e.target.value as LocationType })}
                 className="w-full px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border text-sm"
               >
-                {LOCATION_TYPES.map(t => (
+                {(mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES).map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
@@ -778,7 +897,7 @@ export default function MapPage() {
         )}
 
         {/* Selected Location Info */}
-        {selectedLocation && mapSource === "live" && (
+        {selectedLocation && (
           <div className="absolute top-4 left-4 bg-bg-secondary rounded-lg border border-border p-4 w-72">
             <div className="flex items-start justify-between mb-2">
               <h3 className="font-medium text-text-primary">{selectedLocation.name}</h3>
@@ -801,7 +920,7 @@ export default function MapPage() {
             )}
 
             <div className="text-sm text-text-muted space-y-1">
-              <div>Type: {LOCATION_TYPES.find(t => t.value === selectedLocation.location_type)?.label}</div>
+              <div>Type: {(mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES).find(t => t.value === selectedLocation.location_type)?.label || selectedLocation.location_type}</div>
               <div>Coordinates: {selectedLocation.x}, {selectedLocation.y}</div>
               <div>Added by: {selectedLocation.username}</div>
             </div>

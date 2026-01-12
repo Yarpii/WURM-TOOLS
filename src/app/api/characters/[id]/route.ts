@@ -6,12 +6,13 @@ import {
   updateCharacter,
   deleteCharacter,
   setPrimaryCharacter,
+  query,
 } from "@/lib/database";
 import { sanitizeError, validateStringFields, INPUT_LIMITS } from "@/lib/security";
 import { WURM_SERVERS, WURM_RELIGIONS, PLAYSTYLES } from "@/lib/constants";
 import type { UpdateCharacterInput } from "@/lib/types";
 
-// GET /api/characters/[id] - Get a specific character
+// GET /api/characters/[id] - Get a specific character (public)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -26,45 +27,74 @@ export async function GET(
       );
     }
 
-    const sessionId = request.cookies.get("session")?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
-    const result = await getSession(sessionId);
-    if (!result) {
-      return NextResponse.json(
-        { error: "Invalid session" },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const withStats = searchParams.get("stats") === "true";
+    const fullProfile = searchParams.get("full") === "true";
 
-    const character = withStats
-      ? await getCharacterWithStats(characterId)
-      : await getCharacterById(characterId);
+    // Get character with username
+    const characterResult = await query(
+      `SELECT c.*, u.username
+       FROM characters c
+       JOIN users u ON u.id = c.user_id
+       WHERE c.id = $1`,
+      [characterId]
+    );
 
-    if (!character) {
+    if (characterResult.rows.length === 0) {
       return NextResponse.json(
         { error: "Character not found" },
         { status: 404 }
       );
     }
 
-    // Only owner can view their characters
-    if (character.user_id !== result.user.id && result.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Access denied" },
-        { status: 403 }
+    const character = characterResult.rows[0];
+
+    // If full profile requested, also get skills, orders, and hunts
+    if (fullProfile) {
+      // Get skills for this user
+      const skillsResult = await query(
+        `SELECT id, skill_name, current_level, target_level, notes, updated_at
+         FROM user_skills
+         WHERE user_id = $1
+         ORDER BY current_level DESC`,
+        [character.user_id]
       );
+
+      // Get orders for this user
+      const ordersResult = await query(
+        `SELECT id, order_type, item_name, quantity, price, currency, status, created_at
+         FROM market_orders
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 50`,
+        [character.user_id]
+      );
+
+      // Get treasure hunts for this user
+      const huntsResult = await query(
+        `SELECT id, name, server, difficulty, status, created_at
+         FROM treasure_hunts
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 50`,
+        [character.user_id]
+      );
+
+      return NextResponse.json({
+        character,
+        skills: skillsResult.rows,
+        orders: ordersResult.rows,
+        hunts: huntsResult.rows,
+      });
     }
 
-    return NextResponse.json(character);
+    // Simple response
+    if (withStats) {
+      const characterWithStats = await getCharacterWithStats(characterId);
+      return NextResponse.json({ character: characterWithStats });
+    }
+
+    return NextResponse.json({ character });
   } catch (error) {
     return NextResponse.json(
       { error: sanitizeError(error, "Fetch character") },
