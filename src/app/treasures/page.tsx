@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { WURM_SERVERS } from "@/lib/constants";
@@ -50,10 +51,12 @@ const RARITY_COLORS: Record<string, string> = {
 
 export default function TreasuresPage() {
   const { user, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>("my-hunts");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [urlParamsProcessed, setUrlParamsProcessed] = useState(false);
 
   // My Hunts state
   const [hunts, setHunts] = useState<TreasureHunt[]>([]);
@@ -208,6 +211,56 @@ export default function TreasuresPage() {
       setLoading(false);
     }
   }, [user, authLoading, activeTab, fetchHunts, fetchShared, fetchStats, fetchSharedWithMe]);
+
+  // Check for URL parameters (from map page right-click)
+  useEffect(() => {
+    if (urlParamsProcessed || authLoading) return;
+
+    const xParam = searchParams.get("x");
+    const yParam = searchParams.get("y");
+    const serverParam = searchParams.get("server");
+
+    if (xParam && yParam) {
+      // Wait for user to be loaded
+      if (!user) {
+        // If not logged in yet but params exist, we'll process after login
+        return;
+      }
+
+      setUrlParamsProcessed(true);
+
+      // Pre-fill and open the create modal
+      const serverValue = serverParam
+        ? WURM_SERVERS.find(s => s.toLowerCase() === serverParam.toLowerCase()) || "Harmony"
+        : "Harmony";
+
+      setFormData({
+        name: "",
+        description: `Location: ${xParam}, ${yParam}`,
+        server: serverValue,
+        map_quality: "",
+        difficulty: "easy",
+        x: xParam,
+        y: yParam,
+        status: "searching", // Already found the location
+        treasure_type: "treasure_chest",
+        parent_hunt_id: "",
+        screenshot_url: "",
+      });
+      setUploadPreview(null);
+      setScreenshotMode("upload");
+      setModalMode("create");
+      setShowModal(true);
+
+      // Show a helpful message
+      setSuccess(`Coordinates ${xParam}, ${yParam} loaded from map. Fill in the details to create your treasure hunt.`);
+
+      // Clean up URL params
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", "/treasures");
+      }
+    }
+  }, [searchParams, user, authLoading, urlParamsProcessed]);
 
   // Select a hunt to view details
   const selectHunt = async (hunt: TreasureHunt) => {
