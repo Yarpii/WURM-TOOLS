@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { MiniMap } from "@/components/MiniMap";
 import Link from "next/link";
 import { WURM_SERVERS } from "@/lib/constants";
 import type {
@@ -106,6 +107,9 @@ export default function TreasuresPage() {
   const [screenshotMode, setScreenshotMode] = useState<"upload" | "url">("upload");
   const [uploading, setUploading] = useState(false);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+
+  // Mini-map panel state
+  const [showMiniMap, setShowMiniMap] = useState(false);
 
   // Fetch hunts
   const fetchHunts = useCallback(async () => {
@@ -819,28 +823,40 @@ export default function TreasuresPage() {
                           <h2 className="text-2xl font-bold">{selectedHunt.name}</h2>
                           <p className="text-text-secondary">{selectedHunt.server}</p>
                         </div>
-                        {selectedHunt.user_id === user?.id && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={openShareOptionsModal}
-                              className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
-                            >
-                              Share
-                            </button>
-                            <button
-                              onClick={() => openEditModal(selectedHunt)}
-                              className="px-3 py-1 bg-bg-tertiary rounded hover:bg-bg-hover text-sm"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteHunt(selectedHunt.id)}
-                              className="px-3 py-1 bg-danger/20 text-danger rounded hover:bg-danger/30 text-sm"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setShowMiniMap(!showMiniMap)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              showMiniMap
+                                ? "bg-accent text-white"
+                                : "bg-accent/20 text-accent hover:bg-accent/30"
+                            }`}
+                          >
+                            {showMiniMap ? "Hide Map" : "Show Map"}
+                          </button>
+                          {selectedHunt.user_id === user?.id && (
+                            <>
+                              <button
+                                onClick={openShareOptionsModal}
+                                className="px-3 py-1 bg-info/20 text-info rounded hover:bg-info/30 text-sm"
+                              >
+                                Share
+                              </button>
+                              <button
+                                onClick={() => openEditModal(selectedHunt)}
+                                className="px-3 py-1 bg-bg-tertiary rounded hover:bg-bg-hover text-sm"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteHunt(selectedHunt.id)}
+                                className="px-3 py-1 bg-danger/20 text-danger rounded hover:bg-danger/30 text-sm"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {/* Status & Info */}
@@ -889,6 +905,45 @@ export default function TreasuresPage() {
                             alt="Treasure map screenshot"
                             className="max-w-full rounded-lg border border-border max-h-64 object-contain"
                           />
+                        </div>
+                      )}
+
+                      {/* Mini Map Panel */}
+                      {showMiniMap && (
+                        <div className="mb-6 p-4 bg-bg-tertiary rounded-lg">
+                          <MiniMap
+                            server={selectedHunt.server}
+                            markerX={selectedHunt.x || undefined}
+                            markerY={selectedHunt.y || undefined}
+                            height={250}
+                            onLocationSelect={(x, y) => {
+                              // Update hunt coordinates
+                              if (selectedHunt.user_id === user?.id) {
+                                setFormData({
+                                  ...formData,
+                                  name: selectedHunt.name,
+                                  description: selectedHunt.description || "",
+                                  server: selectedHunt.server,
+                                  map_quality: selectedHunt.map_quality?.toString() || "",
+                                  difficulty: selectedHunt.difficulty,
+                                  x: x.toString(),
+                                  y: y.toString(),
+                                  status: selectedHunt.status,
+                                  treasure_type: "treasure_chest",
+                                  parent_hunt_id: selectedHunt.parent_hunt_id?.toString() || "",
+                                  screenshot_url: selectedHunt.screenshot_url || "",
+                                });
+                                setSelectedHunt(selectedHunt);
+                                setModalMode("edit");
+                                setShowModal(true);
+                              }
+                            }}
+                          />
+                          {selectedHunt.user_id === user?.id && !selectedHunt.x && !selectedHunt.y && (
+                            <p className="text-xs text-text-muted mt-2 text-center">
+                              Click on the map to set the treasure location
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -1266,6 +1321,18 @@ export default function TreasuresPage() {
                             />
                           </div>
                         </div>
+                        {/* Mini Map in Edit Modal */}
+                        <div className="mt-2">
+                          <MiniMap
+                            server={formData.server}
+                            markerX={formData.x ? parseInt(formData.x) : undefined}
+                            markerY={formData.y ? parseInt(formData.y) : undefined}
+                            height={180}
+                            onLocationSelect={(x, y) => {
+                              setFormData({ ...formData, x: x.toString(), y: y.toString() });
+                            }}
+                          />
+                        </div>
                       </>
                     )}
                     <div>
@@ -1491,6 +1558,18 @@ export default function TreasuresPage() {
                           required
                         />
                       </div>
+                    </div>
+                    {/* Mini Map in Share Modal */}
+                    <div>
+                      <MiniMap
+                        server={formData.server}
+                        markerX={formData.x ? parseInt(formData.x) : undefined}
+                        markerY={formData.y ? parseInt(formData.y) : undefined}
+                        height={180}
+                        onLocationSelect={(x, y) => {
+                          setFormData({ ...formData, x: x.toString(), y: y.toString() });
+                        }}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Description</label>
