@@ -182,6 +182,23 @@ export default function MarketPage() {
     });
   };
 
+  // Format price to remove unnecessary decimal places
+  // e.g., 1.0000 -> "1", 1.5000 -> "1.5", 1.2500 -> "1.25"
+  const formatPrice = (price: number | string | undefined): string => {
+    if (price === undefined || price === null) return "0";
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "0";
+
+    // Remove trailing zeros after decimal point
+    // If it's a whole number, show without decimals
+    if (Number.isInteger(numPrice)) {
+      return numPrice.toString();
+    }
+
+    // Otherwise, show up to 2 decimal places (removing trailing zeros)
+    return parseFloat(numPrice.toFixed(2)).toString();
+  };
+
   const getOrderTypeStyles = (type: OrderType) => {
     switch (type) {
       case "buy":
@@ -230,7 +247,7 @@ export default function MarketPage() {
             )}
             {order.price && order.order_type !== "trade" && (
               <span>
-                Price: <span className="text-accent font-medium">{order.price} {order.currency}</span>
+                Price: <span className="text-accent font-medium">{formatPrice(order.price)} {order.currency}</span>
               </span>
             )}
             {order.order_type === "trade" && order.trade_for && (
