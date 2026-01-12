@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublicProfile } from "@/lib/auth";
+import { getUserCharacters } from "@/lib/database";
 import { sanitizeError } from "@/lib/security";
 
 // GET /api/members/[id] - Get public profile of a member
@@ -21,7 +22,10 @@ export async function GET(
       return NextResponse.json({ error: "User not found or not visible" }, { status: 404 });
     }
 
-    return NextResponse.json({ profile });
+    // Fetch user's characters
+    const characters = await getUserCharacters(userId);
+
+    return NextResponse.json({ profile, characters });
   } catch (error) {
     return NextResponse.json(
       { error: sanitizeError(error, "Fetch profile") },

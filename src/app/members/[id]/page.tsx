@@ -16,6 +16,18 @@ interface PublicProfile {
   show_in_members_list: boolean;
 }
 
+interface Character {
+  id: number;
+  name: string;
+  server?: string;
+  religion?: string;
+  avatar_url?: string;
+  deed_name?: string;
+  playstyle?: string;
+  bio?: string;
+  is_primary: boolean;
+}
+
 export default function MemberProfilePage({
   params,
 }: {
@@ -23,6 +35,7 @@ export default function MemberProfilePage({
 }) {
   const resolvedParams = use(params);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -38,6 +51,7 @@ export default function MemberProfilePage({
         }
 
         setProfile(data.profile);
+        setCharacters(data.characters || []);
       } catch (err) {
         setError("Failed to load profile: " + String(err));
       } finally {
@@ -185,6 +199,86 @@ export default function MemberProfilePage({
               </div>
             )}
           </div>
+
+          {/* Characters */}
+          {characters.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-4">
+                Characters
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {characters.map((character) => (
+                  <div
+                    key={character.id}
+                    className={`bg-bg-tertiary rounded-lg p-4 border-2 ${
+                      character.is_primary ? "border-warning" : "border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      {character.avatar_url ? (
+                        <img
+                          src={character.avatar_url}
+                          alt={character.name}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-bg-hover flex items-center justify-center text-sm font-medium flex-shrink-0">
+                          {character.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+
+                      <div className="flex-1 min-w-0">
+                        {/* Name */}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-text-primary truncate">
+                            {character.name}
+                          </span>
+                          {character.is_primary && (
+                            <span className="text-warning text-sm" title="Primary Character">
+                              ★
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Server */}
+                        {character.server && (
+                          <div className="text-sm text-text-muted">{character.server}</div>
+                        )}
+
+                        {/* Deed */}
+                        {character.deed_name && (
+                          <Link
+                            href={`/market?location=${encodeURIComponent(character.deed_name)}`}
+                            className="inline-flex items-center gap-1 mt-2 text-sm text-accent hover:text-accent-hover transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                            {character.deed_name}
+                          </Link>
+                        )}
+
+                        {/* Religion & Playstyle */}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {character.religion && character.religion !== "None" && (
+                            <span className="text-xs px-2 py-0.5 bg-bg-hover rounded text-text-secondary">
+                              {character.religion}
+                            </span>
+                          )}
+                          {character.playstyle && (
+                            <span className="text-xs px-2 py-0.5 bg-bg-hover rounded text-text-secondary capitalize">
+                              {character.playstyle}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Visibility Badge */}
           <div className="mt-8 pt-6 border-t border-border">
