@@ -114,6 +114,29 @@ export default function MapPage() {
   });
   const [formError, setFormError] = useState("");
 
+  // Right-click context menu
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    screenX: number;
+    screenY: number;
+    mapX: number;
+    mapY: number;
+  }>({
+    visible: false,
+    screenX: 0,
+    screenY: 0,
+    mapX: 0,
+    mapY: 0,
+  });
+
+  // Quick pin modal (for right-click pin creation)
+  const [showQuickPin, setShowQuickPin] = useState(false);
+  const [quickPinForm, setQuickPinForm] = useState({
+    name: "",
+    description: "",
+    location_type: "landmark" as LocationType | string,
+  });
+
   // Fetch custom maps data
   useEffect(() => {
     if (mapSource === "archive" && !customMaps) {
@@ -482,6 +505,27 @@ export default function MapPage() {
     offsetRef.current = offset;
   }, [zoom, offset]);
 
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.visible) {
+        setContextMenu({ ...contextMenu, visible: false });
+      }
+    };
+
+    if (contextMenu.visible) {
+      // Add listener with a small delay to prevent immediate close
+      const timeout = setTimeout(() => {
+        document.addEventListener("click", handleClickOutside);
+      }, 10);
+
+      return () => {
+        clearTimeout(timeout);
+        document.removeEventListener("click", handleClickOutside);
+      };
+    }
+  }, [contextMenu.visible]);
+
   // Add wheel event listener with { passive: false } to allow preventDefault
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -518,6 +562,12 @@ export default function MapPage() {
   }, []);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
+    // Close context menu on any click
+    if (contextMenu.visible) {
+      setContextMenu({ ...contextMenu, visible: false });
+      return;
+    }
+
     if (isDragging) return;
 
     const canvas = canvasRef.current;
@@ -548,6 +598,113 @@ export default function MapPage() {
     }
 
     setSelectedLocation(null);
+  };
+
+  // Right-click context menu handler
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    // Calculate map coordinates from screen position
+    const mapX = Math.round((clickX - offset.x) / zoom);
+    const mapY = Math.round((clickY - offset.y) / zoom);
+
+    // Position context menu at mouse location
+    setContextMenu({
+      visible: true,
+      screenX: e.clientX,
+      screenY: e.clientY,
+      mapX,
+      mapY,
+    });
+  };
+
+  // Open quick pin modal from context menu
+  const openQuickPinModal = () => {
+    setQuickPinForm({
+      name: "",
+      description: "",
+      location_type: mapSource === "archive" ? "landmark" : "landmark",
+    });
+    setShowQuickPin(true);
+    setContextMenu({ ...contextMenu, visible: false });
+  };
+
+  // Copy coordinates to clipboard
+  const copyCoordinates = async () => {
+    const coordText = `${contextMenu.mapX}, ${contextMenu.mapY}`;
+    try {
+      await navigator.clipboard.writeText(coordText);
+      // Could show a toast notification here
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+    setContextMenu({ ...contextMenu, visible: false });
+  };
+
+  // Open treasures page with coordinates pre-filled
+  const openTreasureWithCoords = () => {
+    const server = mapSource === "live" ? selectedServer : selectedArchiveServer;
+    const params = new URLSearchParams({
+      x: contextMenu.mapX.toString(),
+      y: contextMenu.mapY.toString(),
+      server: server,
+    });
+    window.open(`/treasures?${params}`, "_blank");
+    setContextMenu({ ...contextMenu, visible: false });
+  };
+
+  // Handle quick pin submit
+  const handleQuickPinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+
+    const serverKey = mapSource === "archive" ? getArchiveServerKey() : selectedServer;
+    if (!serverKey) {
+      setFormError("Please select a server first");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/map", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          name: quickPinForm.name,
+          description: quickPinForm.description,
+          location_type: quickPinForm.location_type,
+          x: contextMenu.mapX,
+          y: contextMenu.mapY,
+          server: serverKey,
+          is_public: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setFormError(data.error || "Failed to add pin");
+        return;
+      }
+
+      setShowQuickPin(false);
+      setQuickPinForm({ name: "", description: "", location_type: "landmark" });
+
+      // Refresh locations
+      if (mapSource === "live") {
+        await fetchLocations();
+      } else {
+        await fetchArchiveLocations();
+      }
+    } catch (err) {
+      setFormError("Connection error");
+    }
   };
 
   const handleAddLocation = async (e: React.FormEvent) => {
@@ -782,6 +939,7 @@ export default function MapPage() {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           onClick={handleCanvasClick}
+          onContextMenu={handleContextMenu}
           style={{ touchAction: 'none' }}
         />
 
@@ -951,6 +1109,137 @@ export default function MapPage() {
                 Delete Location
               </button>
             )}
+          </div>
+        )}
+
+        {/* Right-click Context Menu */}
+        {contextMenu.visible && (
+          <div
+            className="fixed bg-bg-secondary border border-border rounded-lg shadow-xl py-1 z-50 min-w-[180px]"
+            style={{
+              left: contextMenu.screenX,
+              top: contextMenu.screenY,
+            }}
+          >
+            {/* Coordinates header */}
+            <div className="px-3 py-2 border-b border-border">
+              <div className="text-xs text-text-muted">Coordinates</div>
+              <div className="font-mono text-sm text-accent">
+                {contextMenu.mapX}, {contextMenu.mapY}
+              </div>
+            </div>
+
+            {/* Menu items */}
+            <div className="py-1">
+              {user && (
+                <button
+                  onClick={openQuickPinModal}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-bg-tertiary flex items-center gap-2"
+                >
+                  <span className="text-success">+</span>
+                  <span>Add Pin Here</span>
+                </button>
+              )}
+
+              {user && (
+                <button
+                  onClick={openTreasureWithCoords}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-bg-tertiary flex items-center gap-2"
+                >
+                  <span className="text-warning">X</span>
+                  <span>New Treasure Hunt</span>
+                </button>
+              )}
+
+              <button
+                onClick={copyCoordinates}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-bg-tertiary flex items-center gap-2"
+              >
+                <span className="text-info">@</span>
+                <span>Copy Coordinates</span>
+              </button>
+
+              <div className="border-t border-border my-1" />
+
+              <button
+                onClick={() => setContextMenu({ ...contextMenu, visible: false })}
+                className="w-full px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-tertiary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Pin Modal */}
+        {showQuickPin && user && (
+          <div className="absolute top-4 right-4 bg-bg-secondary rounded-lg border border-border p-4 w-80 z-40">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-text-primary">Quick Pin</h3>
+              <button
+                onClick={() => setShowQuickPin(false)}
+                className="text-text-muted hover:text-text-primary"
+              >
+                X
+              </button>
+            </div>
+
+            <div className="mb-3 p-2 bg-bg-tertiary rounded text-sm">
+              <span className="text-text-muted">Location: </span>
+              <span className="font-mono text-accent">{contextMenu.mapX}, {contextMenu.mapY}</span>
+            </div>
+
+            <form onSubmit={handleQuickPinSubmit} className="space-y-3">
+              {formError && (
+                <div className="p-2 bg-danger/10 border border-danger/30 rounded text-danger text-sm">
+                  {formError}
+                </div>
+              )}
+
+              <input
+                type="text"
+                value={quickPinForm.name}
+                onChange={(e) => setQuickPinForm({ ...quickPinForm, name: e.target.value })}
+                placeholder="Pin name"
+                required
+                autoFocus
+                className="w-full px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border text-sm"
+              />
+
+              <select
+                value={quickPinForm.location_type}
+                onChange={(e) => setQuickPinForm({ ...quickPinForm, location_type: e.target.value })}
+                className="w-full px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border text-sm"
+              >
+                {(mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES).map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+
+              <textarea
+                value={quickPinForm.description}
+                onChange={(e) => setQuickPinForm({ ...quickPinForm, description: e.target.value })}
+                placeholder="Description (optional)"
+                rows={2}
+                className="w-full px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border text-sm resize-none"
+              />
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickPin(false)}
+                  className="flex-1 py-2 bg-bg-tertiary text-text-primary rounded-lg hover:bg-bg-hover transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors text-sm"
+                >
+                  Add Pin
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
