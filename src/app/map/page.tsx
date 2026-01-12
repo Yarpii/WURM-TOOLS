@@ -472,31 +472,50 @@ export default function MapPage() {
     setIsDragging(false);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
+  // Use a ref to store latest zoom/offset values for the wheel handler
+  const zoomRef = useRef(zoom);
+  const offsetRef = useRef(offset);
 
+  // Keep refs in sync with state
+  useEffect(() => {
+    zoomRef.current = zoom;
+    offsetRef.current = offset;
+  }, [zoom, offset]);
+
+  // Add wheel event listener with { passive: false } to allow preventDefault
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
 
-    // Calculate map position under cursor before zoom
-    const mapX = (mouseX - offset.x) / zoom;
-    const mapY = (mouseY - offset.y) / zoom;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
 
-    // Calculate new zoom
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.05, Math.min(5, zoom * zoomFactor));
+      const currentZoom = zoomRef.current;
+      const currentOffset = offsetRef.current;
 
-    // Calculate new offset to keep the same map position under cursor
-    const newOffsetX = mouseX - mapX * newZoom;
-    const newOffsetY = mouseY - mapY * newZoom;
+      // Calculate map position under cursor before zoom
+      const mapX = (mouseX - currentOffset.x) / currentZoom;
+      const mapY = (mouseY - currentOffset.y) / currentZoom;
 
-    setZoom(newZoom);
-    setOffset({ x: newOffsetX, y: newOffsetY });
-  };
+      // Calculate new zoom
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.05, Math.min(5, currentZoom * zoomFactor));
+
+      // Calculate new offset to keep the same map position under cursor
+      const newOffsetX = mouseX - mapX * newZoom;
+      const newOffsetY = mouseY - mapY * newZoom;
+
+      setZoom(newZoom);
+      setOffset({ x: newOffsetX, y: newOffsetY });
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (isDragging) return;
@@ -762,7 +781,6 @@ export default function MapPage() {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onWheel={handleWheel}
           onClick={handleCanvasClick}
           style={{ touchAction: 'none' }}
         />
