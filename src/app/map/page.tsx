@@ -2,33 +2,25 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import type { MapLocation, WurmServer, LocationType } from "@/lib/types";
+import type { MapLocation, LocationType } from "@/lib/types";
 
-const SERVERS: { value: WurmServer; label: string; size: number }[] = [
-  { value: "harmony", label: "Harmony", size: 4096 },
-  { value: "melody", label: "Melody", size: 2048 },
-  { value: "cadence", label: "Cadence", size: 4096 },
-  { value: "defiance", label: "Defiance", size: 4096 },
-  { value: "independence", label: "Independence", size: 4096 },
-  { value: "deliverance", label: "Deliverance", size: 2048 },
-  { value: "exodus", label: "Exodus", size: 2048 },
-  { value: "celebration", label: "Celebration", size: 2048 },
-  { value: "pristine", label: "Pristine", size: 2048 },
-  { value: "release", label: "Release", size: 2048 },
-  { value: "xanadu", label: "Xanadu", size: 8192 },
-];
+// Server sizes for coordinate calculations
+const SERVER_SIZES: { [key: string]: number } = {
+  harmony: 4096,
+  melody: 2048,
+  cadence: 4096,
+  defiance: 4096,
+  independence: 4096,
+  deliverance: 2048,
+  exodus: 2048,
+  celebration: 2048,
+  pristine: 2048,
+  release: 2048,
+  xanadu: 8192,
+};
 
-const LOCATION_TYPES: { value: LocationType; label: string; color: string }[] = [
-  { value: "deed", label: "Deed", color: "#22c55e" },
-  { value: "merchant", label: "Merchant", color: "#eab308" },
-  { value: "landmark", label: "Landmark", color: "#3b82f6" },
-  { value: "resource", label: "Resource", color: "#a855f7" },
-  { value: "spawn", label: "Spawn Point", color: "#ef4444" },
-  { value: "other", label: "Other", color: "#6b7280" },
-];
-
-// Extended location types for archive maps (includes roads, tunnels, etc.)
-const EXTENDED_LOCATION_TYPES: { value: string; label: string; color: string }[] = [
+// Location types for map pins
+const LOCATION_TYPES: { value: string; label: string; color: string }[] = [
   { value: "deed", label: "Deed", color: "#22c55e" },
   { value: "merchant", label: "Merchant", color: "#eab308" },
   { value: "road", label: "Road/Highway", color: "#f97316" },
@@ -70,19 +62,12 @@ export default function MapPage() {
   const [locations, setLocations] = useState<MapLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Map source: live or archive
-  const [mapSource, setMapSource] = useState<"live" | "archive">("live");
-
-  // Live map filters
-  const [selectedServer, setSelectedServer] = useState<WurmServer>("harmony");
-  const [selectedType, setSelectedType] = useState<LocationType | "all">("all");
-
-  // Archive map data
+  // Map data
   const [customMaps, setCustomMaps] = useState<CustomMapsData | null>(null);
   const [customMapsLoading, setCustomMapsLoading] = useState(false);
-  const [selectedArchiveServer, setSelectedArchiveServer] = useState<string>("");
-  const [selectedArchiveDate, setSelectedArchiveDate] = useState<string>("");
-  const [selectedArchiveMapType, setSelectedArchiveMapType] = useState<string>("");
+  const [selectedServer, setSelectedServer] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedMapType, setSelectedMapType] = useState<string>("");
 
   // Map state - Wurm maps are typically 4096x4096 or 8192x8192, so we need a low initial zoom
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -93,9 +78,6 @@ export default function MapPage() {
 
   // Selected location
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
-
-  // Archive locations (pins for archive maps)
-  const [archiveLocations, setArchiveLocations] = useState<MapLocation[]>([]);
 
   // Map image
   const [mapImage, setMapImage] = useState<HTMLImageElement | null>(null);
@@ -137,17 +119,17 @@ export default function MapPage() {
     location_type: "landmark" as LocationType | string,
   });
 
-  // Fetch custom maps data
+  // Fetch custom maps data on mount
   useEffect(() => {
-    if (mapSource === "archive" && !customMaps) {
+    if (!customMaps) {
       setCustomMapsLoading(true);
       fetch("/api/map/custom")
         .then(res => res.json())
         .then((data: CustomMapsData) => {
           setCustomMaps(data);
           // Set default selections
-          if (data.servers.length > 0 && !selectedArchiveServer) {
-            setSelectedArchiveServer(data.servers[0]);
+          if (data.servers.length > 0 && !selectedServer) {
+            setSelectedServer(data.servers[0]);
           }
         })
         .catch(err => {
@@ -157,147 +139,111 @@ export default function MapPage() {
           setCustomMapsLoading(false);
         });
     }
-  }, [mapSource, customMaps, selectedArchiveServer]);
+  }, [customMaps, selectedServer]);
 
   // Update date selection when server changes
   useEffect(() => {
-    if (customMaps && selectedArchiveServer) {
-      const serverMaps = customMaps.maps.filter(m => m.server === selectedArchiveServer);
+    if (customMaps && selectedServer) {
+      const serverMaps = customMaps.maps.filter(m => m.server === selectedServer);
       if (serverMaps.length > 0) {
-        setSelectedArchiveDate(serverMaps[0].date);
+        setSelectedDate(serverMaps[0].date);
       } else {
-        setSelectedArchiveDate("");
+        setSelectedDate("");
       }
     }
-  }, [selectedArchiveServer, customMaps]);
+  }, [selectedServer, customMaps]);
 
   // Update map type selection when date changes
   useEffect(() => {
-    if (customMaps && selectedArchiveServer && selectedArchiveDate) {
+    if (customMaps && selectedServer && selectedDate) {
       const mapInfo = customMaps.maps.find(
-        m => m.server === selectedArchiveServer && m.date === selectedArchiveDate
+        m => m.server === selectedServer && m.date === selectedDate
       );
       if (mapInfo && mapInfo.mapTypes.length > 0) {
         // Prefer isometric/terrain type
         const preferred = mapInfo.mapTypes.find(t => t.type === "isometric") ||
                          mapInfo.mapTypes.find(t => t.type === "terrain") ||
                          mapInfo.mapTypes[0];
-        setSelectedArchiveMapType(preferred.type);
+        setSelectedMapType(preferred.type);
       } else {
-        setSelectedArchiveMapType("");
+        setSelectedMapType("");
       }
     }
-  }, [selectedArchiveDate, selectedArchiveServer, customMaps]);
+  }, [selectedDate, selectedServer, customMaps]);
 
-  // Get available dates for selected archive server
-  const archiveDates = customMaps?.maps
-    .filter(m => m.server === selectedArchiveServer)
+  // Get available dates for selected server
+  const availableDates = customMaps?.maps
+    .filter(m => m.server === selectedServer)
     .map(m => m.date) || [];
 
-  // Get available map types for selected archive server and date
-  const archiveMapTypes = customMaps?.maps
-    .find(m => m.server === selectedArchiveServer && m.date === selectedArchiveDate)
+  // Get available map types for selected server and date
+  const availableMapTypes = customMaps?.maps
+    .find(m => m.server === selectedServer && m.date === selectedDate)
     ?.mapTypes || [];
 
-  // Generate archive server key for storing/fetching pins
-  const getArchiveServerKey = () => {
-    if (!selectedArchiveServer || !selectedArchiveDate) return null;
-    return `archive_${selectedArchiveServer}_${selectedArchiveDate}`;
+  // Generate server key for storing/fetching pins
+  const getServerKey = () => {
+    if (!selectedServer || !selectedDate) return null;
+    return `archive_${selectedServer}_${selectedDate}`;
   };
 
   const fetchLocations = async () => {
+    const serverKey = getServerKey();
+    if (!serverKey) {
+      setLocations([]);
+      return;
+    }
+
     try {
       const params = new URLSearchParams();
-      params.set("server", selectedServer);
-      if (selectedType !== "all") params.set("type", selectedType);
+      params.set("server", serverKey);
 
       const res = await fetch(`/api/map?${params}`);
       const data = await res.json();
       if (Array.isArray(data)) setLocations(data);
     } catch (err) {
       console.error("Failed to fetch locations:", err);
+      setLocations([]);
     }
   };
 
-  const fetchArchiveLocations = async () => {
-    const archiveKey = getArchiveServerKey();
-    if (!archiveKey) {
-      setArchiveLocations([]);
-      return;
-    }
-
-    try {
-      const params = new URLSearchParams();
-      params.set("server", archiveKey);
-
-      const res = await fetch(`/api/map?${params}`);
-      const data = await res.json();
-      if (Array.isArray(data)) setArchiveLocations(data);
-    } catch (err) {
-      console.error("Failed to fetch archive locations:", err);
-      setArchiveLocations([]);
-    }
-  };
-
+  // Fetch locations when selection changes
   useEffect(() => {
-    const loadData = async () => {
+    if (selectedServer && selectedDate) {
       setLoading(true);
-      await fetchLocations();
-      setLoading(false);
-    };
-    loadData();
-  }, [selectedServer, selectedType]);
-
-  // Fetch archive locations when archive selection changes
-  useEffect(() => {
-    if (mapSource === "archive" && selectedArchiveServer && selectedArchiveDate) {
-      fetchArchiveLocations();
+      fetchLocations().finally(() => setLoading(false));
     }
-  }, [mapSource, selectedArchiveServer, selectedArchiveDate]);
+  }, [selectedServer, selectedDate]);
 
-  // Build map image URL based on source
+  // Build map image URL
   const getMapImageUrl = () => {
-    if (mapSource === "live") {
-      return `/api/map/image?server=${selectedServer}`;
-    } else {
-      // Archive map
-      const mapInfo = customMaps?.maps.find(
-        m => m.server === selectedArchiveServer && m.date === selectedArchiveDate
-      );
-      const mapType = mapInfo?.mapTypes.find(t => t.type === selectedArchiveMapType);
-      if (mapType) {
-        const params = new URLSearchParams({
-          server: selectedArchiveServer,
-          date: selectedArchiveDate,
-          filename: mapType.filename
-        });
-        return `/api/map/custom/image?${params}`;
-      }
-      return null;
+    const mapInfo = customMaps?.maps.find(
+      m => m.server === selectedServer && m.date === selectedDate
+    );
+    const mapType = mapInfo?.mapTypes.find(t => t.type === selectedMapType);
+    if (mapType) {
+      const params = new URLSearchParams({
+        server: selectedServer,
+        date: selectedDate,
+        filename: mapType.filename
+      });
+      return `/api/map/custom/image?${params}`;
     }
+    return null;
   };
 
-  // Get current map size (for archive maps, use a default)
+  // Get current map size
   const getCurrentMapSize = () => {
-    if (mapSource === "live") {
-      const serverConfig = SERVERS.find(s => s.value === selectedServer);
-      return serverConfig?.size || 4096;
-    } else {
-      // For archive maps, try to match with known servers or use default
-      const lowerServer = selectedArchiveServer.toLowerCase();
-      const matchedServer = SERVERS.find(s =>
-        s.value === lowerServer || s.label.toLowerCase() === lowerServer
-      );
-      return matchedServer?.size || 4096;
-    }
+    const lowerServer = selectedServer.toLowerCase();
+    return SERVER_SIZES[lowerServer] || 4096;
   };
 
-  // Load map image when source or selection changes
+  // Load map image when selection changes
   useEffect(() => {
     const imageUrl = getMapImageUrl();
     if (!imageUrl) {
       setMapImage(null);
-      if (mapSource === "archive") {
+      if (selectedServer) {
         setMapError("Select a server, date, and map type");
       }
       return;
@@ -324,10 +270,7 @@ export default function MapPage() {
     img.onerror = () => {
       setMapImage(null);
       setMapLoading(false);
-      setMapError(mapSource === "live"
-        ? "Failed to load map image. The server may not have public map dumps available."
-        : "Failed to load archive map image."
-      );
+      setMapError("Failed to load map image.");
     };
 
     img.src = imageUrl;
@@ -336,7 +279,7 @@ export default function MapPage() {
       img.onload = null;
       img.onerror = null;
     };
-  }, [mapSource, selectedServer, selectedArchiveServer, selectedArchiveDate, selectedArchiveMapType, customMaps]);
+  }, [selectedServer, selectedDate, selectedMapType, customMaps]);
 
   // Handle canvas resize to fill container
   useEffect(() => {
@@ -416,17 +359,15 @@ export default function MapPage() {
         }
       }
 
-      // Draw locations (for both live and archive maps)
-      const currentLocations = mapSource === "live" ? locations : archiveLocations;
-      for (const loc of currentLocations) {
+      // Draw locations
+      for (const loc of locations) {
         const x = (loc.x * zoom) + offset.x;
         const y = (loc.y * zoom) + offset.y;
 
         // Skip if off-screen
         if (x < -20 || x > canvasSize.width + 20 || y < -20 || y > canvasSize.height + 20) continue;
 
-        const typeList = mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES;
-        const typeInfo = typeList.find(t => t.value === loc.location_type);
+        const typeInfo = LOCATION_TYPES.find(t => t.value === loc.location_type);
         const color = typeInfo?.color || "#6b7280";
 
         // Draw marker shadow
@@ -468,13 +409,12 @@ export default function MapPage() {
       ctx.textAlign = "left";
       const mouseX = Math.round(-offset.x / zoom);
       const mouseY = Math.round(-offset.y / zoom);
-      const serverName = mapSource === "live" ? selectedServer.toUpperCase() : selectedArchiveServer;
-      const dateInfo = mapSource === "archive" ? ` | ${selectedArchiveDate}` : "";
-      ctx.fillText(`Server: ${serverName}${dateInfo} | Offset: ${mouseX}, ${mouseY} | Zoom: ${zoom.toFixed(1)}x`, 10, 20);
+      const dateInfo = selectedDate ? ` | ${selectedDate}` : "";
+      ctx.fillText(`Server: ${selectedServer}${dateInfo} | Offset: ${mouseX}, ${mouseY} | Zoom: ${zoom.toFixed(1)}x`, 10, 20);
     };
 
     draw();
-  }, [locations, archiveLocations, offset, zoom, selectedServer, canvasSize, mapImage, mapSource, selectedArchiveServer, selectedArchiveDate]);
+  }, [locations, offset, zoom, selectedServer, selectedDate, canvasSize, mapImage]);
 
   // Mouse handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -577,9 +517,8 @@ export default function MapPage() {
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
-    // Check if clicked on a location (for both live and archive maps)
-    const currentLocations = mapSource === "live" ? locations : archiveLocations;
-    for (const loc of currentLocations) {
+    // Check if clicked on a location
+    for (const loc of locations) {
       const x = (loc.x * zoom) + offset.x;
       const y = (loc.y * zoom) + offset.y;
       const dist = Math.sqrt(Math.pow(clickX - x, 2) + Math.pow(clickY - y, 2));
@@ -630,7 +569,7 @@ export default function MapPage() {
     setQuickPinForm({
       name: "",
       description: "",
-      location_type: mapSource === "archive" ? "landmark" : "landmark",
+      location_type: "landmark",
     });
     setShowQuickPin(true);
     setContextMenu({ ...contextMenu, visible: false });
@@ -650,11 +589,10 @@ export default function MapPage() {
 
   // Open treasures page with coordinates pre-filled
   const openTreasureWithCoords = () => {
-    const server = mapSource === "live" ? selectedServer : selectedArchiveServer;
     const params = new URLSearchParams({
       x: contextMenu.mapX.toString(),
       y: contextMenu.mapY.toString(),
-      server: server,
+      server: selectedServer,
     });
     window.open(`/treasures?${params}`, "_blank");
     setContextMenu({ ...contextMenu, visible: false });
@@ -665,7 +603,7 @@ export default function MapPage() {
     e.preventDefault();
     setFormError("");
 
-    const serverKey = mapSource === "archive" ? getArchiveServerKey() : selectedServer;
+    const serverKey = getServerKey();
     if (!serverKey) {
       setFormError("Please select a server first");
       return;
@@ -697,11 +635,7 @@ export default function MapPage() {
       setQuickPinForm({ name: "", description: "", location_type: "landmark" });
 
       // Refresh locations
-      if (mapSource === "live") {
-        await fetchLocations();
-      } else {
-        await fetchArchiveLocations();
-      }
+      await fetchLocations();
     } catch (err) {
       setFormError("Connection error");
     }
@@ -711,8 +645,7 @@ export default function MapPage() {
     e.preventDefault();
     setFormError("");
 
-    // Use archive key for archive maps, or selected server for live maps
-    const serverKey = mapSource === "archive" ? getArchiveServerKey() : selectedServer;
+    const serverKey = getServerKey();
 
     if (!serverKey) {
       setFormError("Please select a server and date first");
@@ -740,11 +673,7 @@ export default function MapPage() {
       setAddForm({ name: "", description: "", location_type: "deed", x: 500, y: 500, is_public: true });
 
       // Refresh locations
-      if (mapSource === "live") {
-        await fetchLocations();
-      } else {
-        await fetchArchiveLocations();
-      }
+      await fetchLocations();
     } catch (err) {
       setFormError("Connection error");
     }
@@ -762,12 +691,7 @@ export default function MapPage() {
 
       if (res.ok) {
         setSelectedLocation(null);
-        // Refresh the appropriate locations list
-        if (mapSource === "live") {
-          await fetchLocations();
-        } else {
-          await fetchArchiveLocations();
-        }
+        await fetchLocations();
       }
     } catch (err) {
       console.error("Failed to delete location:", err);
@@ -781,111 +705,53 @@ export default function MapPage() {
         <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
           <h1 className="text-xl font-bold text-text-primary">World Map</h1>
 
-          {/* Map Source Toggle */}
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            <button
-              onClick={() => setMapSource("live")}
-              className={`px-3 py-2 text-sm font-medium transition-colors ${
-                mapSource === "live"
-                  ? "bg-accent text-white"
-                  : "bg-bg-tertiary text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              Live
-            </button>
-            <button
-              onClick={() => setMapSource("archive")}
-              className={`px-3 py-2 text-sm font-medium transition-colors ${
-                mapSource === "archive"
-                  ? "bg-accent text-white"
-                  : "bg-bg-tertiary text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              Archive
-            </button>
-          </div>
-
-          {/* Live Map Controls */}
-          {mapSource === "live" && (
+          {/* Map Controls */}
+          {customMapsLoading ? (
+            <span className="text-sm text-text-muted">Loading maps...</span>
+          ) : (
             <>
               <select
                 value={selectedServer}
-                onChange={(e) => setSelectedServer(e.target.value as WurmServer)}
+                onChange={(e) => setSelectedServer(e.target.value)}
                 className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
               >
-                {SERVERS.map(s => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                <option value="">Select Server</option>
+                {customMaps?.servers.map(s => (
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
 
               <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as LocationType | "all")}
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
+                disabled={!selectedServer}
               >
-                <option value="all">All Types</option>
-                {LOCATION_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                <option value="">Select Date</option>
+                {availableDates.map(d => (
+                  <option key={d} value={d}>{d}</option>
                 ))}
               </select>
 
-              <div className="flex items-center gap-2 text-sm text-text-muted">
-                <span>{locations.length} locations</span>
-              </div>
-            </>
-          )}
-
-          {/* Archive Map Controls */}
-          {mapSource === "archive" && (
-            <>
-              {customMapsLoading ? (
-                <span className="text-sm text-text-muted">Loading archives...</span>
-              ) : (
-                <>
-                  <select
-                    value={selectedArchiveServer}
-                    onChange={(e) => setSelectedArchiveServer(e.target.value)}
-                    className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
-                  >
-                    <option value="">Select Server</option>
-                    {customMaps?.servers.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={selectedArchiveDate}
-                    onChange={(e) => setSelectedArchiveDate(e.target.value)}
-                    className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
-                    disabled={!selectedArchiveServer}
-                  >
-                    <option value="">Select Date</option>
-                    {archiveDates.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={selectedArchiveMapType}
-                    onChange={(e) => setSelectedArchiveMapType(e.target.value)}
-                    className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
-                    disabled={!selectedArchiveDate}
-                  >
-                    <option value="">Select Type</option>
-                    {archiveMapTypes.map(t => (
-                      <option key={t.type} value={t.type}>
-                        {MAP_TYPE_LABELS[t.type] || t.type}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
+              <select
+                value={selectedMapType}
+                onChange={(e) => setSelectedMapType(e.target.value)}
+                className="px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
+                disabled={!selectedDate}
+              >
+                <option value="">Select Type</option>
+                {availableMapTypes.map(t => (
+                  <option key={t.type} value={t.type}>
+                    {MAP_TYPE_LABELS[t.type] || t.type}
+                  </option>
+                ))}
+              </select>
             </>
           )}
 
           <div className="flex-1" />
 
-          {user && (mapSource === "live" || (mapSource === "archive" && selectedArchiveServer && selectedArchiveDate)) && (
+          {user && selectedServer && selectedDate && (
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -943,42 +809,27 @@ export default function MapPage() {
           style={{ touchAction: 'none' }}
         />
 
-        {/* Legend - only show for live maps */}
-        {mapSource === "live" && (
+        {/* Map Info with Legend */}
+        {selectedServer && selectedDate && (
           <div className="absolute bottom-4 left-4 bg-bg-secondary/90 rounded-lg border border-border p-3">
-            <div className="text-xs font-medium text-text-primary mb-2">Legend</div>
-            <div className="grid grid-cols-2 gap-2">
-              {LOCATION_TYPES.map(t => (
-                <div key={t.value} className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
-                  <span className="text-text-secondary">{t.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Archive Map Info with Legend */}
-        {mapSource === "archive" && selectedArchiveServer && selectedArchiveDate && (
-          <div className="absolute bottom-4 left-4 bg-bg-secondary/90 rounded-lg border border-border p-3">
-            <div className="text-xs font-medium text-text-primary mb-1">Archive Map</div>
+            <div className="text-xs font-medium text-text-primary mb-1">Map</div>
             <div className="text-sm text-text-secondary">
-              {selectedArchiveServer} - {selectedArchiveDate}
+              {selectedServer} - {selectedDate}
             </div>
-            {selectedArchiveMapType && (
+            {selectedMapType && (
               <div className="text-xs text-text-muted mt-1">
-                Type: {MAP_TYPE_LABELS[selectedArchiveMapType] || selectedArchiveMapType}
+                Type: {MAP_TYPE_LABELS[selectedMapType] || selectedMapType}
               </div>
             )}
             <div className="text-xs text-text-muted mt-1">
-              {archiveLocations.length} pins
+              {locations.length} pins
             </div>
 
             {/* Legend */}
             <div className="mt-3 pt-3 border-t border-border">
               <div className="text-xs font-medium text-text-primary mb-2">Pin Types</div>
               <div className="grid grid-cols-2 gap-1">
-                {EXTENDED_LOCATION_TYPES.map(t => (
+                {LOCATION_TYPES.map(t => (
                   <div key={t.value} className="flex items-center gap-2 text-xs">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: t.color }} />
                     <span className="text-text-secondary truncate">{t.label}</span>
@@ -993,7 +844,7 @@ export default function MapPage() {
         {showAddForm && user && (
           <div className="absolute top-4 right-4 bg-bg-secondary rounded-lg border border-border p-4 w-80">
             <h3 className="font-medium text-text-primary mb-3">
-              Add Pin {mapSource === "archive" && selectedArchiveServer && `to ${selectedArchiveServer}`}
+              Add Pin {selectedServer && `to ${selectedServer}`}
             </h3>
             <form onSubmit={handleAddLocation} className="space-y-3">
               {formError && (
@@ -1024,7 +875,7 @@ export default function MapPage() {
                 onChange={(e) => setAddForm({ ...addForm, location_type: e.target.value as LocationType })}
                 className="w-full px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border text-sm"
               >
-                {(mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES).map(t => (
+                {LOCATION_TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
@@ -1096,7 +947,7 @@ export default function MapPage() {
             )}
 
             <div className="text-sm text-text-muted space-y-1">
-              <div>Type: {(mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES).find(t => t.value === selectedLocation.location_type)?.label || selectedLocation.location_type}</div>
+              <div>Type: {LOCATION_TYPES.find(t => t.value === selectedLocation.location_type)?.label || selectedLocation.location_type}</div>
               <div>Coordinates: {selectedLocation.x}, {selectedLocation.y}</div>
               <div>Added by: {selectedLocation.username}</div>
             </div>
@@ -1211,7 +1062,7 @@ export default function MapPage() {
                 onChange={(e) => setQuickPinForm({ ...quickPinForm, location_type: e.target.value })}
                 className="w-full px-3 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border text-sm"
               >
-                {(mapSource === "archive" ? EXTENDED_LOCATION_TYPES : LOCATION_TYPES).map(t => (
+                {LOCATION_TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
