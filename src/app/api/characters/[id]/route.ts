@@ -63,7 +63,7 @@ export async function GET(
       // Get orders for this user
       const ordersResult = await query(
         `SELECT id, order_type, item_name, quantity, price, currency, status, created_at
-         FROM market_orders
+         FROM orders
          WHERE user_id = $1
          ORDER BY created_at DESC
          LIMIT 50`,
