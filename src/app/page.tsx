@@ -220,7 +220,7 @@ export default function Home() {
     },
     {
       title: "Mobile App",
-      description: "Take Blackforge Tools with you on mobile for on-the-go tracking",
+      description: "Take Wurm Tools with you on mobile for on-the-go tracking",
       icon: "📱",
       status: "future",
     },
@@ -259,7 +259,7 @@ export default function Home() {
           <h1 className={`text-4xl md:text-6xl font-bold text-text-primary mb-6 ${isLoaded ? 'animate-fade-in-up animation-delay-100' : 'opacity-0'}`}>
             Welcome to the{" "}
             <span className="gradient-text-animated">
-              Blackforge
+              Wurm Tools
             </span>
           </h1>
 
@@ -317,7 +317,7 @@ export default function Home() {
               Tools of the Trade
             </h2>
             <p className="text-text-secondary max-w-2xl mx-auto">
-              Whether you're a novice builder or a master blacksmith, the Blackforge provides the tools
+              Whether you're a novice builder or a master blacksmith, Wurm Tools provides the tools
               to thrive in the world of Wurm.
             </p>
           </div>

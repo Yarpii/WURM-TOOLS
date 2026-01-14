@@ -8,14 +8,14 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import PWAInstall from "@/components/PWAInstall";
 
 export const metadata: Metadata = {
-  title: "Blackforge Tools - Community Hub for Wurm Online",
+  title: "Wurm Tools - Community Hub for Wurm Online",
   description: "Your all-in-one toolkit for Wurm Online: crafting calculators, skill optimizer, marketplace, merchant directory, and community features.",
   keywords: ["Wurm Online", "crafting", "calculator", "skills", "materials", "recipes", "marketplace", "merchants", "community"],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Blackforge",
+    title: "Wurm Tools",
   },
 };
 

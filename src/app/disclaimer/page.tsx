@@ -12,7 +12,7 @@ export default function DisclaimerPage() {
         <section className="bg-bg-secondary rounded-lg border border-border p-6 mb-6">
           <h2 className="text-xl font-semibold text-text-primary mb-4">Not Affiliated with Wurm Online</h2>
           <p className="text-text-secondary mb-4">
-            Blackforge Tools is an independent, fan-made project created by and for the Wurm Online community.
+            Wurm Tools is an independent, fan-made project created by and for the Wurm Online community.
             This website is <strong className="text-text-primary">NOT</strong> affiliated with, endorsed by,
             or in any way officially connected with:
           </p>

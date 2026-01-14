@@ -15,7 +15,7 @@ export const BOT_CONFIG = {
   databaseUrl: process.env.DATABASE_URL || '',
 
   // App URL for links
-  appUrl: process.env.APP_URL || 'https://blackforge.tools',
+  appUrl: process.env.APP_URL || 'https://wurm.tools',
 
   // Embed colors
   colors: {

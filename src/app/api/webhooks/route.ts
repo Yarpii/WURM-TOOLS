@@ -205,10 +205,10 @@ export async function POST(request: NextRequest) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               embeds: [{
-                title: "Blackforge Test Notification",
+                title: "Wurm Tools Test Notification",
                 description: "Your webhook is configured correctly!",
                 color: 0x5865F2, // Discord blurple
-                footer: { text: "Blackforge - Wurm Online Companion" },
+                footer: { text: "Wurm Tools - Wurm Online Companion" },
                 timestamp: new Date().toISOString(),
               }],
             }),

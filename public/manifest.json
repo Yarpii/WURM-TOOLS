@@ -1,6 +1,6 @@
 {
-  "name": "Blackforge - Wurm Online Companion",
-  "short_name": "Blackforge",
+  "name": "Wurm Tools - Wurm Online Companion",
+  "short_name": "Wurm Tools",
   "description": "Community-driven toolkit for Wurm Online - crafting calculator, marketplace, and more",
   "start_url": "/",
   "display": "standalone",

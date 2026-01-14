@@ -78,7 +78,7 @@ export default function PWAInstall() {
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-text-primary">Install Blackforge</h3>
+          <h3 className="font-medium text-text-primary">Install Wurm Tools</h3>
           <p className="text-sm text-text-muted mt-1">
             Add to your home screen for quick access and offline support.
           </p>

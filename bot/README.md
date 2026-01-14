@@ -1,6 +1,6 @@
-# BlackForge Discord Bot
+# Wurm Tools Discord Bot
 
-Discord bot for BlackForge WURM Tools - get timer notifications, price lookups, crafting recipes, and more directly in Discord!
+Discord bot for Wurm Tools - get timer notifications, price lookups, crafting recipes, and more directly in Discord!
 
 ## Features
 
@@ -26,7 +26,7 @@ Discord bot for BlackForge WURM Tools - get timer notifications, price lookups, 
 | `/link <code>` | Link your Discord account |
 | `/unlink` | Unlink your Discord account |
 | `/status` | Check account status |
-| `/blackforge` | Bot help and info |
+| `/wurmtools` | Bot help and info |
 
 ## Setup
 
@@ -94,16 +94,16 @@ For production, use PM2 to manage the bot process:
 
 ```bash
 # Start the bot
-pm2 start dist/index.js --name blackforge-bot
+pm2 start dist/index.js --name wurm-tools-bot
 
 # View logs
-pm2 logs blackforge-bot
+pm2 logs wurm-tools-bot
 
 # Restart
-pm2 restart blackforge-bot
+pm2 restart wurm-tools-bot
 
 # Stop
-pm2 stop blackforge-bot
+pm2 stop wurm-tools-bot
 ```
 
 Add to existing `ecosystem.config.js`:
@@ -113,7 +113,7 @@ module.exports = {
   apps: [
     // ... existing web app config
     {
-      name: 'blackforge-bot',
+      name: 'wurm-tools-bot',
       cwd: './bot',
       script: 'dist/index.js',
       env: {
@@ -129,7 +129,7 @@ module.exports = {
 For timer notifications via DM and personalized commands, users need to link their Discord account:
 
 ### Via Web + Discord Bot (Recommended)
-1. User logs into BlackForge website
+1. User logs into Wurm Tools website
 2. Goes to Dashboard → Settings → Discord
 3. Clicks "Generate Link Code" to get an 8-character verification code
 4. Uses `/link <code>` command in Discord to complete the link

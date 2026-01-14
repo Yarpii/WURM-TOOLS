@@ -451,7 +451,7 @@ export async function verifyAndLinkDiscord(
   // Check if Discord ID is already linked to another account
   const existingLink = await getUserByDiscordId(discordId);
   if (existingLink) {
-    return { success: false, error: 'This Discord account is already linked to another BlackForge account.' };
+    return { success: false, error: 'This Discord account is already linked to another Wurm Tools account.' };
   }
 
   // Check if user already has a Discord account linked
@@ -460,7 +460,7 @@ export async function verifyAndLinkDiscord(
     [link.user_id]
   );
   if (userWithDiscord.length > 0) {
-    return { success: false, error: 'This BlackForge account already has a Discord account linked.' };
+    return { success: false, error: 'This Wurm Tools account already has a Discord account linked.' };
   }
 
   // Link the account

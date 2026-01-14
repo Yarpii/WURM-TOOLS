@@ -6,13 +6,13 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-bg-primary py-12">
       <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-text-primary mb-8">About Blackforge Tools</h1>
+        <h1 className="text-3xl font-bold text-text-primary mb-8">About Wurm Tools</h1>
 
         {/* Mission */}
         <section className="bg-bg-secondary rounded-lg border border-border p-6 mb-6">
           <h2 className="text-xl font-semibold text-text-primary mb-4">Our Mission</h2>
           <p className="text-text-secondary mb-4">
-            Blackforge Tools is a community-driven project created to enhance the Wurm Online
+            Wurm Tools is a community-driven project created to enhance the Wurm Online
             experience. We provide free tools and resources to help players craft, trade,
             organize, and connect with each other.
           </p>
@@ -70,7 +70,7 @@ export default function AboutPage() {
         <section className="bg-bg-secondary rounded-lg border border-border p-6 mb-6">
           <h2 className="text-xl font-semibold text-text-primary mb-4">Open Source</h2>
           <p className="text-text-secondary mb-4">
-            Blackforge Tools is open source and built with the community in mind. We welcome
+            Wurm Tools is open source and built with the community in mind. We welcome
             contributions, suggestions, and feedback from fellow Wurm players.
           </p>
           <a

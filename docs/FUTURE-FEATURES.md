@@ -1,6 +1,6 @@
-# Blackforge - Toekomstige Features & Verbeteringen
+# Wurm Tools - Toekomstige Features & Verbeteringen
 
-> Dit document bevat alle geplande features en ideeën voor Blackforge.
+> Dit document bevat alle geplande features en ideeën voor Wurm Tools.
 > Gegenereerd op: 30 december 2025
 
 ---
@@ -167,7 +167,7 @@ Maak de app engaging met achievements en rewards:
 ### 7. Discord Integraties
 **Prioriteit:** Medium | **Geschatte Effort:** Medium
 
-Verbind Blackforge met Discord:
+Verbind Wurm Tools met Discord:
 
 **Features:**
 - [ ] Discord bot voor price checks (`!price iron ore`)
@@ -259,7 +259,7 @@ Uitgebreid notificatie systeem:
 
 ### Prioritering Criteria
 1. **Gebruikerswaarde:** Hoeveel waarde levert het voor spelers?
-2. **Uniekheid:** Onderscheidt het Blackforge van alternatieven?
+2. **Uniekheid:** Onderscheidt het Wurm Tools van alternatieven?
 3. **Technische haalbaarheid:** Hoe complex is de implementatie?
 4. **Dependencies:** Zijn er andere features nodig eerst?
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blackforge-v1';
+const CACHE_NAME = 'wurm-tools-v1';
 const STATIC_ASSETS = [
   '/',
   '/crafting',
@@ -80,7 +80,7 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Blackforge', {
+    self.registration.showNotification(data.title || 'Wurm Tools', {
       body: data.body || '',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
