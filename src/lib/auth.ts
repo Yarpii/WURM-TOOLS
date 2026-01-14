@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { query, withTransaction } from "./db/core";
+import { initializeUserRoles, getUserRoles, getUserPermissions, hasPermission, type UserRole } from "./roles";
 
 // ========== PASSWORD UTILITIES ==========
 
@@ -22,7 +23,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  role: "user" | "admin";
+  role: "user" | "admin"; // Legacy role - kept for backwards compatibility
   created_at: string;
   // Profile fields
   display_name?: string;
@@ -40,6 +41,9 @@ export interface User {
   ban_reason?: string;
   banned_at?: string;
   banned_by?: number;
+  // New role system
+  roles?: UserRole[];
+  permissions?: string[];
 }
 
 export interface Session {
@@ -147,6 +151,22 @@ export async function createUser(
     const user = await getUserByUsername(username.toLowerCase());
     if (!user) {
       return { success: false, error: "Failed to create user" };
+    }
+
+    // Initialize user roles (assigns default 'member' role)
+    try {
+      await initializeUserRoles(user.id);
+      // If this is the first user (admin), also assign admin role
+      if (isFirstUser) {
+        const { assignRole, getRoleByName } = await import("./roles");
+        const adminRole = await getRoleByName("admin");
+        if (adminRole) {
+          await assignRole(user.id, adminRole.id, null, "First user - auto-admin");
+        }
+      }
+    } catch (roleError) {
+      // Log but don't fail - roles table might not exist yet during migration
+      console.warn("Could not initialize user roles:", roleError);
     }
 
     return { success: true, user: dbRowToUser(user as unknown as UserDbRow) };
@@ -893,3 +913,72 @@ export async function getSessionAsync(): Promise<AsyncSessionResult | null> {
     return null;
   }
 }
+
+// ========== USER WITH ROLES HELPERS ==========
+
+/**
+ * Get user by ID with their roles and permissions loaded
+ */
+export async function getUserWithRoles(userId: number): Promise<User | null> {
+  const user = await getUserById(userId);
+  if (!user) return null;
+
+  try {
+    const roles = await getUserRoles(userId);
+    const permissions = await getUserPermissions(userId);
+    return { ...user, roles, permissions };
+  } catch {
+    // Roles table might not exist yet
+    return user;
+  }
+}
+
+/**
+ * Check if a user has a specific permission
+ * Wrapper around roles.hasPermission for convenience
+ */
+export async function userHasPermission(userId: number, permissionName: string): Promise<boolean> {
+  try {
+    return await hasPermission(userId, permissionName);
+  } catch {
+    // Fall back to legacy admin check
+    const user = await getUserById(userId);
+    return user?.role === "admin";
+  }
+}
+
+/**
+ * Require a specific permission (returns user if has permission, null otherwise)
+ */
+export async function requirePermission(sessionId: string | undefined, permissionName: string): Promise<User | null> {
+  const user = await requireAuth(sessionId);
+  if (!user) return null;
+
+  const hasPerm = await userHasPermission(user.id, permissionName);
+  if (!hasPerm) return null;
+
+  return user;
+}
+
+/**
+ * Get session with roles and permissions loaded
+ */
+export async function getSessionWithRoles(sessionId: string): Promise<{ session: Session; user: User } | null> {
+  const result = await getSession(sessionId);
+  if (!result) return null;
+
+  try {
+    const roles = await getUserRoles(result.user.id);
+    const permissions = await getUserPermissions(result.user.id);
+    return {
+      session: result.session,
+      user: { ...result.user, roles, permissions },
+    };
+  } catch {
+    // Roles table might not exist yet
+    return result;
+  }
+}
+
+// Re-export role functions for convenience
+export { getUserRoles, getUserPermissions, hasPermission } from "./roles";

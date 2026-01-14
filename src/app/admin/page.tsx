@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import type { Item, RecipeSubmission, RecipeIngredientInput } from "@/lib/types";
 import AdminGuard from "@/components/AdminGuard";
 
@@ -507,7 +508,7 @@ function AdminContent() {
       )}
 
       {/* Tab Switcher */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-6">
         <button
           className={`px-5 py-2.5 rounded-lg border-2 transition-all ${
             activeTab === "items"
@@ -538,6 +539,12 @@ function AdminContent() {
         >
           Members ({userStats.total})
         </button>
+        <Link
+          href="/admin/roles"
+          className="px-5 py-2.5 rounded-lg border-2 transition-all border-transparent bg-bg-tertiary border border-border text-text-secondary hover:text-white hover:border-accent"
+        >
+          Roles & Permissions
+        </Link>
         <button
           className={`px-5 py-2.5 rounded-lg border-2 transition-all ${
             activeTab === "data"

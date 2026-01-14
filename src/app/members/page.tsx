@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { RoleBadge } from "@/components/RoleBadge";
+
+interface UserRole {
+  role_name: string;
+  role_display_name: string;
+  role_color: string;
+  role_icon?: string;
+  role_priority: number;
+}
 
 interface PublicMember {
   id: number;
@@ -11,6 +20,7 @@ interface PublicMember {
   wurm_server?: string;
   location?: string;
   created_at: string;
+  primary_role?: UserRole;
 }
 
 export default function MembersPage() {
@@ -148,9 +158,21 @@ export default function MembersPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-text-primary group-hover:text-accent transition-colors truncate">
-                    {member.display_name || member.username}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-text-primary group-hover:text-accent transition-colors truncate">
+                      {member.display_name || member.username}
+                    </h3>
+                    {member.primary_role && member.primary_role.role_name !== "member" && (
+                      <RoleBadge
+                        name={member.primary_role.role_name}
+                        displayName={member.primary_role.role_display_name}
+                        color={member.primary_role.role_color}
+                        icon={member.primary_role.role_icon}
+                        size="sm"
+                        showIcon={false}
+                      />
+                    )}
+                  </div>
                   {member.display_name && (
                     <p className="text-sm text-text-muted truncate">@{member.username}</p>
                   )}
