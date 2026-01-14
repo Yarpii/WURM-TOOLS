@@ -403,6 +403,19 @@ export async function logout(sessionId: string): Promise<boolean> {
   return result.rowCount > 0;
 }
 
+// Create a new session for a user (used for 2FA login completion)
+export async function createSession(userId: number): Promise<string> {
+  const sessionId = generateSessionId();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  await query(
+    "INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
+    [sessionId, userId, expiresAt]
+  );
+
+  return sessionId;
+}
+
 export async function getSession(sessionId: string): Promise<{ session: Session; user: User } | null> {
   // Clean up expired sessions (non-blocking - don't fail session check if cleanup fails)
   try {

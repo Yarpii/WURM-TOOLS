@@ -66,6 +66,18 @@ export default function SettingsPage() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Email & 2FA state
+  const [emailStatus, setEmailStatus] = useState<{
+    email: string | null;
+    emailVerified: boolean;
+    twoFactorEnabled: boolean;
+    emailConfigured: boolean;
+  } | null>(null);
+  const [emailForm, setEmailForm] = useState({ email: "", code: "" });
+  const [emailStep, setEmailStep] = useState<"input" | "verify">("input");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -94,6 +106,20 @@ export default function SettingsPage() {
           show_in_members_list: data.profile.show_in_members_list,
           show_location: data.profile.show_location,
         });
+
+        // Fetch email status
+        try {
+          const emailRes = await fetch("/api/email");
+          const emailData = await emailRes.json();
+          if (emailRes.ok) {
+            setEmailStatus(emailData);
+            if (emailData.email) {
+              setEmailForm(prev => ({ ...prev, email: emailData.email }));
+            }
+          }
+        } catch (emailErr) {
+          console.error("Failed to fetch email status:", emailErr);
+        }
       } catch (err) {
         setError("Failed to load profile: " + String(err));
       } finally {
@@ -265,6 +291,121 @@ export default function SettingsPage() {
       refresh();
     } catch (err) {
       setError("Failed to save settings: " + String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Email verification handlers
+  const handleSendEmailCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!emailForm.email) {
+      setError("Email address is required");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailForm.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setEmailSending(true);
+
+    try {
+      const res = await fetch("/api/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send_verification",
+          email: emailForm.email,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to send verification code");
+        return;
+      }
+
+      setSuccess("Verification code sent to your email!");
+      setEmailStep("verify");
+    } catch (err) {
+      setError("Failed to send verification code: " + String(err));
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!emailForm.code || emailForm.code.length !== 6) {
+      setError("Please enter the 6-digit verification code");
+      return;
+    }
+
+    setEmailVerifying(true);
+
+    try {
+      const res = await fetch("/api/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify",
+          code: emailForm.code,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Invalid verification code");
+        return;
+      }
+
+      setSuccess("Email verified successfully!");
+      setEmailStep("input");
+      setEmailForm({ email: data.email, code: "" });
+      setEmailStatus(prev => prev ? { ...prev, email: data.email, emailVerified: true } : null);
+    } catch (err) {
+      setError("Failed to verify email: " + String(err));
+    } finally {
+      setEmailVerifying(false);
+    }
+  };
+
+  const handleToggle2FA = async (enable: boolean) => {
+    setError("");
+    setSuccess("");
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: enable ? "enable_2fa" : "disable_2fa",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to update 2FA settings");
+        return;
+      }
+
+      setSuccess(enable ? "Two-factor authentication enabled!" : "Two-factor authentication disabled");
+      setEmailStatus(prev => prev ? { ...prev, twoFactorEnabled: enable } : null);
+    } catch (err) {
+      setError("Failed to update 2FA: " + String(err));
     } finally {
       setSaving(false);
     }
@@ -826,6 +967,150 @@ export default function SettingsPage() {
       {/* Security Tab */}
       {activeTab === "security" && (
         <div className="space-y-6">
+          {/* Email & 2FA Section */}
+          <div className="bg-bg-secondary rounded-xl border border-border p-6">
+            <h2 className="text-xl font-semibold text-text-primary mb-2">
+              Email & Two-Factor Authentication
+            </h2>
+            <p className="text-text-muted mb-6">
+              Add your email address to enable 2FA and receive important notifications
+            </p>
+
+            {/* Email Configuration Status */}
+            {emailStatus && !emailStatus.emailConfigured && (
+              <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg mb-4">
+                <p className="text-warning text-sm">
+                  Email service is not configured on this server. Contact the administrator to enable email features.
+                </p>
+              </div>
+            )}
+
+            {/* Email Input/Verification Form */}
+            {emailStep === "input" ? (
+              <form onSubmit={handleSendEmailCode} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-text-secondary mb-2">
+                    Email Address
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={emailForm.email}
+                      onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
+                      placeholder="your@email.com"
+                      className="flex-1 px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
+                      disabled={emailSending}
+                    />
+                    <button
+                      type="submit"
+                      disabled={emailSending || !emailStatus?.emailConfigured}
+                      className={`px-4 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${
+                        emailSending || !emailStatus?.emailConfigured
+                          ? "bg-bg-tertiary cursor-not-allowed text-text-muted"
+                          : "bg-accent hover:bg-accent-hover text-white"
+                      }`}
+                    >
+                      {emailSending ? "Sending..." : emailStatus?.email ? "Update Email" : "Add Email"}
+                    </button>
+                  </div>
+                  {emailStatus?.email && emailStatus.emailVerified && (
+                    <p className="text-xs text-success mt-1 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Email verified
+                    </p>
+                  )}
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyEmail} className="space-y-4">
+                <div className="p-4 bg-info/10 border border-info/30 rounded-lg">
+                  <p className="text-sm text-text-secondary">
+                    We sent a verification code to <strong className="text-text-primary">{emailForm.email}</strong>.
+                    Enter the 6-digit code below.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-text-secondary mb-2">
+                    Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    value={emailForm.code}
+                    onChange={(e) => setEmailForm({ ...emailForm, code: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none text-center text-2xl tracking-widest font-mono"
+                    disabled={emailVerifying}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailStep("input");
+                      setEmailForm(prev => ({ ...prev, code: "" }));
+                    }}
+                    className="flex-1 py-3 rounded-lg font-medium bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={emailVerifying || emailForm.code.length !== 6}
+                    className={`flex-1 py-3 rounded-lg font-medium transition-all ${
+                      emailVerifying || emailForm.code.length !== 6
+                        ? "bg-bg-tertiary cursor-not-allowed text-text-muted"
+                        : "bg-accent hover:bg-accent-hover text-white"
+                    }`}
+                  >
+                    {emailVerifying ? "Verifying..." : "Verify Code"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* 2FA Toggle */}
+            {emailStatus?.email && emailStatus.emailVerified && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-text-primary">Two-Factor Authentication</h3>
+                    <p className="text-sm text-text-muted">
+                      Require a verification code sent to your email when logging in
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleToggle2FA(!emailStatus.twoFactorEnabled)}
+                    disabled={saving}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      emailStatus.twoFactorEnabled ? "bg-accent" : "bg-bg-tertiary"
+                    } ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        emailStatus.twoFactorEnabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+                {emailStatus.twoFactorEnabled && (
+                  <div className="mt-3 p-3 bg-success/10 border border-success/30 rounded-lg">
+                    <p className="text-sm text-success flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      Your account is protected with 2FA
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Change Password */}
           <div className="bg-bg-secondary rounded-xl border border-border p-6">
             <h2 className="text-xl font-semibold text-text-primary mb-2">
