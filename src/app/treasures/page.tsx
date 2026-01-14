@@ -223,6 +223,7 @@ export default function TreasuresPage() {
     const xParam = searchParams.get("x");
     const yParam = searchParams.get("y");
     const serverParam = searchParams.get("server");
+    const screenshotParam = searchParams.get("screenshot");
 
     if (xParam && yParam) {
       // Wait for user to be loaded
@@ -249,15 +250,24 @@ export default function TreasuresPage() {
         status: "searching", // Already found the location
         treasure_type: "treasure_chest",
         parent_hunt_id: "",
-        screenshot_url: "",
+        screenshot_url: screenshotParam || "",
       });
-      setUploadPreview(null);
-      setScreenshotMode("upload");
+
+      // If screenshot was captured from map, show the preview
+      if (screenshotParam) {
+        setUploadPreview(screenshotParam);
+        setScreenshotMode("upload");
+      } else {
+        setUploadPreview(null);
+        setScreenshotMode("upload");
+      }
+
       setModalMode("create");
       setShowModal(true);
 
       // Show a helpful message
-      setSuccess(`Coordinates ${xParam}, ${yParam} loaded from map. Fill in the details to create your treasure hunt.`);
+      const screenshotMsg = screenshotParam ? " Screenshot captured automatically." : "";
+      setSuccess(`Coordinates ${xParam}, ${yParam} loaded from map.${screenshotMsg} Fill in the details to create your treasure hunt.`);
 
       // Clean up URL params
       if (typeof window !== "undefined") {

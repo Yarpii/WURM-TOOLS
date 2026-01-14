@@ -9,10 +9,20 @@ interface User {
   role: "user" | "admin";
 }
 
+interface LoginResult {
+  success: boolean;
+  error?: string;
+  user?: User;
+  requires2FA?: boolean;
+  tempToken?: string;
+  expiresIn?: number;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  verify2FA: (tempToken: string, code: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -44,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh();
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -54,12 +64,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await res.json();
 
+      // Check if 2FA is required
+      if (data.requires2FA) {
+        return {
+          success: false,
+          requires2FA: true,
+          tempToken: data.tempToken,
+          expiresIn: data.expiresIn,
+        };
+      }
+
       if (res.ok && data.user) {
         setUser(data.user);
         return { success: true, user: data.user };
       }
 
       return { success: false, error: data.error || "Login failed" };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  };
+
+  const verify2FA = async (tempToken: string, code: string): Promise<LoginResult> => {
+    try {
+      const res = await fetch("/api/auth/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tempToken, code }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.user) {
+        setUser(data.user);
+        return { success: true, user: data.user };
+      }
+
+      return { success: false, error: data.error || "Verification failed" };
     } catch (err) {
       return { success: false, error: String(err) };
     }
@@ -74,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, login, verify2FA, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );
