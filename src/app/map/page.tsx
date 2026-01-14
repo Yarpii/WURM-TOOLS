@@ -587,15 +587,173 @@ export default function MapPage() {
     setContextMenu({ ...contextMenu, visible: false });
   };
 
+  // Capture a minimap screenshot of a specific location
+  const captureMinimapScreenshot = async (
+    mapX: number,
+    mapY: number,
+    server: string
+  ): Promise<string | null> => {
+    try {
+      // Get the map size for this server
+      const serverKey = server.toLowerCase();
+      const mapSize = SERVER_SIZES[serverKey] || 4096;
+
+      // Create an offscreen canvas for the minimap (300x300)
+      const screenshotSize = 300;
+      const canvas = document.createElement("canvas");
+      canvas.width = screenshotSize;
+      canvas.height = screenshotSize;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+
+      // Calculate zoom to show roughly 400 tiles around the location
+      const viewRadius = 200; // tiles to show in each direction
+      const screenshotZoom = screenshotSize / (viewRadius * 2);
+
+      // Load the map image
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load map"));
+
+        // Use the currently loaded map image URL
+        if (selectedDate && selectedMapType) {
+          // Custom map
+          const mapInfo = customMaps?.maps.find(
+            m => m.server === selectedServer && m.date === selectedDate
+          );
+          const mapTypeInfo = mapInfo?.mapTypes.find(t => t.type === selectedMapType);
+          if (mapTypeInfo) {
+            img.src = `/api/map/custom/image?server=${selectedServer}&date=${selectedDate}&filename=${mapTypeInfo.filename}`;
+          } else {
+            img.src = `/api/map/image?server=${serverKey}`;
+          }
+        } else {
+          img.src = `/api/map/image?server=${serverKey}`;
+        }
+      });
+
+      // Fill background
+      ctx.fillStyle = "#1e3a5f";
+      ctx.fillRect(0, 0, screenshotSize, screenshotSize);
+
+      // Calculate the source area from the map to draw
+      // We want to center on (mapX, mapY) and show viewRadius tiles around it
+      const sourceX = mapX - viewRadius;
+      const sourceY = mapY - viewRadius;
+      const sourceWidth = viewRadius * 2;
+      const sourceHeight = viewRadius * 2;
+
+      // Scale factor between original map image and map size
+      const imgScale = img.width / mapSize;
+
+      // Draw the map section
+      ctx.drawImage(
+        img,
+        sourceX * imgScale,
+        sourceY * imgScale,
+        sourceWidth * imgScale,
+        sourceHeight * imgScale,
+        0,
+        0,
+        screenshotSize,
+        screenshotSize
+      );
+
+      // Draw marker at center
+      const centerX = screenshotSize / 2;
+      const centerY = screenshotSize / 2;
+
+      // Marker shadow
+      ctx.beginPath();
+      ctx.arc(centerX + 2, centerY + 2, 12, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fill();
+
+      // Marker circle
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+      ctx.fillStyle = "#ef4444";
+      ctx.fill();
+
+      // Marker border
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Crosshair
+      ctx.beginPath();
+      ctx.moveTo(centerX - 6, centerY);
+      ctx.lineTo(centerX + 6, centerY);
+      ctx.moveTo(centerX, centerY - 6);
+      ctx.lineTo(centerX, centerY + 6);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw coordinates label at bottom
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0, screenshotSize - 24, screenshotSize, 24);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`${server} - ${mapX}, ${mapY}`, screenshotSize / 2, screenshotSize - 8);
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, "image/png", 0.9);
+      });
+
+      if (!blob) return null;
+
+      // Upload the screenshot
+      const formData = new FormData();
+      formData.append("file", blob, `treasure_${mapX}_${mapY}_${Date.now()}.png`);
+      formData.append("category", "screenshots");
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        console.error("Failed to upload screenshot");
+        return null;
+      }
+
+      const uploadData = await uploadRes.json();
+      return uploadData.url || null;
+    } catch (err) {
+      console.error("Failed to capture minimap screenshot:", err);
+      return null;
+    }
+  };
+
   // Open treasures page with coordinates pre-filled
-  const openTreasureWithCoords = () => {
+  const openTreasureWithCoords = async () => {
+    setContextMenu({ ...contextMenu, visible: false });
+
+    // Capture minimap screenshot of the location
+    const screenshotUrl = await captureMinimapScreenshot(
+      contextMenu.mapX,
+      contextMenu.mapY,
+      selectedServer
+    );
+
     const params = new URLSearchParams({
       x: contextMenu.mapX.toString(),
       y: contextMenu.mapY.toString(),
       server: selectedServer,
     });
+
+    // Add screenshot URL if captured successfully
+    if (screenshotUrl) {
+      params.append("screenshot", screenshotUrl);
+    }
+
     window.open(`/treasures?${params}`, "_blank");
-    setContextMenu({ ...contextMenu, visible: false });
   };
 
   // Handle quick pin submit
