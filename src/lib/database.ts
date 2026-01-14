@@ -112,6 +112,7 @@ import {
   generateSkillPath,
   getItemDifficulty,
 } from "./wurm-formulas";
+import type { User } from "./auth";
 
 // ========== PAGINATION TYPES ==========
 
@@ -4589,8 +4590,11 @@ export async function createEmailVerificationCode(
 
   if (result.rowCount === 0) return null;
 
+  const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
+  const id = idResult.rows[0]?.id || 0;
+
   return {
-    id: result.insertId!,
+    id,
     user_id: userId,
     email,
     code,
@@ -4642,6 +4646,15 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   const result = await query<User>(
     "SELECT * FROM users WHERE email = ?",
     [email]
+  );
+  return result.rows[0] || null;
+}
+
+// Get user by ID
+export async function getUserById(userId: number): Promise<User | null> {
+  const result = await query<User>(
+    "SELECT * FROM users WHERE id = ?",
+    [userId]
   );
   return result.rows[0] || null;
 }
@@ -4698,8 +4711,11 @@ export async function createPending2FASession(
 
   if (result.rowCount === 0) return null;
 
+  const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
+  const id = idResult.rows[0]?.id || 0;
+
   return {
-    id: result.insertId!,
+    id,
     user_id: userId,
     session_token: sessionToken,
     code,
