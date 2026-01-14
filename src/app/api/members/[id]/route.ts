@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublicProfile } from "@/lib/auth";
 import { getUserCharacters } from "@/lib/database";
+import { getUserRoles } from "@/lib/roles";
 import { sanitizeError } from "@/lib/security";
 
 // GET /api/members/[id] - Get public profile of a member
@@ -22,10 +23,19 @@ export async function GET(
       return NextResponse.json({ error: "User not found or not visible" }, { status: 404 });
     }
 
-    // Fetch user's characters
-    const characters = await getUserCharacters(userId);
+    // Fetch user's characters and roles
+    const [characters, roles] = await Promise.all([
+      getUserCharacters(userId),
+      getUserRoles(userId).catch(() => []), // Gracefully handle if roles table doesn't exist
+    ]);
 
-    return NextResponse.json({ profile, characters });
+    // Filter out the basic 'member' role from public display
+    const displayRoles = roles.filter((r) => r.role_name !== "member");
+
+    return NextResponse.json({
+      profile: { ...profile, roles: displayRoles },
+      characters,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: sanitizeError(error, "Fetch profile") },

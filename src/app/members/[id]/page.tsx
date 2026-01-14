@@ -2,6 +2,15 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { RoleBadges } from "@/components/RoleBadge";
+
+interface UserRole {
+  role_name: string;
+  role_display_name: string;
+  role_color: string;
+  role_icon?: string;
+  role_priority: number;
+}
 
 interface PublicProfile {
   id: number;
@@ -14,6 +23,7 @@ interface PublicProfile {
   email?: string;
   created_at: string;
   show_in_members_list: boolean;
+  roles?: UserRole[];
 }
 
 interface Character {
@@ -142,6 +152,12 @@ export default function MemberProfilePage({
               </h1>
               {profile.display_name && (
                 <p className="text-text-muted">@{profile.username}</p>
+              )}
+              {/* Role Badges */}
+              {profile.roles && profile.roles.length > 0 && (
+                <div className="mt-2">
+                  <RoleBadges roles={profile.roles} size="md" maxDisplay={5} />
+                </div>
               )}
               <p className="text-sm text-text-muted mt-2">
                 Member since {formatDate(profile.created_at)}
