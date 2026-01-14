@@ -143,14 +143,14 @@ export const commands = [
 
   // Help command
   new SlashCommandBuilder()
-    .setName('blackforge')
-    .setDescription('BlackForge bot information and help')
+    .setName('wurmtools')
+    .setDescription('Wurm Tools bot information and help')
     .toJSON(),
 
   // Link account command
   new SlashCommandBuilder()
     .setName('link')
-    .setDescription('Link your Discord account to BlackForge')
+    .setDescription('Link your Discord account to Wurm Tools')
     .addStringOption(opt =>
       opt
         .setName('code')
@@ -162,13 +162,13 @@ export const commands = [
   // Unlink account command
   new SlashCommandBuilder()
     .setName('unlink')
-    .setDescription('Unlink your Discord account from BlackForge')
+    .setDescription('Unlink your Discord account from Wurm Tools')
     .toJSON(),
 
   // Account status command
   new SlashCommandBuilder()
     .setName('status')
-    .setDescription('Check your linked BlackForge account status')
+    .setDescription('Check your linked Wurm Tools account status')
     .toJSON(),
 ];
 
@@ -228,7 +228,7 @@ export const commandHandlers = {
             { name: 'Timer ID', value: `#${timerId}`, inline: true }
           )
           .setColor(BOT_CONFIG.colors.timer[timerType] || BOT_CONFIG.colors.primary)
-          .setFooter({ text: 'BlackForge Timer' })
+          .setFooter({ text: 'Wurm Tools Timer' })
           .setTimestamp();
 
         return interaction.reply({ embeds: [embed] });
@@ -324,7 +324,7 @@ export const commandHandlers = {
         { name: 'Data Points', value: priceInfo.total_orders.toString(), inline: true },
         { name: 'Latest', value: priceInfo.latest_price ? formatPrice(priceInfo.latest_price) : 'N/A', inline: true }
       )
-      .setFooter({ text: 'BlackForge Price Guide' })
+      .setFooter({ text: 'Wurm Tools Price Guide' })
       .setTimestamp();
 
     return interaction.editReply({ embeds: [embed] });
@@ -358,7 +358,7 @@ export const commandHandlers = {
     const embed = new EmbedBuilder()
       .setTitle(`🔨 ${item.name}`)
       .setColor(BOT_CONFIG.colors.info)
-      .setFooter({ text: 'BlackForge Crafting Guide' })
+      .setFooter({ text: 'Wurm Tools Crafting Guide' })
       .setTimestamp();
 
     if (item.description) {
@@ -472,7 +472,7 @@ export const commandHandlers = {
     const embed = new EmbedBuilder()
       .setTitle('📅 Upcoming Events')
       .setColor(BOT_CONFIG.colors.primary)
-      .setFooter({ text: 'BlackForge Events' })
+      .setFooter({ text: 'Wurm Tools Events' })
       .setTimestamp();
 
     for (const event of events) {
@@ -515,7 +515,7 @@ export const commandHandlers = {
     const embed = new EmbedBuilder()
       .setTitle('🏆 XP Leaderboard')
       .setColor(BOT_CONFIG.colors.warning)
-      .setFooter({ text: 'BlackForge Leaderboard' })
+      .setFooter({ text: 'Wurm Tools Leaderboard' })
       .setTimestamp();
 
     const leaderboardText = entries
@@ -536,9 +536,9 @@ export const commandHandlers = {
   },
 
   // Help command handler
-  async blackforge(interaction: ChatInputCommandInteraction) {
+  async wurmtools(interaction: ChatInputCommandInteraction) {
     const embed = new EmbedBuilder()
-      .setTitle('⚒️ BlackForge Bot')
+      .setTitle('⚒️ Wurm Tools Bot')
       .setDescription('Your WURM Online companion bot')
       .setColor(BOT_CONFIG.colors.primary)
       .addFields(
@@ -589,7 +589,7 @@ export const commandHandlers = {
           inline: false,
         }
       )
-      .setFooter({ text: 'BlackForge - WURM Online Companion' })
+      .setFooter({ text: 'Wurm Tools - WURM Online Companion' })
       .setTimestamp();
 
     return interaction.reply({ embeds: [embed] });
@@ -629,7 +629,7 @@ export const commandHandlers = {
           '• Access personalized features',
         ].join('\n') }
       )
-      .setFooter({ text: 'BlackForge' })
+      .setFooter({ text: 'Wurm Tools' })
       .setTimestamp();
 
     return interaction.reply({ embeds: [embed], ephemeral: true });
@@ -641,7 +641,7 @@ export const commandHandlers = {
 
     if (!user) {
       return interaction.reply({
-        content: 'Your Discord account is not linked to any BlackForge account.',
+        content: 'Your Discord account is not linked to any Wurm Tools account.',
         ephemeral: true,
       });
     }
@@ -661,13 +661,13 @@ export const commandHandlers = {
     if (!user) {
       const embed = new EmbedBuilder()
         .setTitle('Account Status')
-        .setDescription('Your Discord account is not linked to BlackForge.')
+        .setDescription('Your Discord account is not linked to Wurm Tools.')
         .setColor(BOT_CONFIG.colors.warning)
         .addFields({
           name: 'How to link',
           value: `1. Go to [${BOT_CONFIG.appUrl}/dashboard](${BOT_CONFIG.appUrl}/dashboard)\n2. Click "Link Discord"\n3. Use \`/link <code>\` with the verification code`,
         })
-        .setFooter({ text: 'BlackForge' })
+        .setFooter({ text: 'Wurm Tools' })
         .setTimestamp();
 
       return interaction.reply({ embeds: [embed], ephemeral: true });
@@ -685,7 +685,7 @@ export const commandHandlers = {
         { name: 'Total Orders', value: stats.totalOrders.toString(), inline: true },
         { name: 'Events Attending', value: stats.eventsAttending.toString(), inline: true }
       )
-      .setFooter({ text: 'BlackForge' })
+      .setFooter({ text: 'Wurm Tools' })
       .setTimestamp();
 
     return interaction.reply({ embeds: [embed], ephemeral: true });

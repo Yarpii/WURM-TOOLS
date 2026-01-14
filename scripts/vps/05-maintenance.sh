@@ -24,7 +24,7 @@ NC='\033[0m'
 
 # Configuration
 APP_DIR="/var/www/wurm-tools"
-DOMAIN="${DOMAIN:-blackforge.tools}"
+DOMAIN="${DOMAIN:-wurm.tools}"
 
 #===============================================================================
 # Helper Functions

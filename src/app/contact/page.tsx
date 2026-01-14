@@ -59,7 +59,7 @@ export default function ContactPage() {
 
                 <div className="text-center md:text-left flex-1">
                   <h2 className="text-2xl font-bold text-text-primary mb-1">Yarpiii</h2>
-                  <p className="text-text-muted mb-3">Creator of Blackforge Tools</p>
+                  <p className="text-text-muted mb-3">Creator of Wurm Tools</p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-2">
                     <span className="px-3 py-1 bg-accent/10 text-accent text-sm rounded-full">
                       Celebration Server
@@ -240,7 +240,7 @@ export default function ContactPage() {
                 <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Can I contribute to Blackforge Tools?
+                Can I contribute to Wurm Tools?
               </h4>
               <p className="text-sm text-text-secondary pl-7">
                 Absolutely! Check out the GitHub repository to submit pull requests, report bugs, or suggest features.
@@ -266,7 +266,7 @@ export default function ContactPage() {
 
               <div className="flex-1 text-center md:text-left">
                 <h3 className="text-xl font-semibold text-text-primary mb-2">
-                  Support Blackforge Tools
+                  Support Wurm Tools
                 </h3>
                 <p className="text-text-secondary mb-4">
                   Want to show your appreciation? You can donate <strong className="text-yellow-500">in-game currency</strong> (silver, copper, iron) to help keep this project going. Just send it to <strong className="text-text-primary">Yarpiii</strong> on Celebration!
@@ -296,7 +296,7 @@ export default function ContactPage() {
 
             <div className="mt-6 pt-6 border-t border-border/50">
               <p className="text-sm text-text-muted text-center">
-                Blackforge Tools is and always will be <strong className="text-text-secondary">100% free</strong>. Donations are completely optional and purely a way to say thanks!
+                Wurm Tools is and always will be <strong className="text-text-secondary">100% free</strong>. Donations are completely optional and purely a way to say thanks!
               </p>
             </div>
           </div>
@@ -311,7 +311,7 @@ export default function ContactPage() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            About Blackforge
+            About Wurm Tools
           </Link>
           <Link
             href="/"

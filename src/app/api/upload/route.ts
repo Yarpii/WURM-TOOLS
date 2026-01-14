@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { getSessionAsync } from "@/lib/auth";
+import { getStaticUrl } from "@/lib/static-url";
 
 // Allowed image types
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -60,8 +61,9 @@ export async function POST(request: NextRequest) {
 
     await writeFile(filePath, buffer);
 
-    // Return the public URL
-    const publicUrl = `/uploads/${category}/${filename}`;
+    // Return the public URL (with CDN prefix if configured)
+    const relativePath = `/uploads/${category}/${filename}`;
+    const publicUrl = getStaticUrl(relativePath);
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'blackforge-web',
+      name: 'wurm-tools-web',
       script: 'npm',
       args: 'start',
       cwd: './',
@@ -15,7 +15,7 @@ module.exports = {
       max_memory_restart: '1G',
     },
     {
-      name: 'blackforge-bot',
+      name: 'wurm-tools-bot',
       script: 'dist/index.js',
       cwd: './bot',
       env: {

@@ -1,15 +1,15 @@
-# BlackForge Tools
+# Wurm Tools
 
 <div align="center">
 
-![BlackForge Tools](https://img.shields.io/badge/WURM-Online-orange?style=for-the-badge)
+![Wurm Tools](https://img.shields.io/badge/WURM-Online-orange?style=for-the-badge)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=for-the-badge&logo=typescript)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 
 **The Ultimate Companion Tool for WURM Online**
 
-[Live Demo](https://blackforge.tools) · [Report Bug](https://github.com/Yarpii/WURM-TOOLS/issues) · [Request Feature](https://github.com/Yarpii/WURM-TOOLS/issues)
+[Live Demo](https://wurm.tools) · [Report Bug](https://github.com/Yarpii/WURM-TOOLS/issues) · [Request Feature](https://github.com/Yarpii/WURM-TOOLS/issues)
 
 </div>
 
@@ -17,7 +17,7 @@
 
 ## About
 
-BlackForge Tools is a comprehensive companion web application for [WURM Online](https://www.wurmonline.com/) players. It provides crafting calculators, market trading, alliance management, project planning, and much more - all in one place.
+Wurm Tools is a comprehensive companion web application for [WURM Online](https://www.wurmonline.com/) players. It provides crafting calculators, market trading, alliance management, project planning, and much more - all in one place.
 
 Built with modern technologies and a focus on user experience, it helps players optimize their gameplay and connect with the community.
 
@@ -406,6 +406,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with love for the WURM Online Community**
 
-[Website](https://blackforge.tools) · [GitHub](https://github.com/Yarpii/WURM-TOOLS)
+[Website](https://wurm.tools) · [GitHub](https://github.com/Yarpii/WURM-TOOLS)
 
 </div>

@@ -23,7 +23,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-DOMAIN="${DOMAIN:-blackforge.tools}"
+DOMAIN="${DOMAIN:-wurm.tools}"
 DB_NAME="${DB_NAME:-wurmtools}"
 DB_USER="${DB_USER:-wurmtools}"
 APP_DIR="/var/www/wurm-tools"

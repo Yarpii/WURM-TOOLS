@@ -21,7 +21,7 @@ sudo bash 02-security-setup.sh
 sudo bash 03-deploy-app.sh
 
 # 5. Configure DNS and test
-# Point blackforge.tools to your VPS IP
+# Point wurm.tools to your VPS IP
 ```
 
 ## Scripts Overview
@@ -51,7 +51,7 @@ sudo bash 03-deploy-app.sh
 
 **Usage:**
 ```bash
-# Default (uses blackforge.tools)
+# Default (uses wurm.tools)
 sudo bash 01-initial-setup.sh
 
 # Custom domain
@@ -179,7 +179,7 @@ sudo bash 05-maintenance.sh clean
 After running all scripts:
 
 - [ ] Configure DNS: Point domain A record to VPS IP
-- [ ] Verify SSL: Check https://blackforge.tools works
+- [ ] Verify SSL: Check https://wurm.tools works
 - [ ] Set up SSH keys: Add your public key to `~/.ssh/authorized_keys`
 - [ ] Disable password auth: Uncomment in `/etc/ssh/sshd_config.d/99-hardening.conf`
 - [ ] Install backup cron: `sudo bash 04-backup.sh --install-cron`
@@ -236,7 +236,7 @@ systemctl status caddy
 journalctl -u caddy -f
 
 # Verify DNS
-dig blackforge.tools +short
+dig wurm.tools +short
 ```
 
 ### Database connection issues

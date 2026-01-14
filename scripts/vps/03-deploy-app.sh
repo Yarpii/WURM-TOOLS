@@ -27,7 +27,7 @@ NC='\033[0m' # No Color
 APP_DIR="/var/www/wurm-tools"
 REPO_URL="${REPO_URL:-https://github.com/Yarpii/WURM-TOOLS.git}"
 BRANCH="${BRANCH:-main}"
-DOMAIN="${DOMAIN:-blackforge.tools}"
+DOMAIN="${DOMAIN:-wurm.tools}"
 
 #===============================================================================
 # Helper Functions

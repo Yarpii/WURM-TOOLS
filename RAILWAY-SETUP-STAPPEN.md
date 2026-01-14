@@ -66,7 +66,7 @@ Na deze sessie werkt alles:
 - [x] Railway setup compleet
 - [x] Database connectie werkt (MySQL)
 - [x] Auto-deploy vanuit GitHub
-- [x] Custom domain (blackforge.tools)
+- [x] Custom domain (wurm.tools)
 
 ### **Bugs Fixed:**
 - [x] Build errors opgelost (verifySession, bot exclusion, etc.)

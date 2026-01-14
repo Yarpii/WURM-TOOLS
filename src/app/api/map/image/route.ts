@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(mapUrl, {
       headers: {
-        "User-Agent": "Blackforge-WURM-Tools/1.0",
+        "User-Agent": "Wurm-Tools/1.0",
       },
     });
 

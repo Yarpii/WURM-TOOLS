@@ -1,7 +1,7 @@
 {
-  "name": "blackforge-discord-bot",
+  "name": "wurm-tools-discord-bot",
   "version": "1.0.0",
-  "description": "Discord bot for BlackForge WURM Tools",
+  "description": "Discord bot for Wurm Tools",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
