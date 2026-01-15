@@ -137,7 +137,7 @@ export default function LoginPage() {
 
               <div>
                 <label className="block text-text-secondary text-sm mb-2">
-                  Character Name
+                  Email or Character Name
                 </label>
                 <input
                   type="text"
@@ -146,7 +146,7 @@ export default function LoginPage() {
                   required
                   autoComplete="username"
                   className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
-                  placeholder="Your Wurm character name"
+                  placeholder="your@email.com or character name"
                 />
               </div>
 

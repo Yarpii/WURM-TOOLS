@@ -110,7 +110,8 @@ function dbRowToUser(row: UserDbRow): User {
 
 export async function createUser(
   username: string,
-  password: string
+  password: string,
+  email?: string
 ): Promise<{ success: true; user: User } | { success: false; error: string }> {
   // Validate input
   if (!username || username.length < 3) {
@@ -118,6 +119,12 @@ export async function createUser(
   }
   if (!password || password.length < 8) {
     return { success: false, error: "Password must be at least 8 characters" };
+  }
+
+  // Validate and normalize email
+  const userEmail = email?.toLowerCase().trim();
+  if (!userEmail || !userEmail.includes("@")) {
+    return { success: false, error: "Valid email address is required" };
   }
 
   // Check if username already exists
@@ -130,13 +137,20 @@ export async function createUser(
     return { success: false, error: "This character name is already registered" };
   }
 
+  // Check if email already exists
+  const existingEmail = await query<UserDbRow>(
+    "SELECT id FROM users WHERE email = ?",
+    [userEmail]
+  );
+
+  if (existingEmail.rows.length > 0) {
+    return { success: false, error: "This email address is already registered" };
+  }
+
   // Check if this is the first user - make them admin
   const userCount = await query<{ count: number }>("SELECT COUNT(*) as count FROM users");
   const isFirstUser = (userCount.rows[0]?.count || 0) === 0;
   const role = isFirstUser ? "admin" : "user";
-
-  // Generate placeholder email for database compatibility (not used for anything)
-  const placeholderEmail = `${username.toLowerCase()}@wurmtools.local`;
 
   // Create user
   const salt = crypto.randomBytes(16).toString("hex");
@@ -145,7 +159,7 @@ export async function createUser(
   try {
     await query(
       "INSERT INTO users (username, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?)",
-      [username.toLowerCase(), placeholderEmail, hash, salt, role]
+      [username.toLowerCase(), userEmail, hash, salt, role]
     );
 
     const user = await getUserByUsername(username.toLowerCase());

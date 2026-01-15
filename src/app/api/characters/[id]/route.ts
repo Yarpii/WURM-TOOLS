@@ -278,6 +278,23 @@ export async function DELETE(
       );
     }
 
+    // Check if character exists and is not the main character
+    const character = await getCharacterById(characterId);
+    if (!character) {
+      return NextResponse.json(
+        { error: "Character not found" },
+        { status: 404 }
+      );
+    }
+
+    // Prevent deletion of main character
+    if (character.is_primary) {
+      return NextResponse.json(
+        { error: "Cannot delete your main character" },
+        { status: 400 }
+      );
+    }
+
     const isAdmin = result.user.role === "admin";
     const success = await deleteCharacter(characterId, result.user.id, isAdmin);
 

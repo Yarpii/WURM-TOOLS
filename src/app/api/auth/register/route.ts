@@ -1,17 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUser, login } from "@/lib/auth";
+import { createCharacter } from "@/lib/database";
 import { sanitizeError } from "@/lib/security";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const { username, email, password } = body;
 
-    // Create user (email is auto-generated for privacy)
-    const result = await createUser(username, password);
+    // Validate email
+    if (!email || !email.includes("@")) {
+      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    }
+
+    // Create user with real email
+    const result = await createUser(username, password, email);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    // Auto-create main character with the username
+    try {
+      await createCharacter(result.user.id, {
+        name: username,
+        is_primary: true,
+      });
+    } catch (charError) {
+      console.warn("Could not auto-create main character:", charError);
+      // Don't fail registration if character creation fails
     }
 
     // Auto-login after registration
