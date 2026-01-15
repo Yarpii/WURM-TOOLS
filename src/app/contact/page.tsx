@@ -86,52 +86,64 @@ export default function ContactPage() {
           </div>
         </section>
 
-        {/* Contact Methods Grid */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* In-Game Contact */}
-          <section className="group bg-bg-secondary rounded-2xl border border-border p-6 hover:border-accent/50 transition-all duration-300">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* In-Game Contact - Full Width */}
+        <section className="relative mb-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/10 to-transparent rounded-2xl blur-xl" />
+          <div className="relative bg-bg-secondary rounded-2xl border border-border p-8">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center flex-shrink-0 shadow-lg shadow-accent/20">
+                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-text-primary">In-Game Message</h3>
-                <p className="text-sm text-text-muted">Fastest response</p>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-text-primary mb-2">Send Me an In-Game Message</h3>
+                <p className="text-text-secondary mb-4">
+                  The best way to reach me is through Wurm Online. I&apos;ll respond as soon as I&apos;m online!
+                </p>
+
+                <div className="bg-bg-tertiary rounded-xl p-4 mb-4">
+                  <p className="text-sm text-text-muted mb-2">Type this in your chat window:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-4 py-3 bg-bg-primary rounded-lg text-accent font-mono text-lg">
+                      /tell Yarpiii
+                    </code>
+                    <button
+                      onClick={copyCommand}
+                      className="p-3 bg-bg-primary rounded-lg hover:bg-accent/20 transition-colors"
+                      title="Copy command"
+                    >
+                      {copiedCommand ? (
+                        <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-500 text-sm rounded-full">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Fastest response
+                  </span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-bg-tertiary text-text-secondary text-sm rounded-full">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    EU evening hours
+                  </span>
+                </div>
               </div>
             </div>
-
-            <div className="bg-bg-tertiary rounded-xl p-4 mb-4">
-              <p className="text-sm text-text-muted mb-2">Send me a message with:</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 px-3 py-2 bg-bg-primary rounded-lg text-accent font-mono text-sm">
-                  /tell Yarpiii
-                </code>
-                <button
-                  onClick={copyCommand}
-                  className="p-2 bg-bg-primary rounded-lg hover:bg-accent/20 transition-colors"
-                  title="Copy command"
-                >
-                  {copiedCommand ? (
-                    <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <p className="text-sm text-text-secondary">
-              I&apos;ll respond as soon as I&apos;m online! Usually active during EU evening hours.
-            </p>
-          </section>
-
-        </div>
+          </div>
+        </section>
 
         {/* How It Works */}
         <section className="bg-bg-secondary rounded-2xl border border-border p-6 md:p-8 mb-8">
