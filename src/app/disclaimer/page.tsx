@@ -55,8 +55,8 @@ export default function DisclaimerPage() {
             strive for accuracy but cannot guarantee that all information is up-to-date or correct.
           </p>
           <p className="text-text-secondary">
-            If you notice any incorrect information, please report it to us through our GitHub
-            repository or contact us directly.
+            If you notice any incorrect information, please contact us through the{" "}
+            <Link href="/contact" className="text-accent hover:underline">contact page</Link>.
           </p>
         </section>
 
@@ -111,16 +111,14 @@ export default function DisclaimerPage() {
           <h2 className="text-xl font-semibold text-text-primary mb-4">Contact</h2>
           <p className="text-text-secondary">
             If you have any questions about this disclaimer or want to report an issue,
-            please visit our{" "}
-            <a
-              href="https://github.com/Yarpii/WURM-TOOLS"
-              target="_blank"
-              rel="noopener noreferrer"
+            please visit the{" "}
+            <Link
+              href="/contact"
               className="text-accent hover:underline"
             >
-              GitHub repository
-            </a>{" "}
-            or open an issue there.
+              contact page
+            </Link>{" "}
+            or send a message to Yarpiii in-game.
           </p>
         </section>
 
