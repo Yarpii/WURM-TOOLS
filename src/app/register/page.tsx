@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const { refresh, user } = useAuth();
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -36,7 +37,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await res.json();
@@ -68,7 +69,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-text-primary mb-2">Create Account</h1>
-          <p className="text-text-secondary">Use your in-game character name</p>
+          <p className="text-text-secondary">Your character name will be your main character</p>
         </div>
 
         <div className="bg-bg-secondary p-8 rounded-xl border border-border">
@@ -93,7 +94,23 @@ export default function RegisterPage() {
                 className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
                 placeholder="Your Wurm character name"
               />
-              <p className="text-text-muted text-xs mt-1">Use your in-game name (at least 3 characters)</p>
+              <p className="text-text-muted text-xs mt-1">This will be your main character name</p>
+            </div>
+
+            <div>
+              <label className="block text-text-secondary text-sm mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
+                placeholder="your@email.com"
+              />
+              <p className="text-text-muted text-xs mt-1">Used for login and account recovery</p>
             </div>
 
             <div>

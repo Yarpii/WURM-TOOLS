@@ -330,7 +330,7 @@ export default function CharactersPage() {
               onClick={openCreateModal}
               className="px-4 py-2 bg-accent rounded-lg hover:bg-accent-hover flex items-center gap-2"
             >
-              <span>+</span> Add Character
+              <span>+</span> Add Alt Character
             </button>
           )}
         </div>
@@ -350,13 +350,8 @@ export default function CharactersPage() {
         {/* Characters Grid */}
         {characters.length === 0 ? (
           <div className="text-center py-12 bg-bg-secondary rounded-lg">
-            <p className="text-text-secondary mb-4">You haven&apos;t created any characters yet.</p>
-            <button
-              onClick={openCreateModal}
-              className="px-4 py-2 bg-accent rounded hover:bg-accent-hover"
-            >
-              Create Your First Character
-            </button>
+            <p className="text-text-secondary mb-4">Your main character will appear here after registration.</p>
+            <p className="text-text-muted text-sm">You can add up to {MAX_CHARACTERS - 1} alt characters.</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -390,9 +385,13 @@ export default function CharactersPage() {
                           >
                             {character.name}
                           </Link>
-                          {character.is_primary && (
-                            <span className="text-warning text-sm" title="Primary Character">
-                              ★
+                          {character.is_primary ? (
+                            <span className="px-2 py-0.5 bg-warning/20 text-warning text-xs rounded-full" title="Main Character">
+                              Main
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-bg-tertiary text-text-muted text-xs rounded-full" title="Alt Character">
+                              Alt
                             </span>
                           )}
                         </h3>
@@ -419,13 +418,15 @@ export default function CharactersPage() {
                       >
                         ✏️
                       </button>
-                      <button
-                        onClick={() => handleDelete(character.id)}
-                        className="p-2 text-text-secondary hover:text-danger hover:bg-bg-hover rounded"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
+                      {!character.is_primary && (
+                        <button
+                          onClick={() => handleDelete(character.id)}
+                          className="p-2 text-text-secondary hover:text-danger hover:bg-bg-hover rounded"
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -506,7 +507,7 @@ export default function CharactersPage() {
             <div className="bg-bg-secondary rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="p-4 border-b border-border flex items-center justify-between">
                 <h2 className="text-xl font-bold">
-                  {editingCharacter ? "Edit Character" : "Create Character"}
+                  {editingCharacter ? `Edit ${editingCharacter.is_primary ? "Main" : "Alt"} Character` : "Add Alt Character"}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
