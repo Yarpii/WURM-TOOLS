@@ -295,9 +295,8 @@ export default function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold text-text-primary leading-tight">
-                Black<span className="text-accent">forge</span>
+                WURM<span className="text-accent">.tools</span>
               </span>
-              <span className="text-[10px] text-text-muted -mt-0.5 tracking-wide">WURM TOOLS</span>
             </div>
           </Link>
 
