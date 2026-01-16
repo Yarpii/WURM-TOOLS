@@ -18,7 +18,7 @@ import { randomBytes } from "crypto";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, rememberMe } = body;
 
     if (!username || !password) {
       return NextResponse.json(
@@ -27,10 +27,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await login(username, password);
+    // Get IP and user agent for session tracking
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+                      request.headers.get("x-real-ip") ||
+                      undefined;
+    const userAgent = request.headers.get("user-agent") || undefined;
+
+    const result = await login(username, password, {
+      rememberMe: Boolean(rememberMe),
+      ipAddress,
+      userAgent,
+    });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 401 });
+      const response: { error: string; attemptsRemaining?: number } = { error: result.error };
+      if (result.attemptsRemaining !== undefined) {
+        response.attemptsRemaining = result.attemptsRemaining;
+      }
+      return NextResponse.json(response, { status: 401 });
     }
 
     // Check if user has 2FA enabled
@@ -47,12 +61,13 @@ export async function POST(request: NextRequest) {
         // Create temporary session token for 2FA flow
         const tempToken = randomBytes(32).toString("hex");
 
-        // Store pending 2FA session
+        // Store pending 2FA session with rememberMe preference
         await createPending2FASession(
           result.user!.id,
           tempToken,
           code,
-          EMAIL_2FA_CODE_EXPIRY_MINUTES
+          EMAIL_2FA_CODE_EXPIRY_MINUTES,
+          { rememberMe: Boolean(rememberMe), ipAddress, userAgent }
         );
 
         // Send 2FA code via email
@@ -74,17 +89,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Calculate cookie max age based on rememberMe
+    const cookieMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60; // 30 days vs 7 days
+
     // No 2FA or 2FA not configured - proceed with normal login
     const response = NextResponse.json({
       success: true,
       user: result.user,
+      isNewDevice: result.isNewDevice,
     });
 
     response.cookies.set("session", result.sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: cookieMaxAge,
       path: "/",
     });
 

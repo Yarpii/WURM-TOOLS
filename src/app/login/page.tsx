@@ -10,6 +10,7 @@ export default function LoginPage() {
   const { login, verify2FA, user } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +48,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const result = await login(username, password);
+    const result = await login(username, password, rememberMe);
 
     if (result.requires2FA) {
       setRequires2FA(true);
@@ -170,10 +171,12 @@ export default function LoginPage() {
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <input
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-border bg-bg-tertiary text-accent focus:ring-accent focus:ring-offset-0"
                   />
                   <span className="text-sm text-text-muted group-hover:text-text-secondary transition-colors">
-                    Remember me
+                    Remember me for 30 days
                   </span>
                 </label>
                 <Link
