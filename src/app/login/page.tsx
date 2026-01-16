@@ -165,6 +165,25 @@ export default function LoginPage() {
                 />
               </div>
 
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-border bg-bg-tertiary text-accent focus:ring-accent focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-text-muted group-hover:text-text-secondary transition-colors">
+                    Remember me
+                  </span>
+                </label>
+                <Link
+                  href="/forgot"
+                  className="text-sm text-accent hover:text-accent-hover transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}

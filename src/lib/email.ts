@@ -380,3 +380,269 @@ You can manage your alert preferences in your account settings.
     html,
   });
 }
+
+// Send password reset email
+export async function sendPasswordResetEmail(
+  email: string,
+  username: string,
+  resetUrl: string
+): Promise<boolean> {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>${emailStyles}</head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>WURM Tools</h1>
+        </div>
+        <div class="content">
+          <h2>Reset Your Password</h2>
+          <p>Hello <strong>${username}</strong>,</p>
+          <p>We received a request to reset your password. Click the button below to create a new password:</p>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" class="button">Reset Password</a>
+          </p>
+          <p style="font-size: 12px; color: #666;">Or copy this link: ${resetUrl}</p>
+          <p>This link will expire in <strong>1 hour</strong>.</p>
+          <div class="warning">
+            <strong>Security Notice:</strong> If you did not request a password reset, please ignore this email. Your password will remain unchanged.
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated message from WURM Tools. Please do not reply.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+WURM Tools - Reset Your Password
+
+Hello ${username},
+
+We received a request to reset your password. Visit the link below to create a new password:
+
+${resetUrl}
+
+This link will expire in 1 hour.
+
+If you did not request a password reset, please ignore this email.
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Reset your WURM Tools password`,
+    text,
+    html,
+  });
+}
+
+// Send username reminder email
+export async function sendUsernameReminderEmail(
+  email: string,
+  usernames: string[]
+): Promise<boolean> {
+  const usernameList = usernames.map(u => `• ${u}`).join("\n");
+  const usernameListHtml = usernames.map(u => `<li><strong>${u}</strong></li>`).join("");
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>${emailStyles}</head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>WURM Tools</h1>
+        </div>
+        <div class="content">
+          <h2>Your Username Reminder</h2>
+          <p>Hello,</p>
+          <p>You requested a reminder of the username(s) associated with this email address:</p>
+          <ul style="background: #fff; padding: 20px 40px; border-radius: 8px; border: 1px solid #dee2e6; margin: 20px 0;">
+            ${usernameListHtml}
+          </ul>
+          <p>You can use any of these usernames to <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://wurm.tools"}/login">log in to your account</a>.</p>
+          <div class="warning">
+            <strong>Security Notice:</strong> If you did not request this reminder, someone may have entered your email address by mistake. No action is needed.
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated message from WURM Tools. Please do not reply.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+WURM Tools - Your Username Reminder
+
+Hello,
+
+You requested a reminder of the username(s) associated with this email address:
+
+${usernameList}
+
+You can use any of these usernames to log in at ${process.env.NEXT_PUBLIC_APP_URL || "https://wurm.tools"}/login
+
+If you did not request this reminder, someone may have entered your email address by mistake. No action is needed.
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Your WURM Tools username reminder`,
+    text,
+    html,
+  });
+}
+
+// Send new device login notification
+export async function sendNewDeviceLoginEmail(
+  email: string,
+  username: string,
+  deviceInfo: { ip?: string; browser?: string; os?: string; location?: string }
+): Promise<boolean> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://wurm.tools";
+  const time = new Date().toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>${emailStyles}</head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>WURM Tools</h1>
+        </div>
+        <div class="content">
+          <h2>New Login Detected</h2>
+          <p>Hello <strong>${username}</strong>,</p>
+          <p>We noticed a new login to your account:</p>
+          <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; margin: 20px 0;">
+            <table style="width: 100%; font-size: 14px;">
+              <tr><td style="padding: 5px 0; color: #666;">Time:</td><td style="padding: 5px 0;"><strong>${time}</strong></td></tr>
+              ${deviceInfo.browser ? `<tr><td style="padding: 5px 0; color: #666;">Browser:</td><td style="padding: 5px 0;"><strong>${deviceInfo.browser}</strong></td></tr>` : ""}
+              ${deviceInfo.os ? `<tr><td style="padding: 5px 0; color: #666;">Operating System:</td><td style="padding: 5px 0;"><strong>${deviceInfo.os}</strong></td></tr>` : ""}
+              ${deviceInfo.ip ? `<tr><td style="padding: 5px 0; color: #666;">IP Address:</td><td style="padding: 5px 0;"><strong>${deviceInfo.ip}</strong></td></tr>` : ""}
+              ${deviceInfo.location ? `<tr><td style="padding: 5px 0; color: #666;">Location:</td><td style="padding: 5px 0;"><strong>${deviceInfo.location}</strong></td></tr>` : ""}
+            </table>
+          </div>
+          <p><strong>Was this you?</strong></p>
+          <p>If yes, you can safely ignore this email.</p>
+          <div class="warning">
+            <strong>Not you?</strong> If you don't recognize this login, your account may be compromised. Please:
+            <ol style="margin: 10px 0;">
+              <li><a href="${appUrl}/settings">Change your password immediately</a></li>
+              <li>Review your active sessions in settings</li>
+              <li>Enable Two-Factor Authentication if not already enabled</li>
+            </ol>
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated security notification from WURM Tools.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+WURM Tools - New Login Detected
+
+Hello ${username},
+
+We noticed a new login to your account:
+
+Time: ${time}
+${deviceInfo.browser ? `Browser: ${deviceInfo.browser}` : ""}
+${deviceInfo.os ? `Operating System: ${deviceInfo.os}` : ""}
+${deviceInfo.ip ? `IP Address: ${deviceInfo.ip}` : ""}
+${deviceInfo.location ? `Location: ${deviceInfo.location}` : ""}
+
+Was this you?
+If yes, you can safely ignore this email.
+
+Not you?
+If you don't recognize this login, your account may be compromised. Please:
+1. Change your password immediately at ${appUrl}/settings
+2. Review your active sessions
+3. Enable Two-Factor Authentication
+
+This is an automated security notification from WURM Tools.
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `New login to your WURM Tools account`,
+    text,
+    html,
+  });
+}
+
+// Send account locked notification
+export async function sendAccountLockedEmail(
+  email: string,
+  username: string,
+  lockDuration: number  // in minutes
+): Promise<boolean> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://wurm.tools";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>${emailStyles}</head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>WURM Tools</h1>
+        </div>
+        <div class="content">
+          <h2>Account Temporarily Locked</h2>
+          <p>Hello <strong>${username}</strong>,</p>
+          <p>Your account has been temporarily locked due to multiple failed login attempts.</p>
+          <div class="warning">
+            <strong>Security Notice:</strong> Your account will be automatically unlocked in <strong>${lockDuration} minutes</strong>.
+          </div>
+          <p>If you forgot your password, you can <a href="${appUrl}/forgot">reset it here</a>.</p>
+          <p>If you did not attempt to log in, someone may be trying to access your account. We recommend:</p>
+          <ul>
+            <li>Changing your password after the lockout ends</li>
+            <li>Enabling Two-Factor Authentication</li>
+          </ul>
+        </div>
+        <div class="footer">
+          <p>This is an automated security notification from WURM Tools.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+WURM Tools - Account Temporarily Locked
+
+Hello ${username},
+
+Your account has been temporarily locked due to multiple failed login attempts.
+
+Your account will be automatically unlocked in ${lockDuration} minutes.
+
+If you forgot your password, you can reset it at ${appUrl}/forgot
+
+If you did not attempt to log in, we recommend changing your password and enabling Two-Factor Authentication.
+
+This is an automated security notification from WURM Tools.
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `WURM Tools - Account temporarily locked`,
+    text,
+    html,
+  });
+}
