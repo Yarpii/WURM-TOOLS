@@ -16,12 +16,14 @@ interface LoginResult {
   requires2FA?: boolean;
   tempToken?: string;
   expiresIn?: number;
+  attemptsRemaining?: number;
+  isNewDevice?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<LoginResult>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<LoginResult>;
   verify2FA: (tempToken: string, code: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -54,12 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh();
   }, []);
 
-  const login = async (username: string, password: string): Promise<LoginResult> => {
+  const login = async (username: string, password: string, rememberMe: boolean = false): Promise<LoginResult> => {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, rememberMe }),
       });
 
       const data = await res.json();
@@ -76,10 +78,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (res.ok && data.user) {
         setUser(data.user);
-        return { success: true, user: data.user };
+        return {
+          success: true,
+          user: data.user,
+          isNewDevice: data.isNewDevice,
+        };
       }
 
-      return { success: false, error: data.error || "Login failed" };
+      return {
+        success: false,
+        error: data.error || "Login failed",
+        attemptsRemaining: data.attemptsRemaining,
+      };
     } catch (err) {
       return { success: false, error: String(err) };
     }

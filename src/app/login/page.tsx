@@ -10,6 +10,7 @@ export default function LoginPage() {
   const { login, verify2FA, user } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +48,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const result = await login(username, password);
+    const result = await login(username, password, rememberMe);
 
     if (result.requires2FA) {
       setRequires2FA(true);
@@ -163,6 +164,27 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 bg-bg-tertiary rounded-lg text-text-primary border border-border focus:border-accent focus:outline-none"
                   placeholder="Enter your password"
                 />
+              </div>
+
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-border bg-bg-tertiary text-accent focus:ring-accent focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-text-muted group-hover:text-text-secondary transition-colors">
+                    Remember me for 30 days
+                  </span>
+                </label>
+                <Link
+                  href="/forgot"
+                  className="text-sm text-accent hover:text-accent-hover transition-colors"
+                >
+                  Forgot password?
+                </Link>
               </div>
 
               <button

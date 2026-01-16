@@ -391,10 +391,19 @@ export async function deleteUser(userId: number): Promise<boolean> {
 
 // ========== AUTHENTICATION FUNCTIONS ==========
 
+export interface LoginOptions {
+  rememberMe?: boolean;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export async function login(
   usernameOrEmail: string,
-  password: string
-): Promise<{ success: true; user: User; sessionId: string } | { success: false; error: string }> {
+  password: string,
+  options: LoginOptions = {}
+): Promise<{ success: true; user: User; sessionId: string; isNewDevice?: boolean } | { success: false; error: string; attemptsRemaining?: number }> {
+  const { rememberMe = false, ipAddress, userAgent } = options;
+
   // Find user by username or email
   const result = await query<UserDbRow>(
     "SELECT * FROM users WHERE username = ? OR email = ?",
@@ -412,21 +421,109 @@ export async function login(
     return { success: false, error: `Account is banned: ${row.ban_reason || "No reason provided"}` };
   }
 
-  // Verify password
-  if (!verifyPassword(password, row.password_hash!, row.salt!)) {
-    return { success: false, error: "Invalid credentials" };
+  // Check account lockout
+  try {
+    const { checkAccountLockout, incrementFailedAttempts, clearFailedAttempts } = await import("./password-recovery");
+
+    const lockStatus = await checkAccountLockout(row.id);
+    if (lockStatus.isLocked && lockStatus.lockedUntil) {
+      const remainingMinutes = Math.ceil((lockStatus.lockedUntil.getTime() - Date.now()) / 60000);
+      return {
+        success: false,
+        error: `Account is temporarily locked. Try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}.`
+      };
+    }
+
+    // Verify password
+    if (!verifyPassword(password, row.password_hash!, row.salt!)) {
+      // Track failed attempt
+      const failResult = await incrementFailedAttempts(row.id, row.email, row.username);
+
+      if (failResult.isNowLocked) {
+        return {
+          success: false,
+          error: "Too many failed attempts. Your account has been temporarily locked for 15 minutes."
+        };
+      }
+
+      return {
+        success: false,
+        error: "Invalid credentials",
+        attemptsRemaining: failResult.attemptsRemaining
+      };
+    }
+
+    // Clear failed attempts on successful login
+    await clearFailedAttempts(row.id);
+  } catch (error) {
+    // If password-recovery module fails, fall back to basic password check
+    console.warn("Password recovery module not available:", error);
+    if (!verifyPassword(password, row.password_hash!, row.salt!)) {
+      return { success: false, error: "Invalid credentials" };
+    }
   }
 
-  // Create session
+  // Create session with extended duration if rememberMe
   const sessionId = generateSessionId();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const sessionDuration = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000; // 30 days vs 7 days
+  const expiresAt = new Date(Date.now() + sessionDuration);
 
   await query(
-    "INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
-    [sessionId, row.id, expiresAt]
+    `INSERT INTO sessions (id, user_id, expires_at, ip_address, user_agent, device_name, last_active_at, remember_me)
+     VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)`,
+    [sessionId, row.id, expiresAt, ipAddress || null, userAgent || null, parseDeviceName(userAgent), rememberMe ? 1 : 0]
   );
 
-  return { success: true, user: dbRowToUser(row), sessionId };
+  // Check if this is a new device/IP and send notification
+  let isNewDevice = false;
+  try {
+    if (ipAddress && row.email && !row.email.endsWith("@wurmtools.local")) {
+      const previousSessions = await query<{ ip_address: string }>(
+        `SELECT DISTINCT ip_address FROM sessions WHERE user_id = ? AND ip_address IS NOT NULL AND id != ?`,
+        [row.id, sessionId]
+      );
+
+      const knownIPs = previousSessions.rows.map(r => r.ip_address);
+
+      if (knownIPs.length > 0 && !knownIPs.includes(ipAddress)) {
+        isNewDevice = true;
+        // Send new device login notification
+        const { sendNewDeviceLoginEmail, parseUserAgent } = await import("./email");
+        const deviceInfo = userAgent ? parseUserAgent(userAgent) : {};
+
+        sendNewDeviceLoginEmail(row.email, row.username, {
+          ip: ipAddress,
+          browser: deviceInfo.browser,
+          os: deviceInfo.os,
+        }).catch(err => console.error("Failed to send new device email:", err));
+      }
+    }
+  } catch (error) {
+    console.warn("Could not check for new device:", error);
+  }
+
+  return { success: true, user: dbRowToUser(row), sessionId, isNewDevice };
+}
+
+function parseDeviceName(userAgent?: string): string {
+  if (!userAgent) return "Unknown device";
+
+  if (userAgent.includes("Mobile") || userAgent.includes("Android") || userAgent.includes("iPhone")) {
+    return "Mobile device";
+  } else if (userAgent.includes("Windows")) {
+    return "Windows PC";
+  } else if (userAgent.includes("Mac")) {
+    return "Mac";
+  } else if (userAgent.includes("Linux")) {
+    return "Linux PC";
+  } else if (userAgent.includes("Chrome")) {
+    return "Chrome browser";
+  } else if (userAgent.includes("Firefox")) {
+    return "Firefox browser";
+  } else if (userAgent.includes("Safari")) {
+    return "Safari browser";
+  }
+  return "Unknown device";
 }
 
 export async function logout(sessionId: string): Promise<boolean> {
@@ -438,13 +535,20 @@ export async function logout(sessionId: string): Promise<boolean> {
 }
 
 // Create a new session for a user (used for 2FA login completion)
-export async function createSession(userId: number): Promise<string> {
+export async function createSession(
+  userId: number,
+  options: LoginOptions = {}
+): Promise<string> {
+  const { rememberMe = false, ipAddress, userAgent } = options;
+
   const sessionId = generateSessionId();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const sessionDuration = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + sessionDuration);
 
   await query(
-    "INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
-    [sessionId, userId, expiresAt]
+    `INSERT INTO sessions (id, user_id, expires_at, ip_address, user_agent, device_name, last_active_at, remember_me)
+     VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)`,
+    [sessionId, userId, expiresAt, ipAddress || null, userAgent || null, parseDeviceName(userAgent), rememberMe ? 1 : 0]
   );
 
   return sessionId;
