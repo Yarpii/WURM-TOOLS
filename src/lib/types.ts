@@ -1245,6 +1245,7 @@ export interface WurmpediaRecipe {
   is_cooking: boolean;
   has_materials: boolean;
   recipe_type: WurmpediaRecipeType;
+  activated_at: string | null;
   imported_at: string;
   updated_at: string;
 }

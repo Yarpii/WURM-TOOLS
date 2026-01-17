@@ -2,9 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
-type Tab = "calculator" | "advanced" | "optimizer";
+// Lazy load WurmpediaBrowser to reduce initial bundle size
+const WurmpediaBrowser = dynamic(
+  () => import("@/components/crafting/WurmpediaBrowser"),
+  { loading: () => <div className="p-12 text-center"><div className="animate-spin text-4xl">&#9881;</div></div> }
+);
+
+type Tab = "calculator" | "advanced" | "optimizer" | "wurmpedia";
 type CalcMode = "calculate" | "reverse";
 type MaterialMode = "easy" | "full"; // easy = recipe ingredients, full = all base materials
 type ViewMode = "expected" | "base" | "worstCase";
@@ -122,6 +129,7 @@ export default function CraftingPage() {
             { id: "calculator" as Tab, label: "Calculator" },
             { id: "advanced" as Tab, label: "Advanced" },
             { id: "optimizer" as Tab, label: "Optimizer" },
+            { id: "wurmpedia" as Tab, label: "Wurmpedia" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -141,6 +149,7 @@ export default function CraftingPage() {
         {activeTab === "calculator" && <BasicCalculator />}
         {activeTab === "advanced" && <AdvancedCalculator />}
         {activeTab === "optimizer" && <SkillOptimizer />}
+        {activeTab === "wurmpedia" && <WurmpediaBrowser />}
       </div>
     </div>
   );
