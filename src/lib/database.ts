@@ -122,9 +122,8 @@ import type {
   AffinityCalculationResult,
   CCFPCalculationResult,
   CookingRecipeFilters,
-  RARITY_MODIFIERS,
-  DAILY_CCFP,
 } from "./types";
+import { RARITY_MODIFIERS, DAILY_CCFP } from "./types";
 import {
   calculateSuccessChance,
   getSuccessCategory,
@@ -4575,7 +4574,16 @@ export interface Pending2FASession {
   session_token: string;
   code: string;
   expires_at: Date;
+  remember_me: boolean;
+  ip_address: string | null;
+  user_agent: string | null;
   created_at: Date;
+}
+
+export interface Pending2FASessionOptions {
+  rememberMe?: boolean;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 export interface EmailAlertPreferences {
@@ -4720,17 +4728,21 @@ export async function createPending2FASession(
   userId: number,
   sessionToken: string,
   code: string,
-  expiryMinutes: number = 10
+  expiryMinutes: number = 10,
+  options?: Pending2FASessionOptions
 ): Promise<Pending2FASession | null> {
   // Delete any existing pending sessions for this user
   await query("DELETE FROM pending_2fa_sessions WHERE user_id = ?", [userId]);
 
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+  const rememberMe = options?.rememberMe ?? false;
+  const ipAddress = options?.ipAddress ?? null;
+  const userAgent = options?.userAgent ?? null;
 
   const result = await query(
-    `INSERT INTO pending_2fa_sessions (user_id, session_token, code, expires_at)
-     VALUES (?, ?, ?, ?)`,
-    [userId, sessionToken, code, expiresAt]
+    `INSERT INTO pending_2fa_sessions (user_id, session_token, code, expires_at, remember_me, ip_address, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [userId, sessionToken, code, expiresAt, rememberMe, ipAddress, userAgent]
   );
 
   if (result.rowCount === 0) return null;
@@ -4744,6 +4756,9 @@ export async function createPending2FASession(
     session_token: sessionToken,
     code,
     expires_at: expiresAt,
+    remember_me: rememberMe,
+    ip_address: ipAddress,
+    user_agent: userAgent,
     created_at: new Date(),
   };
 }

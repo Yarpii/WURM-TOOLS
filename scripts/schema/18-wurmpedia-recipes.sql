@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS wurmpedia_recipes (
     has_materials BOOLEAN DEFAULT FALSE,
     recipe_type VARCHAR(50) DEFAULT 'misc',     -- misc, cooking, smithing, etc.
 
+    -- Activation (when recipe was added to calculator)
+    activated_at TIMESTAMP NULL DEFAULT NULL,
+
     -- Tracking
     imported_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
