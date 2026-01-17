@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Item } from "@/lib/types";
 import AdminGuard from "@/components/AdminGuard";
-import { ItemsTab, RecipesTab, MembersTab, DataTab, SubmissionsTab, Recipe } from "@/components/admin";
+import { ItemsTab, RecipesTab, MembersTab, DataTab, SubmissionsTab, WurmpediaTab, Recipe } from "@/components/admin";
 
-type TabType = "items" | "recipes" | "members" | "data" | "submissions";
+type TabType = "items" | "recipes" | "members" | "data" | "submissions" | "wurmpedia";
 
 function AdminContent() {
   const [items, setItems] = useState<Item[]>([]);
@@ -119,6 +119,12 @@ function AdminContent() {
         >
           Submissions
         </TabButton>
+        <TabButton
+          active={activeTab === "wurmpedia"}
+          onClick={() => setActiveTab("wurmpedia")}
+        >
+          Wurmpedia Import
+        </TabButton>
       </div>
 
       {/* Tab Content */}
@@ -152,6 +158,10 @@ function AdminContent() {
           showMessage={showMessage}
           onPendingCountChange={setPendingSubmissionsCount}
         />
+      )}
+
+      {activeTab === "wurmpedia" && (
+        <WurmpediaTab showMessage={showMessage} />
       )}
     </div>
   );

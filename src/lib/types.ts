@@ -1180,3 +1180,299 @@ export interface ResourceFilters {
   is_featured?: boolean;
   search?: string;
 }
+
+// ========== WURMPEDIA RECIPE IMPORT ==========
+
+export type WurmpediaRecipeType = 'misc' | 'cooking' | 'smithing' | 'carpentry' | 'tailoring' | 'masonry' | 'fishing' | 'alchemy' | 'other';
+
+// Input format from Wurmpedia JSON export
+export interface WurmpediaRecipeInput {
+  id: number;
+  name: string;
+  categories?: string[];
+  image?: string;
+  creation?: {
+    tools?: string[];
+    target?: string;
+    targetQuantity?: number | null;
+    menu?: string | null;
+    steps?: string[];
+  };
+  materials?: Array<{
+    name: string;
+    quantity?: number;
+    optional?: boolean;
+  }>;
+  result?: {
+    name?: string;
+    weight?: number | null;
+    quantity?: number;
+  };
+  skill?: string;
+  difficulty?: number;
+  canImprove?: boolean;
+  improveWith?: string | null;
+  properties?: string[];
+  notes?: string[];
+  isCooking?: boolean;
+  hasMaterials?: boolean;
+  type?: string;
+}
+
+// Database model
+export interface WurmpediaRecipe {
+  id: number;
+  wurmpedia_id: number | null;
+  name: string;
+  slug: string | null;
+  image_url: string | null;
+  categories: string[] | null;
+  creation_tools: string[] | null;
+  creation_target: string | null;
+  creation_target_quantity: number | null;
+  creation_menu: string | null;
+  creation_steps: string[] | null;
+  materials: Array<{ name: string; quantity?: number; optional?: boolean }> | null;
+  result_name: string | null;
+  result_weight: number | null;
+  result_quantity: number;
+  skill: string | null;
+  difficulty: number | null;
+  can_improve: boolean;
+  improve_with: string | null;
+  properties: string[] | null;
+  notes: string[] | null;
+  is_cooking: boolean;
+  has_materials: boolean;
+  recipe_type: WurmpediaRecipeType;
+  imported_at: string;
+  updated_at: string;
+}
+
+export interface WurmpediaImportLog {
+  id: number;
+  imported_by: number | null;
+  recipes_added: number;
+  recipes_updated: number;
+  recipes_failed: number;
+  error_details: string[] | null;
+  imported_at: string;
+}
+
+export interface WurmpediaImportResult {
+  success: boolean;
+  recipes_added: number;
+  recipes_updated: number;
+  recipes_failed: number;
+  errors: string[];
+  log_id?: number;
+}
+
+export interface WurmpediaRecipeFilters {
+  search?: string;
+  skill?: string;
+  recipe_type?: WurmpediaRecipeType;
+  is_cooking?: boolean;
+  has_materials?: boolean;
+  can_improve?: boolean;
+  category?: string;
+}
+
+// ========== COOKING SYSTEM ==========
+
+export interface CookingCooker {
+  id: number;
+  name: string;
+  affinity_value: number;
+  description: string | null;
+  icon_url: string | null;
+}
+
+export interface CookingContainer {
+  id: number;
+  name: string;
+  affinity_value: number;
+  description: string | null;
+  icon_url: string | null;
+}
+
+export interface CookingPreparation {
+  id: number;
+  name: string;
+  affinity_modifier: number;
+  applies_to: string[] | null;
+  description: string | null;
+}
+
+export interface CookingIngredientCategory {
+  id: number;
+  name: string;
+  display_order: number;
+}
+
+export interface CookingIngredient {
+  id: number;
+  name: string;
+  category_id: number;
+  category_name?: string;
+  affinity_value: number;
+  calories: number;
+  carbs: number;
+  fats: number;
+  proteins: number;
+  weight: number | null;
+  difficulty_modifier: number;
+  icon_url: string | null;
+  notes: string | null;
+}
+
+export interface CookingSkill {
+  id: number;  // 0-137
+  name: string;
+  category: string | null;
+}
+
+export interface CookingRecipe {
+  id: number;
+  name: string;
+  slug: string | null;
+  cooker_id: number | null;
+  cooker_name?: string;
+  container_id: number | null;
+  container_name?: string;
+  skill_required: string;
+  difficulty: number;
+  result_name: string | null;
+  ccfp_multiplier: number;
+  is_verified: boolean;
+  fills_all_ccfp: boolean;
+  notes: string | null;
+  source_url: string | null;
+  created_at: string;
+  updated_at: string;
+  ingredients?: CookingRecipeIngredient[];
+}
+
+export interface CookingRecipeIngredient {
+  id: number;
+  recipe_id: number;
+  ingredient_id: number;
+  ingredient_name?: string;
+  quantity: number;
+  is_mandatory: boolean;
+  preparation_id: number | null;
+  preparation_name?: string;
+  notes: string | null;
+}
+
+export interface UserPlayerNumber {
+  id: number;
+  user_id: number;
+  player_number: number;
+  character_name: string | null;
+  discovered_at: string;
+}
+
+export interface UserSavedRecipe {
+  id: number;
+  user_id: number;
+  recipe_name: string;
+  cooker_id: number | null;
+  container_id: number | null;
+  ingredients: CookingRecipeComponent[];
+  calculated_affinity_skill_id: number | null;
+  calculated_affinity_skill_name?: string;
+  calculated_ccfp: CCFPValues | null;
+  notes: string | null;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CookingRecipeComponent {
+  ingredient_id: number;
+  ingredient_name?: string;
+  preparation_id: number | null;
+  preparation_name?: string;
+  quantity: number;
+  rarity: 'normal' | 'rare' | 'supreme' | 'fantastic';
+}
+
+export interface CCFPValues {
+  calories: number;
+  carbs: number;
+  fats: number;
+  proteins: number;
+}
+
+export interface CCFPPercentages {
+  calories: number;  // % of daily 2000
+  carbs: number;     // % of daily 300
+  fats: number;      // % of daily 80
+  proteins: number;  // % of daily 50
+}
+
+export interface AffinityCalculationInput {
+  player_number: number;
+  cooker_id: number | null;
+  container_id: number | null;
+  ingredients: Array<{
+    ingredient_id: number;
+    preparation_id: number | null;
+    rarity: 'normal' | 'rare' | 'supreme' | 'fantastic';
+  }>;
+}
+
+export interface AffinityCalculationResult {
+  skill_id: number;
+  skill_name: string;
+  total_points: number;
+  breakdown: {
+    cooker: number;
+    container: number;
+    ingredients: Array<{
+      name: string;
+      base: number;
+      preparation: number;
+      rarity: number;
+      total: number;
+    }>;
+  };
+}
+
+export interface CCFPCalculationResult {
+  totals: CCFPValues;
+  percentages: CCFPPercentages;
+  per_ingredient: Array<{
+    name: string;
+    ccfp: CCFPValues;
+  }>;
+}
+
+export interface CookingRecipeFilters {
+  search?: string;
+  cooker_id?: number;
+  container_id?: number;
+  skill_required?: string;
+  difficulty_min?: number;
+  difficulty_max?: number;
+  fills_all_ccfp?: boolean;
+  is_verified?: boolean;
+  ingredient_id?: number;
+}
+
+// Rarity modifiers for affinity calculation
+export const RARITY_MODIFIERS = {
+  normal: 0,
+  rare: 1,
+  supreme: 2,
+  fantastic: 3,
+} as const;
+
+// Daily CCFP targets
+export const DAILY_CCFP = {
+  calories: 2000,
+  carbs: 300,
+  fats: 80,
+  proteins: 50,
+} as const;
