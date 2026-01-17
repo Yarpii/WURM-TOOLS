@@ -84,8 +84,8 @@ export default function Home() {
         </svg>
       ),
       title: "Forge & Craft",
-      description: "Calculate materials, predict quality, and master the arts of smithing",
-      features: ["Recipe & base material tree", "Success rate by skill level", "Optimal grinding paths"],
+      description: "Stop guessing, start crafting! Know exactly what you need before you begin",
+      features: ["Full recipe breakdowns", "Quality predictions", "Skill grinding guides"],
       color: "from-orange-500 to-amber-600",
     },
     {
@@ -96,8 +96,8 @@ export default function Home() {
         </svg>
       ),
       title: "Skill Mastery",
-      description: "Track your journey from peasant to master craftsman",
-      features: ["Skill gain calculations", "Sleep bonus tracking", "Time-to-goal estimates"],
+      description: "From newbie to legend! Track your grind and watch those numbers climb",
+      features: ["Skill gain predictions", "Sleep bonus optimizer", "Goal progress tracker"],
       color: "from-yellow-500 to-orange-600",
     },
     {
@@ -108,9 +108,21 @@ export default function Home() {
         </svg>
       ),
       title: "Timer Dashboard",
-      description: "Never miss a harvest, meditation tick, or sleep bonus again",
-      features: ["Sleep bonus & fatigue", "Crop & animal timers", "Meditation cooldowns"],
+      description: "Set it and forget it! Get notified before your crops rot or your SB runs out",
+      features: ["Sleep bonus alerts", "Crop & animal timers", "Meditation reminders"],
       color: "from-emerald-500 to-teal-600",
+    },
+    {
+      href: "/cooking",
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      ),
+      title: "Cooking & Affinities",
+      description: "Become a master chef! Calculate perfect recipes for any affinity",
+      features: ["Affinity calculator", "CCFP nutrition tracker", "Player number discovery"],
+      color: "from-orange-500 to-red-600",
     },
     {
       href: "/events",
@@ -120,8 +132,8 @@ export default function Home() {
         </svg>
       ),
       title: "Community Events",
-      description: "Join Impalongs, slay rift beasts, and gather with fellow Wurmians",
-      features: ["Impalongs & Rifts", "RSVP & attendance", "Cross-server events"],
+      description: "Party time! Find impalongs, rifts, and cool community gatherings",
+      features: ["Impalongs & Rifts", "Easy RSVP system", "Cross-server events"],
       color: "from-pink-500 to-rose-600",
     },
     {
@@ -132,8 +144,8 @@ export default function Home() {
         </svg>
       ),
       title: "World Atlas",
-      description: "Navigate the realm, discover deeds, and locate merchants",
-      features: ["Deed & settlement locations", "Merchant shops", "Mining & foraging spots"],
+      description: "Lost? Not anymore! Find deeds, merchants, and all the good spots",
+      features: ["Deed finder", "Merchant directory", "Resource hotspots"],
       color: "from-blue-500 to-indigo-600",
     },
     {
@@ -144,8 +156,8 @@ export default function Home() {
         </svg>
       ),
       title: "Trade Hub",
-      description: "Buy, sell, and barter items with merchants and adventurers",
-      features: ["Buy & sell orders", "Trade matching", "Historical prices"],
+      description: "Cha-ching! Buy low, sell high, and become Wurm's next silver tycoon",
+      features: ["Buy & sell orders", "Smart trade matching", "Price history"],
       color: "from-violet-500 to-purple-600",
     },
   ];
@@ -159,7 +171,7 @@ export default function Home() {
         </svg>
       ),
       title: "Alliances",
-      description: "Create and manage player alliances",
+      description: "Unite with fellow Wurmians!",
     },
     {
       href: "/merchants",
@@ -169,7 +181,7 @@ export default function Home() {
         </svg>
       ),
       title: "Merchants",
-      description: "Find in-game merchants",
+      description: "Find the best deals around",
     },
     {
       href: "/members",
@@ -179,7 +191,7 @@ export default function Home() {
         </svg>
       ),
       title: "Community",
-      description: "Connect with other players",
+      description: "Make new Wurm friends",
     },
     {
       href: "/achievements",
@@ -189,38 +201,38 @@ export default function Home() {
         </svg>
       ),
       title: "Achievements",
-      description: "Track goals and earn XP",
+      description: "Complete goals, earn bragging rights",
     },
   ];
 
   const roadmapFeatures = [
     {
       title: "Deed Planner",
-      description: "Visual drag-and-drop tool to plan your deed layout with buildings, fences, and terrain",
+      description: "Drag-and-drop your dream deed! Plan buildings, fences, and terrain before you dig",
       icon: "🏗️",
       status: "planned",
     },
     {
-      title: "Affinity Tracker",
-      description: "Track and manage affinities across all your characters in one place",
-      icon: "✨",
-      status: "planned",
-    },
-    {
-      title: "Recipe Book",
-      description: "Complete cooking recipe database with ingredients and nutrition info",
-      icon: "📖",
+      title: "Treasure Hunting",
+      description: "Find buried treasures! Map decoder, loot tables, and hunting route planner",
+      icon: "🗺️",
       status: "planned",
     },
     {
       title: "Discord Bot",
-      description: "Get timer notifications and event reminders directly in your Discord server",
+      description: "Get pings when your crops are ready! Timer alerts right in your Discord",
       icon: "🤖",
       status: "planned",
     },
     {
+      title: "Skill Planner",
+      description: "Plan your character's skill journey from noob to grandmaster",
+      icon: "📈",
+      status: "planned",
+    },
+    {
       title: "Mobile App",
-      description: "Take Wurm Tools with you on mobile for on-the-go tracking",
+      description: "Wurm Tools in your pocket! Manage everything on the go",
       icon: "📱",
       status: "future",
     },
@@ -253,19 +265,19 @@ export default function Home() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            Forged by the community, for the community
+            Hammered together by Wurmians, for Wurmians!
           </div>
 
           <h1 className={`text-4xl md:text-6xl font-bold text-text-primary mb-6 ${isLoaded ? 'animate-fade-in-up animation-delay-100' : 'opacity-0'}`}>
-            Welcome to the{" "}
+            Your Adventure{" "}
             <span className="gradient-text-animated">
-              Wurm Tools
+              Starts Here
             </span>
           </h1>
 
           <p className={`text-lg md:text-xl text-text-secondary mb-10 max-w-2xl mx-auto ${isLoaded ? 'animate-fade-in-up animation-delay-200' : 'opacity-0'}`}>
-            Where knowledge is forged into tools. Master your crafts, plan your deeds,
-            trade with merchants, and forge bonds with fellow Wurmians across the realm.
+            Whether you're burning dinner, hitting your thumb with a hammer, or getting lost in the wilderness -
+            we've got your back! Craft, cook, trade, and discover with the ultimate Wurm Online companion.
           </p>
 
           <div className={`flex flex-col sm:flex-row gap-4 justify-center ${isLoaded ? 'animate-fade-in-up animation-delay-300' : 'opacity-0'}`}>
@@ -273,13 +285,19 @@ export default function Home() {
               href="/crafting"
               className="glow-button px-8 py-4 bg-accent text-white rounded-xl font-semibold hover:bg-accent-hover transition-all hover:scale-105 shadow-lg shadow-accent/25"
             >
-              Enter the Forge
+              Start Crafting!
+            </Link>
+            <Link
+              href="/cooking"
+              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-red-600 transition-all hover:scale-105 shadow-lg shadow-orange-500/25"
+            >
+              Cook Something Tasty
             </Link>
             <Link
               href="/register"
               className="px-8 py-4 bg-bg-secondary text-text-primary rounded-xl font-semibold hover:bg-bg-hover transition-all border border-border hover:border-accent shimmer-border"
             >
-              Join Our Fellowship
+              Join the Adventure
             </Link>
           </div>
         </div>
@@ -314,11 +332,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className={`text-center mb-12 ${isLoaded ? 'animate-fade-in-up animation-delay-500' : 'opacity-0'}`}>
             <h2 className="text-3xl font-bold text-text-primary mb-4">
-              Tools of the Trade
+              Pick Your Adventure
             </h2>
             <p className="text-text-secondary max-w-2xl mx-auto">
-              Whether you're a novice builder or a master blacksmith, Wurm Tools provides the tools
-              to thrive in the world of Wurm.
+              Whether you're a confused newbie or a grizzled veteran, we've got something for everyone.
+              Click around and find your new favorite tool!
             </p>
           </div>
 
@@ -380,7 +398,7 @@ export default function Home() {
 
         <div className="max-w-5xl mx-auto relative">
           <h3 className="text-lg font-semibold text-text-primary mb-6 text-center">
-            More Features
+            And There's More!
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {additionalFeatures.map((feature, index) => (
@@ -417,10 +435,10 @@ export default function Home() {
               Roadmap
             </div>
             <h2 className="text-3xl font-bold text-text-primary mb-4">
-              Coming Soon
+              What's Cooking?
             </h2>
             <p className="text-text-secondary max-w-2xl mx-auto">
-              We&apos;re constantly working on new features. Here&apos;s what&apos;s on our roadmap.
+              We're always building new stuff! Here's what's in the oven (pun intended).
             </p>
           </div>
 
@@ -456,9 +474,9 @@ export default function Home() {
 
           <div className="text-center mt-8">
             <p className="text-text-muted text-sm">
-              Have a feature suggestion?{" "}
+              Got a cool idea?{" "}
               <Link href="/contact" className="text-accent hover:underline">
-                Let us know!
+                Tell us! We love suggestions!
               </Link>
             </p>
           </div>
@@ -480,18 +498,18 @@ export default function Home() {
           </div>
 
           <h2 className="text-3xl font-bold text-text-primary mb-4">
-            Ready to Start Crafting?
+            Ready to Level Up?
           </h2>
           <p className="text-text-secondary mb-8 max-w-xl mx-auto">
-            Jump into the crafting calculator and start planning your next project.
-            No registration required to use the calculators.
+            Stop alt-tabbing to wikis and spreadsheets. Everything you need is right here,
+            no account required!
           </p>
 
           <Link
             href="/crafting"
             className="glow-button inline-flex items-center gap-2 px-8 py-4 bg-accent text-white rounded-xl font-semibold hover:bg-accent-hover transition-all hover:scale-105 shadow-lg shadow-accent/25"
           >
-            Open Crafting Calculator
+            Let's Go!
             <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
