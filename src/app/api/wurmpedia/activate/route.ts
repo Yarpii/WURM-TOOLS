@@ -7,7 +7,31 @@ import {
   addRecipeIngredient,
   query,
 } from "@/lib/database";
+import { getSession } from "@/lib/auth";
 import type { SkillType, ToolType } from "@/lib/types";
+
+// Helper to verify admin authentication
+async function verifyAdmin(request: NextRequest): Promise<{
+  error?: NextResponse;
+  session?: Awaited<ReturnType<typeof getSession>>
+}> {
+  const sessionId = request.cookies.get("session")?.value;
+
+  if (!sessionId) {
+    return { error: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
+  }
+
+  const session = await getSession(sessionId);
+  if (!session) {
+    return { error: NextResponse.json({ error: "Session expired" }, { status: 401 }) };
+  }
+
+  if (session.user.role !== "admin") {
+    return { error: NextResponse.json({ error: "Admin access required" }, { status: 403 }) };
+  }
+
+  return { session };
+}
 
 // Map Wurmpedia skill names to our SkillType enum
 function mapSkillType(skill: string | null): SkillType {
@@ -133,8 +157,13 @@ function mapCategory(categories: string[] | null, skill: string | null): string 
 }
 
 // POST /api/wurmpedia/activate - Convert a Wurmpedia recipe to calculator items/recipes
+// Admin only - this modifies the calculator database
 export async function POST(request: NextRequest) {
   try {
+    // Verify admin access
+    const auth = await verifyAdmin(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const { recipeId } = body;
 
