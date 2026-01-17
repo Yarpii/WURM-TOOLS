@@ -71,12 +71,43 @@ CREATE TABLE IF NOT EXISTS pending_2fa_sessions (
     session_token VARCHAR(64) NOT NULL UNIQUE,
     code VARCHAR(6) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
+    remember_me BOOLEAN NOT NULL DEFAULT FALSE,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(500) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_pending_2fa_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_pending_2fa_token (session_token),
     INDEX idx_pending_2fa_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add columns to existing table if they don't exist
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pending_2fa_sessions' AND COLUMN_NAME = 'remember_me');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE pending_2fa_sessions ADD COLUMN remember_me BOOLEAN NOT NULL DEFAULT FALSE AFTER expires_at',
+    'SELECT "remember_me column already exists"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pending_2fa_sessions' AND COLUMN_NAME = 'ip_address');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE pending_2fa_sessions ADD COLUMN ip_address VARCHAR(45) NULL AFTER remember_me',
+    'SELECT "ip_address column already exists"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pending_2fa_sessions' AND COLUMN_NAME = 'user_agent');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE pending_2fa_sessions ADD COLUMN user_agent VARCHAR(500) NULL AFTER ip_address',
+    'SELECT "user_agent column already exists"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ========== CLEANUP OLD CODES (Event) ==========
 -- Auto-cleanup expired verification codes every hour

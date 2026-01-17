@@ -38,8 +38,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Create actual session
-    const sessionId = await createSession(user.id);
+    // Create actual session with stored options
+    const sessionId = await createSession(user.id, {
+      rememberMe: pendingSession.remember_me,
+      ipAddress: pendingSession.ip_address || undefined,
+      userAgent: pendingSession.user_agent || undefined,
+    });
+
+    // Calculate cookie max age based on rememberMe
+    const cookieMaxAge = pendingSession.remember_me
+      ? 30 * 24 * 60 * 60  // 30 days if rememberMe
+      : 7 * 24 * 60 * 60;  // 7 days default
 
     // Return success with session cookie
     const response = NextResponse.json({
@@ -57,7 +66,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: cookieMaxAge,
       path: "/",
     });
 

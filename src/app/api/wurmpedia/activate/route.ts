@@ -215,26 +215,27 @@ export async function POST(request: NextRequest) {
       const quantity = material.quantity || 1;
 
       // Check if material item exists
-      let materialItem = await getItemByName(materialName);
+      const existingMaterial = await getItemByName(materialName);
+      let materialItemId: number;
 
-      if (!materialItem) {
+      if (!existingMaterial) {
         // Create the material as a base material
-        const materialItemId = await addItem(
+        materialItemId = await addItem(
           materialName,
           "material", // Default category for materials
           true, // Is a base material
           `Material for ${resultName}`
         );
-        materialItem = { id: materialItemId, name: materialName } as { id: number; name: string };
         materialsAdded.push(materialName);
       } else {
+        materialItemId = existingMaterial.id;
         materialsSkipped.push(materialName);
       }
 
       // Add the recipe relationship
       const recipeResult = await addRecipeIngredient(
         resultItem.id,
-        materialItem.id,
+        materialItemId,
         quantity
       );
 

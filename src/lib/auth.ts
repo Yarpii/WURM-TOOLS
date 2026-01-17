@@ -488,7 +488,8 @@ export async function login(
       if (knownIPs.length > 0 && !knownIPs.includes(ipAddress)) {
         isNewDevice = true;
         // Send new device login notification
-        const { sendNewDeviceLoginEmail, parseUserAgent } = await import("./email");
+        const { sendNewDeviceLoginEmail } = await import("./email");
+        const { parseUserAgent } = await import("./password-recovery");
         const deviceInfo = userAgent ? parseUserAgent(userAgent) : {};
 
         sendNewDeviceLoginEmail(row.email, row.username, {
