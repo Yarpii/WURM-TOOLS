@@ -1180,3 +1180,100 @@ export interface ResourceFilters {
   is_featured?: boolean;
   search?: string;
 }
+
+// ========== WURMPEDIA RECIPE IMPORT ==========
+
+export type WurmpediaRecipeType = 'misc' | 'cooking' | 'smithing' | 'carpentry' | 'tailoring' | 'masonry' | 'fishing' | 'alchemy' | 'other';
+
+// Input format from Wurmpedia JSON export
+export interface WurmpediaRecipeInput {
+  id: number;
+  name: string;
+  categories?: string[];
+  image?: string;
+  creation?: {
+    tools?: string[];
+    target?: string;
+    targetQuantity?: number | null;
+    menu?: string | null;
+    steps?: string[];
+  };
+  materials?: Array<{
+    name: string;
+    quantity?: number;
+    optional?: boolean;
+  }>;
+  result?: {
+    name?: string;
+    weight?: number | null;
+    quantity?: number;
+  };
+  skill?: string;
+  difficulty?: number;
+  canImprove?: boolean;
+  improveWith?: string | null;
+  properties?: string[];
+  notes?: string[];
+  isCooking?: boolean;
+  hasMaterials?: boolean;
+  type?: string;
+}
+
+// Database model
+export interface WurmpediaRecipe {
+  id: number;
+  wurmpedia_id: number | null;
+  name: string;
+  slug: string | null;
+  image_url: string | null;
+  categories: string[] | null;
+  creation_tools: string[] | null;
+  creation_target: string | null;
+  creation_target_quantity: number | null;
+  creation_menu: string | null;
+  creation_steps: string[] | null;
+  materials: Array<{ name: string; quantity?: number; optional?: boolean }> | null;
+  result_name: string | null;
+  result_weight: number | null;
+  result_quantity: number;
+  skill: string | null;
+  difficulty: number | null;
+  can_improve: boolean;
+  improve_with: string | null;
+  properties: string[] | null;
+  notes: string[] | null;
+  is_cooking: boolean;
+  has_materials: boolean;
+  recipe_type: WurmpediaRecipeType;
+  imported_at: string;
+  updated_at: string;
+}
+
+export interface WurmpediaImportLog {
+  id: number;
+  imported_by: number | null;
+  recipes_added: number;
+  recipes_updated: number;
+  recipes_failed: number;
+  error_details: string[] | null;
+  imported_at: string;
+}
+
+export interface WurmpediaImportResult {
+  success: boolean;
+  recipes_added: number;
+  recipes_updated: number;
+  recipes_failed: number;
+  errors: string[];
+  log_id?: number;
+}
+
+export interface WurmpediaRecipeFilters {
+  search?: string;
+  skill?: string;
+  recipe_type?: WurmpediaRecipeType;
+  is_cooking?: boolean;
+  has_materials?: boolean;
+  can_improve?: boolean;
+  category?: string;
+}
