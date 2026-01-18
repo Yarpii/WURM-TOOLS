@@ -268,14 +268,21 @@ export default function WurmpediaTab({ showMessage }: WurmpediaTabProps) {
     }
   };
 
-  const handleActivateRecipe = async (recipe: WurmpediaRecipe) => {
+  const handleActivateRecipe = async (
+    recipe: WurmpediaRecipe,
+    materials?: Array<{ name: string; quantity: number; optional?: boolean }>
+  ) => {
     setActivating(recipe.id);
 
     try {
       const res = await fetch("/api/wurmpedia/activate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeId: recipe.id }),
+        body: JSON.stringify({
+          recipeId: recipe.id,
+          // Send custom materials if provided (for edits)
+          materials: materials || undefined,
+        }),
       });
 
       const result = await res.json();
@@ -611,11 +618,12 @@ export default function WurmpediaTab({ showMessage }: WurmpediaTabProps) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              // Quick activate uses original materials - for edits, use the detail panel
                               handleActivateRecipe(recipe);
                             }}
                             disabled={activating === recipe.id}
                             className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
-                            title="Add to calculator"
+                            title="Quick activate with original quantities"
                           >
                             {activating === recipe.id ? "..." : "Activate"}
                           </button>
@@ -685,7 +693,7 @@ export default function WurmpediaTab({ showMessage }: WurmpediaTabProps) {
             {selectedRecipe ? (
               <RecipeDetail
                 recipe={selectedRecipe}
-                onActivate={() => handleActivateRecipe(selectedRecipe)}
+                onActivate={(materials) => handleActivateRecipe(selectedRecipe, materials)}
                 activating={activating === selectedRecipe.id}
                 onDelete={() => handleDeleteRecipe(selectedRecipe.id)}
               />
@@ -705,7 +713,7 @@ export default function WurmpediaTab({ showMessage }: WurmpediaTabProps) {
   );
 }
 
-// Recipe Detail Component
+// Recipe Detail Component with editable materials
 function RecipeDetail({
   recipe,
   onActivate,
@@ -713,10 +721,38 @@ function RecipeDetail({
   onDelete,
 }: {
   recipe: WurmpediaRecipe;
-  onActivate: () => void;
+  onActivate: (materials: Array<{ name: string; quantity: number; optional?: boolean }>) => void;
   activating: boolean;
   onDelete: () => void;
 }) {
+  // Local state for editable materials
+  const [editedMaterials, setEditedMaterials] = useState<Array<{ name: string; quantity: number; optional?: boolean }>>(
+    recipe.materials?.map(m => ({
+      name: m.name,
+      quantity: m.quantity || 1,
+      optional: m.optional
+    })) || []
+  );
+
+  // Update materials when recipe changes
+  useEffect(() => {
+    setEditedMaterials(
+      recipe.materials?.map(m => ({
+        name: m.name,
+        quantity: m.quantity || 1,
+        optional: m.optional
+      })) || []
+    );
+  }, [recipe.id, recipe.materials]);
+
+  const updateQuantity = (index: number, quantity: number) => {
+    setEditedMaterials(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], quantity: Math.max(1, quantity) };
+      return updated;
+    });
+  };
+
   return (
     <div className="bg-bg-secondary rounded-xl border border-border overflow-hidden">
       {/* Header */}
@@ -779,12 +815,15 @@ function RecipeDetail({
         </div>
       )}
 
-      {/* Materials */}
-      {recipe.materials && recipe.materials.length > 0 && (
+      {/* Materials - Editable */}
+      {editedMaterials.length > 0 && (
         <div className="p-4 border-b border-border">
-          <h4 className="text-sm font-medium text-text-primary mb-3">Materials</h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-text-primary">Materials ({editedMaterials.length})</h4>
+            <span className="text-xs text-text-muted">Click quantity to edit</span>
+          </div>
           <div className="space-y-2">
-            {recipe.materials.map((mat, idx) => (
+            {editedMaterials.map((mat, idx) => (
               <div
                 key={idx}
                 className={`flex items-center justify-between p-2 rounded-lg ${
@@ -795,9 +834,27 @@ function RecipeDetail({
                   {mat.name}
                   {mat.optional && " (optional)"}
                 </span>
-                {mat.quantity && (
-                  <span className="text-accent font-mono font-medium">x{mat.quantity}</span>
-                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => updateQuantity(idx, mat.quantity - 1)}
+                    className="w-6 h-6 rounded bg-bg-secondary hover:bg-bg-hover text-text-secondary hover:text-white flex items-center justify-center text-sm"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={mat.quantity}
+                    onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
+                    className="w-12 text-center bg-bg-secondary border border-border rounded px-1 py-0.5 text-accent font-mono font-medium text-sm focus:border-accent focus:outline-none"
+                  />
+                  <button
+                    onClick={() => updateQuantity(idx, mat.quantity + 1)}
+                    className="w-6 h-6 rounded bg-bg-secondary hover:bg-bg-hover text-text-secondary hover:text-white flex items-center justify-center text-sm"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -866,7 +923,7 @@ function RecipeDetail({
       {recipe.has_materials && (
         <div className="p-4">
           <button
-            onClick={onActivate}
+            onClick={() => onActivate(editedMaterials)}
             disabled={activating}
             className="w-full py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >

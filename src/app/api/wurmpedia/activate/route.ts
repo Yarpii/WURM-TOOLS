@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const { recipeId } = body;
+    const { recipeId, materials: customMaterials } = body;
 
     if (!recipeId) {
       return NextResponse.json(
@@ -183,8 +183,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if recipe has materials
-    if (!wurmpediaRecipe.materials || wurmpediaRecipe.materials.length === 0) {
+    // Use custom materials if provided, otherwise use recipe's materials
+    const materialsToProcess: Array<{ name: string; quantity: number; optional?: boolean }> =
+      customMaterials || wurmpediaRecipe.materials || [];
+
+    // Check if we have materials to process
+    if (materialsToProcess.length === 0) {
       return NextResponse.json(
         { error: "This recipe has no materials and cannot be activated" },
         { status: 400 }
@@ -234,7 +238,7 @@ export async function POST(request: NextRequest) {
     const recipesAdded: number[] = [];
     const recipesSkipped: string[] = [];
 
-    for (const material of wurmpediaRecipe.materials) {
+    for (const material of materialsToProcess) {
       if (material.optional) {
         // Skip optional materials for the calculator
         continue;
@@ -276,10 +280,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark the Wurmpedia recipe as activated (add a flag or timestamp)
-    await query(
-      "UPDATE wurmpedia_recipes SET activated_at = NOW() WHERE id = ?",
-      [recipeId]
-    );
+    // This may fail if the activated_at column hasn't been added yet - that's ok
+    try {
+      await query(
+        "UPDATE wurmpedia_recipes SET activated_at = NOW() WHERE id = ?",
+        [recipeId]
+      );
+    } catch {
+      // Column doesn't exist yet - ignore
+      console.log("Note: activated_at column not found, skipping timestamp update");
+    }
 
     const message = resultItemCreated
       ? `Created "${resultName}" with ${recipesAdded.length} recipe ingredients`
