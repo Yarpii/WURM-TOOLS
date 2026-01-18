@@ -324,6 +324,7 @@ export async function getMaterialsList(
         category: item.category,
         quantity: qty,
         formatted: formatQuantity(qty),
+        is_base: Boolean(item.is_base_material),
       });
     }
   }
@@ -348,6 +349,7 @@ export async function getDirectIngredients(
         category: item.category,
         quantity: qty,
         formatted: formatQuantity(qty),
+        is_base: Boolean(item.is_base_material),
       });
     }
   }

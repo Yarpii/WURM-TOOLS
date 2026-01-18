@@ -72,6 +72,7 @@ export interface MaterialResult {
   category: string;
   quantity: number;
   formatted: string;
+  is_base?: boolean;
 }
 
 export interface CraftableResult {
