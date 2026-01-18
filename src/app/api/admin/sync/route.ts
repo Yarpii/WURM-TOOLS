@@ -67,8 +67,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Manual sync triggered by user ${session.userId}`);
-
     // Run sync
     const stats = await syncService.syncAll();
 

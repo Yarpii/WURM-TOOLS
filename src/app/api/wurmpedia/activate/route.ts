@@ -288,7 +288,6 @@ export async function POST(request: NextRequest) {
       );
     } catch {
       // Column doesn't exist yet - ignore
-      console.log("Note: activated_at column not found, skipping timestamp update");
     }
 
     const message = resultItemCreated
