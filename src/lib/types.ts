@@ -1478,3 +1478,97 @@ export const DAILY_CCFP = {
   fats: 80,
   proteins: 50,
 } as const;
+
+// ========== ARCHAEOLOGY PINPOINTS ==========
+
+export type ArchaeologySiteType =
+  | "old_deed"
+  | "ruins"
+  | "settlement"
+  | "tower"
+  | "guard_tower"
+  | "mine"
+  | "bridge"
+  | "road"
+  | "other"
+  | "unknown";
+
+export interface ArchaeologyPinpoint {
+  id: number;
+  user_id: number;
+  username?: string;
+  name: string;
+  description?: string;
+  server: string;
+  x: number;
+  y: number;
+  site_type: ArchaeologySiteType;
+  deed_name?: string;
+  former_owner?: string;
+  estimated_age?: string;
+  findings?: string;
+  notable_items?: string;
+  is_public: boolean;
+  is_verified: boolean;
+  verified_by?: number;
+  verified_by_username?: string;
+  verified_at?: string;
+  upvotes: number;
+  downvotes: number;
+  user_vote?: "up" | "down" | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateArchaeologyPinpointInput {
+  name: string;
+  description?: string;
+  server: string;
+  x: number;
+  y: number;
+  site_type?: ArchaeologySiteType;
+  deed_name?: string;
+  former_owner?: string;
+  estimated_age?: string;
+  findings?: string;
+  notable_items?: string;
+  is_public?: boolean;
+}
+
+export interface UpdateArchaeologyPinpointInput {
+  name?: string;
+  description?: string;
+  server?: string;
+  x?: number;
+  y?: number;
+  site_type?: ArchaeologySiteType;
+  deed_name?: string;
+  former_owner?: string;
+  estimated_age?: string;
+  findings?: string;
+  notable_items?: string;
+  is_public?: boolean;
+}
+
+export interface ArchaeologyComment {
+  id: number;
+  pinpoint_id: number;
+  user_id: number;
+  username?: string;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateArchaeologyCommentInput {
+  pinpoint_id: number;
+  comment: string;
+}
+
+export interface ArchaeologyFilters {
+  server?: string;
+  site_type?: ArchaeologySiteType;
+  is_public?: boolean;
+  user_id?: number;
+  search?: string;
+}
