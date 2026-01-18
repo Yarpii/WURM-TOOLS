@@ -1,10 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
-type Tab = "calculator" | "advanced" | "optimizer";
+// Lazy load CraftingTree to reduce initial bundle size
+const CraftingTree = dynamic(
+  () => import("@/components/crafting/CraftingTree"),
+  { loading: () => <div className="p-12 text-center"><div className="animate-spin text-4xl">&#9881;</div></div> }
+);
+
+type Tab = "calculator" | "advanced" | "optimizer" | "tree";
 type CalcMode = "calculate" | "reverse";
 type MaterialMode = "easy" | "full"; // easy = recipe ingredients, full = all base materials
 type ViewMode = "expected" | "base" | "worstCase";
@@ -93,6 +100,23 @@ interface OptimizerResult {
 
 export default function CraftingPage() {
   const [activeTab, setActiveTab] = useState<Tab>("calculator");
+  const [items, setItems] = useState<Item[]>([]);
+
+  // Load items for the Tree tab
+  useEffect(() => {
+    const loadItems = async () => {
+      try {
+        const res = await fetch("/api/items");
+        if (res.ok) {
+          const data = await res.json();
+          setItems(data);
+        }
+      } catch (err) {
+        console.error("Failed to load items:", err);
+      }
+    };
+    loadItems();
+  }, []);
 
   return (
     <div className="min-h-screen py-8 px-4">
@@ -122,6 +146,7 @@ export default function CraftingPage() {
             { id: "calculator" as Tab, label: "Calculator" },
             { id: "advanced" as Tab, label: "Advanced" },
             { id: "optimizer" as Tab, label: "Optimizer" },
+            { id: "tree" as Tab, label: "Visual Tree" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -141,6 +166,7 @@ export default function CraftingPage() {
         {activeTab === "calculator" && <BasicCalculator />}
         {activeTab === "advanced" && <AdvancedCalculator />}
         {activeTab === "optimizer" && <SkillOptimizer />}
+        {activeTab === "tree" && <CraftingTree items={items} />}
       </div>
     </div>
   );
