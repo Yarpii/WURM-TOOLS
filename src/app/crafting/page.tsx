@@ -5,13 +5,23 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 
-// Lazy load CraftingTree to reduce initial bundle size
+// Lazy load heavy components to reduce initial bundle size
 const CraftingTree = dynamic(
   () => import("@/components/crafting/CraftingTree"),
   { loading: () => <div className="p-12 text-center"><div className="animate-spin text-4xl">&#9881;</div></div> }
 );
 
-type Tab = "calculator" | "advanced" | "optimizer" | "tree";
+const SessionPlanner = dynamic(
+  () => import("@/components/crafting/SessionPlanner"),
+  { loading: () => <div className="p-12 text-center"><div className="animate-spin text-4xl">&#9881;</div></div> }
+);
+
+const RecipeSuggestions = dynamic(
+  () => import("@/components/crafting/RecipeSuggestions"),
+  { loading: () => <div className="p-12 text-center"><div className="animate-spin text-4xl">&#9881;</div></div> }
+);
+
+type Tab = "calculator" | "advanced" | "optimizer" | "tree" | "session" | "suggestions";
 type CalcMode = "calculate" | "reverse";
 type MaterialMode = "easy" | "full"; // easy = recipe ingredients, full = all base materials
 type ViewMode = "expected" | "base" | "worstCase";
@@ -147,6 +157,8 @@ export default function CraftingPage() {
             { id: "advanced" as Tab, label: "Advanced" },
             { id: "optimizer" as Tab, label: "Optimizer" },
             { id: "tree" as Tab, label: "Visual Tree" },
+            { id: "session" as Tab, label: "Session Planner" },
+            { id: "suggestions" as Tab, label: "What Can I Craft?" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -167,6 +179,8 @@ export default function CraftingPage() {
         {activeTab === "advanced" && <AdvancedCalculator />}
         {activeTab === "optimizer" && <SkillOptimizer />}
         {activeTab === "tree" && <CraftingTree items={items} />}
+        {activeTab === "session" && <SessionPlanner items={items} />}
+        {activeTab === "suggestions" && <RecipeSuggestions items={items} />}
       </div>
     </div>
   );
