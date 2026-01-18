@@ -33,7 +33,6 @@ export class TimerNotificationService {
    * Start the timer notification service
    */
   start(): void {
-    console.log('Starting timer notification service...');
     this.checkInterval = setInterval(() => this.checkTimers(), this.CHECK_INTERVAL_MS);
     // Run immediately on start
     this.checkTimers();
@@ -47,7 +46,6 @@ export class TimerNotificationService {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
-    console.log('Timer notification service stopped');
   }
 
   /**
@@ -127,12 +125,9 @@ export class TimerNotificationService {
       try {
         const user = await this.client.users.fetch(timer.discord_id);
         await user.send({ embeds: [embed] });
-        // Sanitized log - no user IDs
-        console.log('Sent timer notification via DM');
         return;
       } catch {
-        // Sanitized log - no sensitive data
-        console.warn('Could not send DM notification');
+        // DM failed, try webhook fallback
       }
     }
 
@@ -152,18 +147,9 @@ export class TimerNotificationService {
         });
 
         clearTimeout(timeoutId);
-
-        if (response.ok) {
-          console.log('Sent timer notification via webhook');
-        } else {
-          console.warn(`Webhook notification failed with status ${response.status}`);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.warn('Webhook notification timed out');
-        } else {
-          console.error('Failed to send webhook notification');
-        }
+        // Webhook sent (or failed silently)
+      } catch {
+        // Webhook failed - notification could not be delivered
       }
     }
   }

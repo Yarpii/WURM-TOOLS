@@ -12,8 +12,6 @@ declare module 'discord.js' {
 }
 
 async function main() {
-  console.log('BlackForge Discord Bot starting...');
-
   // Validate configuration
   if (!validateConfig()) {
     process.exit(1);
@@ -36,22 +34,18 @@ async function main() {
   const rest = new REST().setToken(BOT_CONFIG.token);
 
   try {
-    console.log('Registering slash commands...');
-
     if (BOT_CONFIG.guildId) {
       // Guild-specific commands (instant update, good for development)
       await rest.put(
         Routes.applicationGuildCommands(BOT_CONFIG.clientId, BOT_CONFIG.guildId),
         { body: commands }
       );
-      console.log(`Registered commands for guild ${BOT_CONFIG.guildId}`);
     } else {
       // Global commands (can take up to an hour to propagate)
       await rest.put(
         Routes.applicationCommands(BOT_CONFIG.clientId),
         { body: commands }
       );
-      console.log('Registered global commands');
     }
   } catch (error) {
     console.error('Error registering commands:', error);
@@ -61,10 +55,7 @@ async function main() {
   const timerService = new TimerNotificationService(client);
 
   // Handle ready event
-  client.once(Events.ClientReady, (readyClient) => {
-    console.log(`Logged in as ${readyClient.user.tag}`);
-    console.log(`Serving ${readyClient.guilds.cache.size} guilds`);
-
+  client.once(Events.ClientReady, () => {
     // Start timer notifications
     timerService.start();
   });
@@ -75,7 +66,6 @@ async function main() {
 
     const command = client.commands.get(interaction.commandName);
     if (!command) {
-      console.warn(`Unknown command: ${interaction.commandName}`);
       return;
     }
 
@@ -101,7 +91,6 @@ async function main() {
 
   // Handle graceful shutdown
   process.on('SIGINT', async () => {
-    console.log('Shutting down...');
     timerService.stop();
     await closePool();
     client.destroy();
@@ -109,7 +98,6 @@ async function main() {
   });
 
   process.on('SIGTERM', async () => {
-    console.log('Shutting down...');
     timerService.stop();
     await closePool();
     client.destroy();

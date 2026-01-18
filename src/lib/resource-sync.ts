@@ -164,10 +164,9 @@ export class ResourceSyncService {
   ): Promise<void> {
     try {
       // Check if we should sync this file
-      const { sync, reason } = this.shouldSyncFile(file);
+      const { sync } = this.shouldSyncFile(file);
       if (!sync) {
         stats.filesSkipped++;
-        console.log(`Skipping ${file.name}: ${reason}`);
         return;
       }
 
@@ -179,7 +178,6 @@ export class ResourceSyncService {
 
         if (driveModified <= lastSynced) {
           stats.filesSkipped++;
-          console.log(`Skipping ${file.name}: Already up to date`);
           return;
         }
       }
@@ -191,7 +189,6 @@ export class ResourceSyncService {
 
       if (isGoogleDoc && !file.mimeType.includes('folder') && !file.mimeType.includes('shortcut')) {
         // Export Google Workspace file
-        console.log(`Exporting ${file.name}...`);
         fileBuffer = await this.driveClient.exportFile(file.id, file.mimeType);
 
         // Update mime type based on export format
@@ -202,7 +199,6 @@ export class ResourceSyncService {
         }
       } else {
         // Download regular file
-        console.log(`Downloading ${file.name}...`);
         fileBuffer = await this.driveClient.downloadFile(file.id);
       }
 
@@ -235,8 +231,6 @@ export class ResourceSyncService {
       } else {
         stats.filesDownloaded++;
       }
-
-      console.log(`✓ ${metadata ? 'Updated' : 'Downloaded'} ${sanitizedName} (${(fileBuffer.length / 1024).toFixed(2)} KB)`);
     } catch (error) {
       console.error(`Failed to download ${file.name}:`, error);
       stats.errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -296,7 +290,6 @@ export class ResourceSyncService {
             );
 
             stats.filesDeleted++;
-            console.log(`✓ Deleted orphaned file: ${metadata.file_name}`);
           } catch (error) {
             console.error(`Failed to delete ${metadata.file_name}:`, error);
           }
@@ -333,21 +326,16 @@ export class ResourceSyncService {
         throw new Error('GOOGLE_DRIVE_COMMUNITY_FOLDER_ID not set');
       }
 
-      console.log('Starting Google Drive sync...');
-
       // Ensure base storage directory exists
       await this.ensureStorageDirectory(this.LOCAL_STORAGE_PATH);
 
       // Get folder structure
-      console.log('Fetching folder structure...');
       const folderStructure = await this.driveClient.getFolderStructure(folderId, 'Community');
 
       // Sync all files and folders
-      console.log('Syncing files...');
       await this.syncFolder(folderStructure, this.LOCAL_STORAGE_PATH, stats);
 
       // Clean up orphaned files
-      console.log('Cleaning up orphaned files...');
       await this.cleanupOrphanedFiles(folderId, stats);
 
       // Update last sync time in database
@@ -367,10 +355,6 @@ export class ResourceSyncService {
       );
 
       stats.duration = Date.now() - startTime;
-      console.log('Sync completed!');
-      console.log(`Downloaded: ${stats.filesDownloaded}, Updated: ${stats.filesUpdated}, Skipped: ${stats.filesSkipped}, Deleted: ${stats.filesDeleted}`);
-      console.log(`Total size: ${(stats.totalSize / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`Duration: ${(stats.duration / 1000).toFixed(2)}s`);
 
       return stats;
     } catch (error) {

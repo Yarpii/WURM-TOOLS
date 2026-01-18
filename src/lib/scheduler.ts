@@ -15,33 +15,26 @@ class TaskScheduler {
    */
   start() {
     if (this.running) {
-      console.log('Scheduler already running');
       return;
     }
 
     this.running = true;
-    console.log('Starting background scheduler...');
 
     // Schedule Google Drive sync if enabled
     if (process.env.DRIVE_SYNC_AUTO_ENABLED === 'true') {
       this.scheduleGoogleDriveSync();
     }
-
-    console.log('Background scheduler started');
   }
 
   /**
    * Stop all scheduled tasks
    */
   stop() {
-    console.log('Stopping background scheduler...');
-    this.intervals.forEach((interval, task) => {
+    this.intervals.forEach((interval) => {
       clearInterval(interval);
-      console.log(`Stopped task: ${task}`);
     });
     this.intervals.clear();
     this.running = false;
-    console.log('Background scheduler stopped');
   }
 
   /**
@@ -51,21 +44,16 @@ class TaskScheduler {
     const syncService = getResourceSyncService();
 
     if (!syncService.isConfigured()) {
-      console.log('Google Drive sync not configured, skipping scheduler');
       return;
     }
 
     const intervalHours = parseInt(process.env.DRIVE_SYNC_INTERVAL_HOURS || '6');
     const intervalMs = intervalHours * 60 * 60 * 1000;
 
-    console.log(`Scheduling Google Drive sync every ${intervalHours} hours`);
-
     // Run initial sync after 1 minute (to allow server to fully start)
     setTimeout(async () => {
-      console.log('Running initial Google Drive sync...');
       try {
-        const stats = await syncService.syncAll();
-        console.log(`Initial sync completed: ${stats.filesDownloaded} downloaded, ${stats.filesUpdated} updated`);
+        await syncService.syncAll();
       } catch (error) {
         console.error('Initial sync failed:', error);
       }
@@ -73,10 +61,8 @@ class TaskScheduler {
 
     // Schedule periodic sync
     const interval = setInterval(async () => {
-      console.log('Running scheduled Google Drive sync...');
       try {
-        const stats = await syncService.syncAll();
-        console.log(`Scheduled sync completed: ${stats.filesDownloaded} downloaded, ${stats.filesUpdated} updated`);
+        await syncService.syncAll();
       } catch (error) {
         console.error('Scheduled sync failed:', error);
       }
@@ -114,12 +100,10 @@ if (
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
-    console.log('SIGTERM received, stopping scheduler...');
     autoScheduler.stop();
   });
 
   process.on('SIGINT', () => {
-    console.log('SIGINT received, stopping scheduler...');
     autoScheduler.stop();
   });
 }

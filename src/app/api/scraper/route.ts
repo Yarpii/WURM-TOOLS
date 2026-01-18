@@ -253,7 +253,6 @@ async function fetchWithRetry(
       if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
         if (attempt < MAX_RETRIES) {
           const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-          console.log(`[Scraper] Got ${res.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
           await new Promise((r) => setTimeout(r, delay));
           retries++;
           continue;
@@ -278,7 +277,6 @@ async function fetchWithRetry(
       // Network errors - retry with backoff
       if (attempt < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-        console.log(`[Scraper] Network error, retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
         await new Promise((r) => setTimeout(r, delay));
         retries++;
         continue;
@@ -509,12 +507,10 @@ async function scrapeCategory(
 
   // Use MediaWiki API for bulk category fetching
   const catName = category.urls[0].split("Category:")[1];
-  console.log(`[Scraper] Fetching category members via MediaWiki API: ${catName}`);
 
   let allItems: string[];
   try {
     allItems = await fetchCategoryMembers(catName);
-    console.log(`[Scraper] Found ${allItems.length} items in category ${categoryKey}`);
   } catch (error) {
     errors.push(`Failed to fetch category: ${error}`);
     return { items, errors, skippedItems, apiCallsSaved, cacheHits, retries: totalRetries };
@@ -531,7 +527,6 @@ async function scrapeCategory(
     );
     if (resumeIndex >= 0) {
       startIndex = resumeIndex + 1;
-      console.log(`[Scraper] Resuming from item ${startIndex}/${itemsToProcess.length}: ${resumeFrom}`);
     }
   }
 
@@ -586,7 +581,6 @@ async function scrapeCategory(
       if (fetchResult.notModified) {
         cacheHits++;
         skippedItems.push(itemName);
-        console.log(`[Scraper] Cache hit (304): ${itemName}`);
         continue;
       }
 

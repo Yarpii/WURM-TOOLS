@@ -32,15 +32,6 @@ const AUTH_RATE_LIMIT_MAX = 10; // stricter limit for auth endpoints
 // In-memory rate limit store (fallback for development/single instance)
 const inMemoryStore = new Map<string, { count: number; resetTime: number }>();
 
-/**
- * Check if Redis is configured for rate limiting.
- * To enable Redis rate limiting:
- * 1. Install ioredis: npm install ioredis
- * 2. Set REDIS_URL environment variable
- * 3. Uncomment the Redis implementation in checkRateLimitRedis
- */
-const REDIS_ENABLED = !!process.env.REDIS_URL;
-
 function getRateLimitKey(request: NextRequest): string {
   // Use IP address or forwarded IP
   const forwarded = request.headers.get("x-forwarded-for");
@@ -79,47 +70,13 @@ function checkRateLimitInMemory(key: string, maxRequests: number): boolean {
 }
 
 /**
- * Redis-based rate limit check (for production with multiple instances)
- *
- * To enable:
- * 1. npm install ioredis
- * 2. Uncomment the implementation below
- * 3. Set REDIS_URL environment variable
- */
-// import Redis from 'ioredis';
-// let redis: Redis | null = null;
-// function getRedis(): Redis {
-//   if (!redis && process.env.REDIS_URL) {
-//     redis = new Redis(process.env.REDIS_URL);
-//   }
-//   return redis!;
-// }
-// async function checkRateLimitRedis(key: string, maxRequests: number): Promise<boolean> {
-//   const client = getRedis();
-//   const redisKey = `ratelimit:${key}`;
-//   const current = await client.incr(redisKey);
-//   if (current === 1) {
-//     await client.expire(redisKey, RATE_LIMIT_WINDOW_SECONDS);
-//   }
-//   return current <= maxRequests;
-// }
-
-/**
  * Check rate limit using configured backend
- * Uses in-memory store by default, Redis when REDIS_URL is set
+ *
+ * Note: For production with multiple instances, consider using:
+ * - Redis-based rate limiting (requires ioredis package)
+ * - External rate limiting (Cloudflare, AWS WAF, Nginx)
  */
 function checkRateLimit(key: string, maxRequests: number): boolean {
-  // For now, always use in-memory (sync)
-  // When Redis is enabled, this would need to be async
-  // and the middleware would need to handle promises
-  if (REDIS_ENABLED) {
-    // Log warning in development that Redis is configured but not implemented
-    // In production, you would use the async Redis implementation
-    console.warn(
-      "[Rate Limit] REDIS_URL is set but Redis rate limiting requires async implementation. " +
-      "Using in-memory fallback. See proxy.ts for Redis implementation instructions."
-    );
-  }
   return checkRateLimitInMemory(key, maxRequests);
 }
 
