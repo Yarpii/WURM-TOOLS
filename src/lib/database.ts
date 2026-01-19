@@ -5879,7 +5879,7 @@ export async function getArchaeologyPinpoints(
     SELECT
       ap.*,
       u.username,
-      v.verified_username as verified_by_username,
+      v.username as verified_by_username,
       uv.vote_type as user_vote
     FROM archaeology_pinpoints ap
     LEFT JOIN users u ON ap.user_id = u.id
@@ -5926,12 +5926,9 @@ export async function getArchaeologyPinpoints(
 
   sql += " ORDER BY ap.created_at DESC";
 
-  const result = await query<ArchaeologyPinpoint & { verified_username?: string }>(sql, params);
+  const result = await query<ArchaeologyPinpoint & { verified_by_username?: string }>(sql, params);
 
-  return result.rows.map(row => ({
-    ...row,
-    verified_by_username: row.verified_username,
-  }));
+  return result.rows;
 }
 
 /**
