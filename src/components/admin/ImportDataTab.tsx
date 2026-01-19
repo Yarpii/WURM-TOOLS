@@ -5,31 +5,14 @@ import type {
   WurmpediaRecipe,
   WurmpediaImportResult,
   WurmpediaImportLog,
+  WurmpediaStats,
+  BulkActivationStats,
 } from "@/lib/types";
 import type { DataStats } from "./types";
 
 interface ImportDataTabProps {
   onDataChange: () => void;
   showMessage: (type: "success" | "error", text: string) => void;
-}
-
-interface WurmpediaStats {
-  total_recipes: number;
-  cooking_recipes: number;
-  improvable_recipes: number;
-  recipes_with_materials: number;
-  unique_skills: number;
-  unique_categories: number;
-  by_type: Record<string, number>;
-}
-
-interface BulkActivationStats {
-  total_recipes: number;
-  with_materials: number;
-  activated: number;
-  not_activated: number;
-  by_skill: Array<{ skill: string; total: number; activated: number }>;
-  by_type: Array<{ recipe_type: string; total: number; activated: number }>;
 }
 
 type SubTab = "overview" | "import" | "browse" | "activate";
@@ -39,6 +22,8 @@ export default function ImportDataTab({
   showMessage,
 }: ImportDataTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>("overview");
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [recipesLoading, setRecipesLoading] = useState(false);
 
   // Calculator data stats
   const [dataStats, setDataStats] = useState<DataStats | null>(null);
@@ -109,13 +94,18 @@ export default function ImportDataTab({
   }, [searchTerm, activeSubTab]);
 
   const loadAllStats = async () => {
-    await Promise.all([
-      loadDataStats(),
-      loadWurmpediaStats(),
-      loadImportLogs(),
-      loadSkills(),
-      loadBulkStats(),
-    ]);
+    setInitialLoading(true);
+    try {
+      await Promise.all([
+        loadDataStats(),
+        loadWurmpediaStats(),
+        loadImportLogs(),
+        loadSkills(),
+        loadBulkStats(),
+      ]);
+    } finally {
+      setInitialLoading(false);
+    }
   };
 
   const loadDataStats = async () => {
@@ -177,6 +167,7 @@ export default function ImportDataTab({
   };
 
   const loadRecipes = useCallback(async () => {
+    setRecipesLoading(true);
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -197,6 +188,8 @@ export default function ImportDataTab({
       }
     } catch (err) {
       console.error("Failed to load recipes:", err);
+    } finally {
+      setRecipesLoading(false);
     }
   }, [currentPage, searchTerm, selectedSkill, selectedType, hasMaterials, showActivated]);
 
@@ -366,6 +359,7 @@ export default function ImportDataTab({
           result.message || `"${recipe.name}" activated for calculator!`
         );
         loadBulkStats();
+        loadRecipes(); // Refresh browse list to show "Activated" badge
         onDataChange();
       } else {
         showMessage("error", result.error || "Failed to activate recipe");
@@ -468,13 +462,22 @@ export default function ImportDataTab({
 
       {/* Overview Tab */}
       {activeSubTab === "overview" && (
-        <OverviewContent
-          dataStats={dataStats}
-          wurmpediaStats={wurmpediaStats}
-          bulkStats={bulkStats}
-          reloading={reloading}
-          onReloadExtended={reloadExtendedData}
-        />
+        initialLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex items-center gap-3 text-text-secondary">
+              <span className="animate-spin text-2xl">&#9881;</span>
+              <span className="text-lg">Loading data...</span>
+            </div>
+          </div>
+        ) : (
+          <OverviewContent
+            dataStats={dataStats}
+            wurmpediaStats={wurmpediaStats}
+            bulkStats={bulkStats}
+            reloading={reloading}
+            onReloadExtended={reloadExtendedData}
+          />
+        )
       )}
 
       {/* Import Tab */}
@@ -508,6 +511,7 @@ export default function ImportDataTab({
           recipeTypes={recipeTypes}
           selectedRecipe={selectedRecipe}
           activating={activating}
+          loading={recipesLoading}
           onSearchChange={setSearchTerm}
           onSkillChange={(v) => {
             setSelectedSkill(v);
@@ -901,6 +905,7 @@ function BrowseContent({
   recipeTypes,
   selectedRecipe,
   activating,
+  loading,
   onSearchChange,
   onSkillChange,
   onTypeChange,
@@ -924,6 +929,7 @@ function BrowseContent({
   recipeTypes: Array<{ value: string; label: string }>;
   selectedRecipe: WurmpediaRecipe | null;
   activating: number | null;
+  loading: boolean;
   onSearchChange: (v: string) => void;
   onSkillChange: (v: string) => void;
   onTypeChange: (v: string) => void;
@@ -1017,7 +1023,17 @@ function BrowseContent({
 
         {/* Recipe List */}
         <div className="bg-bg-secondary rounded-xl border border-border overflow-hidden">
-          <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
+          <div className="divide-y divide-border max-h-[600px] overflow-y-auto relative">
+            {/* Loading overlay */}
+            {loading && (
+              <div className="absolute inset-0 bg-bg-secondary/80 flex items-center justify-center z-10">
+                <div className="flex items-center gap-2 text-text-secondary">
+                  <span className="animate-spin text-xl">&#9881;</span>
+                  <span>Loading recipes...</span>
+                </div>
+              </div>
+            )}
+
             {recipes.map((recipe) => (
               <RecipeListItem
                 key={recipe.id}
@@ -1030,7 +1046,7 @@ function BrowseContent({
               />
             ))}
 
-            {recipes.length === 0 && (
+            {recipes.length === 0 && !loading && (
               <div className="p-12 text-center">
                 <div className="text-5xl mb-4 opacity-20">&#128214;</div>
                 <h3 className="text-lg text-text-secondary mb-2">No Recipes Found</h3>
