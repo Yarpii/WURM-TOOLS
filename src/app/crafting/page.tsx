@@ -181,6 +181,132 @@ export default function CraftingPage() {
         {activeTab === "tree" && <CraftingTree items={items} />}
         {activeTab === "session" && <SessionPlanner items={items} />}
         {activeTab === "suggestions" && <RecipeSuggestions items={items} />}
+
+        {/* Feature Sections */}
+        <div className="mt-16 space-y-16">
+          {/* Master Your Craft */}
+          <div>
+            <h2 className="text-2xl font-bold text-center mb-8">Master Your Craft</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-600/20 to-orange-600/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+                <div className="relative bg-bg-secondary border border-border rounded-xl p-6 hover:border-amber-500/50 transition-all duration-300">
+                  <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Material Calculator</h3>
+                  <p className="text-text-secondary text-sm">Calculate exact material requirements for any craftable item, with recipe or full base material views.</p>
+                </div>
+              </div>
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-red-600/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+                <div className="relative bg-bg-secondary border border-border rounded-xl p-6 hover:border-orange-500/50 transition-all duration-300">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Advanced Predictions</h3>
+                  <p className="text-text-secondary text-sm">Get success rates, quality predictions, and time estimates based on your skill level and tools.</p>
+                </div>
+              </div>
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-600/20 to-rose-600/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+                <div className="relative bg-bg-secondary border border-border rounded-xl p-6 hover:border-red-500/50 transition-all duration-300">
+                  <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Skill Optimizer</h3>
+                  <p className="text-text-secondary text-sm">Find the optimal items to craft for maximum skill gain and train efficiently to your target level.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Crafting Tips */}
+          <div className="bg-bg-secondary border border-border rounded-xl p-8">
+            <h2 className="text-xl font-semibold mb-6 text-center">Crafting Tips</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-text-secondary text-sm">Aim for 40-60% success rate to maximize skill gains per action</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-text-secondary text-sm">Higher quality tools increase your success chance and result quality</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-text-secondary text-sm">Sleep bonus doubles skill gain - use it wisely on difficult crafts</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-text-secondary text-sm">Material quality caps the maximum quality of your finished item</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-text-secondary text-sm">Circle of Cunning enchantments boost skill gain while crafting</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-text-secondary text-sm">Wind of Ages speeds up crafting actions significantly</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Related Tools */}
+          <div>
+            <h2 className="text-xl font-semibold mb-6 text-center">Explore More Tools</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Link href="/prices" className="block bg-bg-secondary border border-border rounded-xl p-6 hover:border-amber-500/50 transition-all duration-300 hover:scale-105">
+                <h3 className="font-semibold mb-2">Price Guide</h3>
+                <p className="text-text-secondary text-sm">Check material costs and plan your crafting budget.</p>
+              </Link>
+              <Link href="/merchants" className="block bg-bg-secondary border border-border rounded-xl p-6 hover:border-amber-500/50 transition-all duration-300 hover:scale-105">
+                <h3 className="font-semibold mb-2">Merchants</h3>
+                <p className="text-text-secondary text-sm">Find merchants selling the materials you need.</p>
+              </Link>
+              <Link href="/projects" className="block bg-bg-secondary border border-border rounded-xl p-6 hover:border-amber-500/50 transition-all duration-300 hover:scale-105">
+                <h3 className="font-semibold mb-2">Projects</h3>
+                <p className="text-text-secondary text-sm">Track large crafting projects and material progress.</p>
+              </Link>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div className="text-center py-8">
+            <p className="text-text-secondary mb-4">
+              Missing a recipe? Help the community by submitting it!
+            </p>
+            <Link
+              href="/recipes/submit"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-300 hover:scale-105"
+            >
+              Submit a Recipe
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
