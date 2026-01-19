@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import Link from "next/link";
 import type { TradeMatch, UserReputation, BarterSuggestion, MatchStatus } from "@/lib/types";
 
 type TabType = "matches" | "suggestions" | "reputation";
@@ -432,6 +433,293 @@ export default function TradesPage() {
           </div>
         </div>
       )}
+
+      {/* ========== FEATURE SECTIONS BELOW MAIN CONTENT ========== */}
+
+      {/* How It Works Section */}
+      <section className="mt-16 pt-16 border-t border-border">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-sm font-medium mb-4">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            Smart Matching
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold text-text-primary mb-4">
+            How Trade Matching Works
+          </h2>
+          <p className="text-text-secondary max-w-2xl mx-auto">
+            Our matching system automatically finds perfect trades between buyers and sellers, saving you time and effort.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Step 1 */}
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-rose-600 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur-lg" />
+            <div className="relative bg-bg-secondary rounded-xl border border-border p-6 hover:border-pink-500/50 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white text-xl font-bold mb-4">
+                1
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Create Orders</h3>
+              <p className="text-text-secondary text-sm">
+                List what you want to buy or sell in the Marketplace. Include item details, quantity, and your preferred price.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-rose-600 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur-lg" />
+            <div className="relative bg-bg-secondary rounded-xl border border-border p-6 hover:border-pink-500/50 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white text-xl font-bold mb-4">
+                2
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Get Matched</h3>
+              <p className="text-text-secondary text-sm">
+                Our system automatically finds compatible trades. You'll see a match score showing how well the orders align.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-rose-600 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur-lg" />
+            <div className="relative bg-bg-secondary rounded-xl border border-border p-6 hover:border-pink-500/50 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white text-xl font-bold mb-4">
+                3
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Complete & Rate</h3>
+              <p className="text-text-secondary text-sm">
+                Contact your match, complete the trade in-game, then rate each other to build your trading reputation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Build Reputation Section */}
+      <section className="mt-16 pt-16 border-t border-border">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left: Content */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-medium mb-4">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+              Reputation System
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-text-primary mb-4">
+              Build Your Trading Reputation
+            </h2>
+            <p className="text-text-secondary mb-8">
+              Your reputation is your trading passport. Good ratings attract more traders and better deals.
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex gap-4 p-4 bg-bg-secondary rounded-xl border border-border hover:border-yellow-500/30 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-yellow-500/10 text-yellow-400 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-text-primary mb-1">Complete Trades Honestly</h4>
+                  <p className="text-sm text-text-muted">Deliver what you promise. Honest trading leads to positive reviews.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 p-4 bg-bg-secondary rounded-xl border border-border hover:border-yellow-500/30 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-yellow-500/10 text-yellow-400 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-text-primary mb-1">Respond Quickly</h4>
+                  <p className="text-sm text-text-muted">Fast responses show you're reliable. Don't leave matches waiting.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 p-4 bg-bg-secondary rounded-xl border border-border hover:border-yellow-500/30 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-yellow-500/10 text-yellow-400 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-text-primary mb-1">Communicate Clearly</h4>
+                  <p className="text-sm text-text-muted">Clear communication prevents misunderstandings and disputes.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Visual */}
+          <div className="relative">
+            <div className="absolute -inset-4 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-3xl blur-2xl" />
+            <div className="relative bg-bg-secondary rounded-2xl border border-border p-8 overflow-hidden">
+              {/* Decorative pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute inset-0" style={{
+                  backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+                  backgroundSize: "24px 24px",
+                }} />
+              </div>
+
+              <div className="relative text-center">
+                <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center text-white mb-6 shadow-2xl">
+                  <span className="text-4xl">★</span>
+                </div>
+
+                <div className="space-y-4 text-left">
+                  <div className="flex items-center justify-between p-3 bg-bg-tertiary rounded-lg">
+                    <span className="text-text-secondary text-sm">5-Star Rating</span>
+                    <span className="text-yellow-400 font-semibold">★★★★★</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-bg-tertiary rounded-lg">
+                    <span className="text-text-secondary text-sm">Completed Trades</span>
+                    <span className="text-success font-semibold">Track Record</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-bg-tertiary rounded-lg">
+                    <span className="text-text-secondary text-sm">Match Success</span>
+                    <span className="text-accent font-medium">Higher Priority</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Related Tools Section */}
+      <section className="mt-16 pt-16 border-t border-border">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl font-bold text-text-primary mb-3">
+            Your Trading Ecosystem
+          </h2>
+          <p className="text-text-secondary">
+            Use these tools together with Trade Matching for the complete experience
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Marketplace */}
+          <Link
+            href="/market"
+            className="group relative p-6 bg-bg-secondary rounded-xl border border-border hover:border-violet-500/50 transition-all hover:translate-y-[-4px]"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 to-purple-600 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity blur-lg" />
+            <div className="relative">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2 group-hover:text-violet-400 transition-colors">
+                Marketplace
+              </h3>
+              <p className="text-text-secondary text-sm mb-4">
+                Create buy and sell orders. This is where matches come from!
+              </p>
+              <span className="inline-flex items-center gap-2 text-violet-400 text-sm font-medium">
+                Create Orders
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </span>
+            </div>
+          </Link>
+
+          {/* Analytics */}
+          <Link
+            href="/analytics"
+            className="group relative p-6 bg-bg-secondary rounded-xl border border-border hover:border-rose-500/50 transition-all hover:translate-y-[-4px]"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-rose-500 to-pink-600 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity blur-lg" />
+            <div className="relative">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2 group-hover:text-rose-400 transition-colors">
+                Market Analytics
+              </h3>
+              <p className="text-text-secondary text-sm mb-4">
+                Track market trends and set price alerts for better trading decisions.
+              </p>
+              <span className="inline-flex items-center gap-2 text-rose-400 text-sm font-medium">
+                View Trends
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </span>
+            </div>
+          </Link>
+
+          {/* Price Guide */}
+          <Link
+            href="/prices"
+            className="group relative p-6 bg-bg-secondary rounded-xl border border-border hover:border-emerald-500/50 transition-all hover:translate-y-[-4px]"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity blur-lg" />
+            <div className="relative">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2 group-hover:text-emerald-400 transition-colors">
+                Price Guide
+              </h3>
+              <p className="text-text-secondary text-sm mb-4">
+                Know fair prices before accepting or declining a match.
+              </p>
+              <span className="inline-flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                Check Prices
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </span>
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="mt-16 pt-16 border-t border-border pb-8">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500/10 to-rose-600/10 border border-pink-500/20 p-8 md:p-12">
+          {/* Background decoration */}
+          <div className="absolute -right-24 -top-24 w-64 h-64 bg-gradient-to-br from-pink-500 to-rose-600 rounded-full opacity-10 blur-3xl" />
+          <div className="absolute -left-24 -bottom-24 w-48 h-48 bg-gradient-to-br from-rose-500 to-red-600 rounded-full opacity-10 blur-3xl" />
+
+          <div className="relative text-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white mx-auto mb-6 shadow-lg shadow-pink-500/25">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl md:text-3xl font-bold text-text-primary mb-4">
+              Ready to Find Your Match?
+            </h2>
+            <p className="text-text-secondary mb-8">
+              Create your first order in the Marketplace and let our smart matching system find compatible traders for you!
+            </p>
+
+            <Link
+              href="/market"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-rose-700 transition-all hover:scale-105 shadow-lg shadow-pink-500/25"
+            >
+              Go to Marketplace
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Rating Modal */}
       {ratingMatch && (
