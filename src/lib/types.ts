@@ -1278,6 +1278,7 @@ export interface WurmpediaRecipeFilters {
   has_materials?: boolean;
   can_improve?: boolean;
   category?: string;
+  activated?: boolean;
 }
 
 // ========== COOKING SYSTEM ==========
