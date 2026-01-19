@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS discord_webhooks (
     notify_matches BOOLEAN DEFAULT TRUE,
     notify_price_alerts BOOLEAN DEFAULT TRUE,
     notify_alliance BOOLEAN DEFAULT FALSE,
+    notify_timers BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_discord_webhooks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

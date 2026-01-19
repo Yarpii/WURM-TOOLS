@@ -11,12 +11,15 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     password_hash VARCHAR(255) NOT NULL,
     salt VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'user',
     display_name VARCHAR(100),
     bio TEXT,
     avatar_url VARCHAR(500),
+    discord_id VARCHAR(20) UNIQUE,
     banner_url VARCHAR(500),
     location VARCHAR(100),
     wurm_server VARCHAR(50),
@@ -33,6 +36,8 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT fk_users_banned_by FOREIGN KEY (banned_by) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT chk_users_role CHECK (role IN ('admin', 'user'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_users_discord ON users(discord_id);
 
 CREATE TABLE IF NOT EXISTS sessions (
     id VARCHAR(255) PRIMARY KEY,
