@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import type { WurmEvent, EventType, AttendeeStatus, WurmServer } from "@/lib/types";
 
@@ -635,6 +636,249 @@ export default function EventsPage() {
             </a>
           </div>
         )}
+
+        {/* ============================================ */}
+        {/* Feature Sections - Events Theme */}
+        {/* ============================================ */}
+
+        {/* Section 1: Event Types */}
+        <div className="mt-20 mb-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-fuchsia-100 mb-4">
+              Never Miss a Wurm Event
+            </h2>
+            <p className="text-stone-400 max-w-2xl mx-auto">
+              From massive Impalongs to intense Unique hunts, Wurm Online has events for every playstyle.
+              Track them all in one place and join the fun!
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Type 1: Impalong */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-yellow-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50"></div>
+              <div className="relative bg-stone-800/80 backdrop-blur-sm rounded-2xl p-6 border border-amber-500/20 hover:border-amber-500/40 transition-all duration-300 h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-amber-500/25">
+                  <span className="text-2xl">🔨</span>
+                </div>
+                <h3 className="text-lg font-semibold text-amber-100 mb-2">Impalongs</h3>
+                <p className="text-stone-400 text-sm">
+                  Community improvement events where skilled crafters help improve your gear.
+                  Bring items to get them imped to high quality!
+                </p>
+              </div>
+            </div>
+
+            {/* Type 2: Rifts */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 to-purple-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50"></div>
+              <div className="relative bg-stone-800/80 backdrop-blur-sm rounded-2xl p-6 border border-violet-500/20 hover:border-violet-500/40 transition-all duration-300 h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-violet-500/25">
+                  <span className="text-2xl">🌀</span>
+                </div>
+                <h3 className="text-lg font-semibold text-violet-100 mb-2">Rifts</h3>
+                <p className="text-stone-400 text-sm">
+                  Fight waves of enemies from other dimensions! Earn points for unique rewards
+                  including shoulder pads and rift materials.
+                </p>
+              </div>
+            </div>
+
+            {/* Type 3: Uniques */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-orange-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50"></div>
+              <div className="relative bg-stone-800/80 backdrop-blur-sm rounded-2xl p-6 border border-red-500/20 hover:border-red-500/40 transition-all duration-300 h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-red-500/25">
+                  <span className="text-2xl">🐉</span>
+                </div>
+                <h3 className="text-lg font-semibold text-red-100 mb-2">Unique Hunts</h3>
+                <p className="text-stone-400 text-sm">
+                  Epic battles against dragons, forest giants, and other unique creatures.
+                  Participants share in valuable loot like drake hide and scale!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Community Tips */}
+        <div className="mb-16">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-900/30 via-pink-900/20 to-fuchsia-900/30 rounded-3xl"></div>
+            <div className="relative bg-stone-800/40 backdrop-blur-sm rounded-3xl p-8 border border-fuchsia-500/10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-fuchsia-500/20 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-fuchsia-100">Event Participation Tips</h3>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-pink-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-fuchsia-200 font-medium">Arrive Early</h4>
+                      <p className="text-stone-400 text-sm">Popular events fill up fast! Get there early to secure a spot, especially for Impalongs.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-pink-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-fuchsia-200 font-medium">Check Time Zones</h4>
+                      <p className="text-stone-400 text-sm">Wurm has players worldwide. Double-check event times match your local timezone.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-pink-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-fuchsia-200 font-medium">Bring Supplies</h4>
+                      <p className="text-stone-400 text-sm">For combat events, bring food, bandages, and backup gear. For Impalongs, label your items!</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-fuchsia-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-fuchsia-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-fuchsia-200 font-medium">Join Discord</h4>
+                      <p className="text-stone-400 text-sm">Many events coordinate through Discord. Join the server&apos;s community for real-time updates.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-fuchsia-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-fuchsia-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-fuchsia-200 font-medium">RSVP Helps Organizers</h4>
+                      <p className="text-stone-400 text-sm">Mark your attendance so hosts can prepare enough space and resources for everyone.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-fuchsia-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-fuchsia-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-fuchsia-200 font-medium">Host Your Own!</h4>
+                      <p className="text-stone-400 text-sm">Have a skill to share? Consider hosting your own event - the community loves new organizers!</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Related Tools */}
+        <div className="mb-16">
+          <h3 className="text-xl font-bold text-fuchsia-100 mb-6 text-center">Explore More Tools</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            <Link href="/map" className="group">
+              <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-700 hover:border-fuchsia-500/50 transition-all duration-300 hover:bg-stone-800/70">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-green-500/20 rounded-lg group-hover:bg-green-500/30 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                    </svg>
+                  </div>
+                  <h4 className="font-semibold text-stone-200 group-hover:text-green-300 transition-colors">Interactive Map</h4>
+                </div>
+                <p className="text-sm text-stone-400">Find event locations and navigate to them on the interactive map.</p>
+              </div>
+            </Link>
+
+            <Link href="/merchants" className="group">
+              <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-700 hover:border-fuchsia-500/50 transition-all duration-300 hover:bg-stone-800/70">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
+                    </svg>
+                  </div>
+                  <h4 className="font-semibold text-stone-200 group-hover:text-blue-300 transition-colors">Merchant Finder</h4>
+                </div>
+                <p className="text-sm text-stone-400">Shop for gear and supplies before heading to your next event.</p>
+              </div>
+            </Link>
+
+            <Link href="/trades" className="group">
+              <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-700 hover:border-fuchsia-500/50 transition-all duration-300 hover:bg-stone-800/70">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-pink-500/20 rounded-lg group-hover:bg-pink-500/30 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>
+                  </div>
+                  <h4 className="font-semibold text-stone-200 group-hover:text-pink-300 transition-colors">Trade History</h4>
+                </div>
+                <p className="text-sm text-stone-400">Check trader ratings before buying from event vendors.</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Section 4: Call to Action */}
+        <div className="mb-8">
+          <div className="relative overflow-hidden rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600/20 via-pink-500/20 to-purple-600/20"></div>
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+            <div className="relative px-8 py-12 text-center">
+              <h3 className="text-2xl font-bold text-fuchsia-100 mb-4">
+                Ready to Join the Fun?
+              </h3>
+              <p className="text-stone-300 mb-6 max-w-xl mx-auto">
+                {user
+                  ? "Create your own event or RSVP to upcoming gatherings. The Wurm community is waiting!"
+                  : "Sign in to create events, RSVP to gatherings, and never miss a community happening."
+                }
+              </p>
+              {user ? (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-400 hover:to-pink-400 text-white font-semibold rounded-xl shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition-all duration-300 hover:scale-105"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Create an Event
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-400 hover:to-pink-400 text-white font-semibold rounded-xl shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition-all duration-300 hover:scale-105"
+                >
+                  Sign In to Get Started
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
