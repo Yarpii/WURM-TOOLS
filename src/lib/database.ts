@@ -5089,6 +5089,14 @@ export async function getWurmpediaRecipes(
     params.push(JSON.stringify(filters.category));
   }
 
+  if (filters?.activated !== undefined) {
+    if (filters.activated) {
+      whereClause += " AND activated_at IS NOT NULL";
+    } else {
+      whereClause += " AND activated_at IS NULL";
+    }
+  }
+
   // Count total
   const countResult = await query<{ count: number }>(
     `SELECT COUNT(*) as count FROM wurmpedia_recipes ${whereClause}`,

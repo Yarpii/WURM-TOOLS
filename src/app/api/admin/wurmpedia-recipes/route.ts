@@ -101,6 +101,9 @@ export async function GET(request: NextRequest) {
     if (searchParams.has("category")) {
       filters.category = searchParams.get("category") || undefined;
     }
+    if (searchParams.has("activated")) {
+      filters.activated = searchParams.get("activated") === "true";
+    }
 
     // Pagination
     const page = parseInt(searchParams.get("page") || "1");

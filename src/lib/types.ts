@@ -1278,6 +1278,26 @@ export interface WurmpediaRecipeFilters {
   has_materials?: boolean;
   can_improve?: boolean;
   category?: string;
+  activated?: boolean;
+}
+
+export interface WurmpediaStats {
+  total_recipes: number;
+  cooking_recipes: number;
+  improvable_recipes: number;
+  recipes_with_materials: number;
+  unique_skills: number;
+  unique_categories: number;
+  by_type: Record<string, number>;
+}
+
+export interface BulkActivationStats {
+  total_recipes: number;
+  with_materials: number;
+  activated: number;
+  not_activated: number;
+  by_skill: Array<{ skill: string; total: number; activated: number }>;
+  by_type: Array<{ recipe_type: string; total: number; activated: number }>;
 }
 
 // ========== COOKING SYSTEM ==========

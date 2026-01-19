@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Item } from "@/lib/types";
 import AdminGuard from "@/components/AdminGuard";
-import { ItemsTab, RecipesTab, MembersTab, DataTab, SubmissionsTab, WurmpediaTab, Recipe } from "@/components/admin";
+import { ItemsTab, RecipesTab, MembersTab, SubmissionsTab, ImportDataTab, Recipe } from "@/components/admin";
 
-type TabType = "items" | "recipes" | "members" | "data" | "submissions" | "wurmpedia";
+type TabType = "items" | "recipes" | "members" | "import" | "submissions";
 
 function AdminContent() {
   const [items, setItems] = useState<Item[]>([]);
@@ -107,10 +107,10 @@ function AdminContent() {
           Roles & Permissions
         </Link>
         <TabButton
-          active={activeTab === "data"}
-          onClick={() => setActiveTab("data")}
+          active={activeTab === "import"}
+          onClick={() => setActiveTab("import")}
         >
-          Data
+          Import Data
         </TabButton>
         <TabButton
           active={activeTab === "submissions"}
@@ -118,12 +118,6 @@ function AdminContent() {
           badge={pendingSubmissionsCount > 0 ? pendingSubmissionsCount : undefined}
         >
           Submissions
-        </TabButton>
-        <TabButton
-          active={activeTab === "wurmpedia"}
-          onClick={() => setActiveTab("wurmpedia")}
-        >
-          Wurmpedia Import
         </TabButton>
       </div>
 
@@ -148,8 +142,8 @@ function AdminContent() {
 
       {activeTab === "members" && <MembersTab showMessage={showMessage} />}
 
-      {activeTab === "data" && (
-        <DataTab onDataChange={loadData} showMessage={showMessage} />
+      {activeTab === "import" && (
+        <ImportDataTab onDataChange={loadData} showMessage={showMessage} />
       )}
 
       {activeTab === "submissions" && (
@@ -158,10 +152,6 @@ function AdminContent() {
           showMessage={showMessage}
           onPendingCountChange={setPendingSubmissionsCount}
         />
-      )}
-
-      {activeTab === "wurmpedia" && (
-        <WurmpediaTab showMessage={showMessage} />
       )}
     </div>
   );
