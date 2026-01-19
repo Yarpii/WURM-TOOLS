@@ -566,6 +566,249 @@ export default function ResourcesPage() {
           ))}
         </div>
       )}
+
+      {/* ============================================ */}
+      {/* Feature Sections - Resources Theme */}
+      {/* ============================================ */}
+
+      {/* Section 1: Resource Types */}
+      <div className="mt-20 mb-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-cyan-100 mb-4">
+            Community Knowledge Hub
+          </h2>
+          <p className="text-stone-400 max-w-2xl mx-auto">
+            Everything you need to master Wurm Online, created and shared by the community.
+            Find guides, tools, data sheets, and more!
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Type 1: Guides */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50"></div>
+            <div className="relative bg-stone-800/80 backdrop-blur-sm rounded-2xl p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 h-full">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/25">
+                <span className="text-2xl">📖</span>
+              </div>
+              <h3 className="text-lg font-semibold text-blue-100 mb-2">Guides & Tutorials</h3>
+              <p className="text-stone-400 text-sm">
+                Step-by-step guides for skills, mechanics, and strategies.
+                From beginner basics to advanced techniques.
+              </p>
+            </div>
+          </div>
+
+          {/* Type 2: Tools */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50"></div>
+            <div className="relative bg-stone-800/80 backdrop-blur-sm rounded-2xl p-6 border border-amber-500/20 hover:border-amber-500/40 transition-all duration-300 h-full">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-amber-500/25">
+                <span className="text-2xl">🔧</span>
+              </div>
+              <h3 className="text-lg font-semibold text-amber-100 mb-2">Tools & Calculators</h3>
+              <p className="text-stone-400 text-sm">
+                Spreadsheets, calculators, and utilities to help you plan
+                builds, track skills, and optimize your gameplay.
+              </p>
+            </div>
+          </div>
+
+          {/* Type 3: Data */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 to-purple-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50"></div>
+            <div className="relative bg-stone-800/80 backdrop-blur-sm rounded-2xl p-6 border border-violet-500/20 hover:border-violet-500/40 transition-all duration-300 h-full">
+              <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-violet-500/25">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h3 className="text-lg font-semibold text-violet-100 mb-2">Data & References</h3>
+              <p className="text-stone-400 text-sm">
+                Item databases, material charts, and reference tables.
+                Everything you need to look up in one place.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Contribution Tips */}
+      <div className="mb-16">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-900/30 via-teal-900/20 to-cyan-900/30 rounded-3xl"></div>
+          <div className="relative bg-stone-800/40 backdrop-blur-sm rounded-3xl p-8 border border-cyan-500/10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-cyan-500/20 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-cyan-100">Share Your Knowledge</h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-teal-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-cyan-200 font-medium">Upload or Link</h4>
+                    <p className="text-stone-400 text-sm">Share files directly or link to external sources like Google Docs, Dropbox, or your own site.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-teal-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-cyan-200 font-medium">Add Good Descriptions</h4>
+                    <p className="text-stone-400 text-sm">Help others find your resource with clear titles, descriptions, and relevant tags.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-teal-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-cyan-200 font-medium">Keep It Updated</h4>
+                    <p className="text-stone-400 text-sm">Game mechanics change! Update your resources when patches affect them.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-cyan-200 font-medium">Rate & Review</h4>
+                    <p className="text-stone-400 text-sm">Help quality content rise to the top by rating resources you find helpful.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-cyan-200 font-medium">Choose Categories</h4>
+                    <p className="text-stone-400 text-sm">Pick the right category so players can easily browse and find what they need.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-cyan-200 font-medium">Get Featured</h4>
+                    <p className="text-stone-400 text-sm">High-quality, well-maintained resources may be featured at the top of the page!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3: Related Tools */}
+      <div className="mb-16">
+        <h3 className="text-xl font-bold text-cyan-100 mb-6 text-center">Explore More Tools</h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Link href="/prices" className="group">
+            <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-700 hover:border-cyan-500/50 transition-all duration-300 hover:bg-stone-800/70">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-emerald-500/20 rounded-lg group-hover:bg-emerald-500/30 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-stone-200 group-hover:text-emerald-300 transition-colors">Price Guide</h4>
+              </div>
+              <p className="text-sm text-stone-400">Community-driven item price references.</p>
+            </div>
+          </Link>
+
+          <Link href="/market" className="group">
+            <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-700 hover:border-cyan-500/50 transition-all duration-300 hover:bg-stone-800/70">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-violet-500/20 rounded-lg group-hover:bg-violet-500/30 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-stone-200 group-hover:text-violet-300 transition-colors">Trade Calculator</h4>
+              </div>
+              <p className="text-sm text-stone-400">Calculate silver-to-euro conversions.</p>
+            </div>
+          </Link>
+
+          <Link href="/analytics" className="group">
+            <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-700 hover:border-cyan-500/50 transition-all duration-300 hover:bg-stone-800/70">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-rose-500/20 rounded-lg group-hover:bg-rose-500/30 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-stone-200 group-hover:text-rose-300 transition-colors">Analytics</h4>
+              </div>
+              <p className="text-sm text-stone-400">Track market trends and trading data.</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Section 4: Call to Action */}
+      <div className="mb-8">
+        <div className="relative overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/20 via-teal-500/20 to-blue-600/20"></div>
+          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+          <div className="relative px-8 py-12 text-center">
+            <h3 className="text-2xl font-bold text-cyan-100 mb-4">
+              Have Something to Share?
+            </h3>
+            <p className="text-stone-300 mb-6 max-w-xl mx-auto">
+              {user
+                ? "Your knowledge helps the entire community. Upload a guide, share a spreadsheet, or link to your favorite tool!"
+                : "Sign in to share your guides, tools, and resources with the Wurm community."
+              }
+            </p>
+            {user ? (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Add a Resource
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105"
+              >
+                Sign In to Contribute
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

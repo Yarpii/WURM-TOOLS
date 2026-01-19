@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import type { Project, ProjectItem, ProjectMaterial, Item, ProjectStatus } from "@/lib/types";
 
@@ -650,6 +651,155 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
+
+      {/* Feature Sections */}
+      {/* Plan Your Builds */}
+      <div className="mt-16 mb-12">
+        <h2 className="text-2xl font-bold text-text-primary mb-6 text-center">
+          Plan Your Wurm Builds
+        </h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-500/20 to-blue-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
+            <div className="relative bg-bg-secondary/80 backdrop-blur-sm rounded-xl p-6 border border-sky-500/20 hover:border-sky-500/40 transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-sky-500/20 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Track Progress</h3>
+              <p className="text-text-secondary text-sm">
+                Create detailed project lists and track each item as you craft it. See your overall progress at a glance.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
+            <div className="relative bg-bg-secondary/80 backdrop-blur-sm rounded-xl p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Material Calculator</h3>
+              <p className="text-text-secondary text-sm">
+                Automatically calculate all required materials for your project. Know exactly what resources you need to gather.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
+            <div className="relative bg-bg-secondary/80 backdrop-blur-sm rounded-xl p-6 border border-indigo-500/20 hover:border-indigo-500/40 transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Share with Alliance</h3>
+              <p className="text-text-secondary text-sm">
+                Collaborate with your alliance on large projects. Share progress and coordinate material gathering together.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Project Ideas */}
+      <div className="mb-12 bg-gradient-to-br from-sky-500/5 to-blue-500/5 rounded-xl p-8 border border-sky-500/10">
+        <h2 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+          <svg className="w-6 h-6 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          Popular Project Ideas
+        </h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {[
+            "Build a Knarr or Corbita for ocean travel",
+            "Construct a complete blacksmith workshop",
+            "Create full drake or scale armor set",
+            "Plan a large deed with all buildings",
+            "Prepare supplies for an Impalong event",
+            "Outfit a priest with channeling gear",
+          ].map((idea, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-text-secondary">{idea}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Explore More Tools */}
+      <div className="mb-12">
+        <h2 className="text-xl font-bold text-text-primary mb-6 text-center">Explore More Tools</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Link
+            href="/prices"
+            className="group bg-bg-secondary hover:bg-bg-tertiary rounded-lg p-5 border border-border hover:border-emerald-500/50 transition-all duration-300"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-text-primary group-hover:text-emerald-400 transition-colors">Price Guide</h3>
+            </div>
+            <p className="text-sm text-text-muted">Check material costs before starting your project</p>
+          </Link>
+
+          <Link
+            href="/merchants"
+            className="group bg-bg-secondary hover:bg-bg-tertiary rounded-lg p-5 border border-border hover:border-blue-500/50 transition-all duration-300"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-text-primary group-hover:text-blue-400 transition-colors">Merchants</h3>
+            </div>
+            <p className="text-sm text-text-muted">Find merchants selling materials you need</p>
+          </Link>
+
+          <Link
+            href="/alliances"
+            className="group bg-bg-secondary hover:bg-bg-tertiary rounded-lg p-5 border border-border hover:border-indigo-500/50 transition-all duration-300"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-text-primary group-hover:text-indigo-400 transition-colors">Alliances</h3>
+            </div>
+            <p className="text-sm text-text-muted">Join an alliance to share projects with teammates</p>
+          </Link>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="text-center bg-gradient-to-r from-sky-500/10 via-blue-500/10 to-indigo-500/10 rounded-xl p-8 border border-sky-500/20">
+        <h2 className="text-2xl font-bold text-text-primary mb-3">Ready to Build Something Great?</h2>
+        <p className="text-text-secondary mb-6 max-w-2xl mx-auto">
+          Start planning your next big project. Track progress, calculate materials, and collaborate with your alliance.
+        </p>
+        <button
+          onClick={() => setActiveTab("create")}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-105"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Create a Project
+        </button>
+      </div>
     </div>
   );
 }
