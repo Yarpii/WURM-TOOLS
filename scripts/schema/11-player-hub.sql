@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS user_timers (
     recurrence_interval INT,
     notify_discord BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
+    notified_at TIMESTAMP NULL,
     color VARCHAR(20) DEFAULT '#3b82f6',
     icon VARCHAR(50),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
