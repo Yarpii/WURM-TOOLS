@@ -493,6 +493,179 @@ export default function AlliancesPage() {
           </Link>
         </div>
       )}
+
+      {/* Feature Sections */}
+      {/* Stronger Together */}
+      <div className="mt-16 mb-12">
+        <h2 className="text-2xl font-bold text-text-primary mb-6 text-center">
+          Stronger Together
+        </h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
+            <div className="relative bg-bg-secondary/80 backdrop-blur-sm rounded-xl p-6 border border-indigo-500/20 hover:border-indigo-500/40 transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Unite Players</h3>
+              <p className="text-text-secondary text-sm">
+                Bring together like-minded adventurers. Build a community within Wurm with shared goals and values.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
+            <div className="relative bg-bg-secondary/80 backdrop-blur-sm rounded-xl p-6 border border-violet-500/20 hover:border-violet-500/40 transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-violet-500/20 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Coordinate Activities</h3>
+              <p className="text-text-secondary text-sm">
+                Plan group hunts, defend territory, and organize events together. Strength in numbers makes everything possible.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-slate-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
+            <div className="relative bg-bg-secondary/80 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300">
+              <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Grow Together</h3>
+              <p className="text-text-secondary text-sm">
+                Share knowledge, resources, and skills. Help new members grow while experienced players mentor the next generation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Alliance Benefits */}
+      <div className="mb-12 bg-gradient-to-br from-indigo-500/5 to-violet-500/5 rounded-xl p-8 border border-indigo-500/10">
+        <h2 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+          <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          Why Join an Alliance?
+        </h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {[
+            "Access to shared resources and community storage",
+            "Organized group hunts and unique slaying events",
+            "Help with deed projects and terraforming",
+            "Protection and support from fellow members",
+            "Learn skills faster from experienced players",
+            "Build lasting friendships in the Wurm community",
+          ].map((benefit, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-violet-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-text-secondary">{benefit}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Explore More Tools */}
+      <div className="mb-12">
+        <h2 className="text-xl font-bold text-text-primary mb-6 text-center">Explore More Tools</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Link
+            href="/members"
+            className="group bg-bg-secondary hover:bg-bg-tertiary rounded-lg p-5 border border-border hover:border-lime-500/50 transition-all duration-300"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-lime-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-text-primary group-hover:text-lime-400 transition-colors">Members</h3>
+            </div>
+            <p className="text-sm text-text-muted">Browse community members and find potential alliance recruits</p>
+          </Link>
+
+          <Link
+            href="/events"
+            className="group bg-bg-secondary hover:bg-bg-tertiary rounded-lg p-5 border border-border hover:border-fuchsia-500/50 transition-all duration-300"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-fuchsia-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-text-primary group-hover:text-fuchsia-400 transition-colors">Events</h3>
+            </div>
+            <p className="text-sm text-text-muted">Discover community events to attend with your alliance</p>
+          </Link>
+
+          <Link
+            href="/merchants"
+            className="group bg-bg-secondary hover:bg-bg-tertiary rounded-lg p-5 border border-border hover:border-blue-500/50 transition-all duration-300"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-text-primary group-hover:text-blue-400 transition-colors">Merchants</h3>
+            </div>
+            <p className="text-sm text-text-muted">Find merchants for alliance supplies and equipment</p>
+          </Link>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="text-center bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-purple-500/10 rounded-xl p-8 border border-indigo-500/20">
+        <h2 className="text-2xl font-bold text-text-primary mb-3">Ready to Join Forces?</h2>
+        <p className="text-text-secondary mb-6 max-w-2xl mx-auto">
+          Create your own alliance or join an existing one. Build something greater together with fellow adventurers.
+        </p>
+        {user ? (
+          myAlliance ? (
+            <Link
+              href={`/alliances/${myAlliance.id}`}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-105"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              View My Alliance
+            </Link>
+          ) : (
+            <button
+              onClick={() => setActiveTab("create")}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-105"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Create an Alliance
+            </button>
+          )
+        ) : (
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-105"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            Login to Get Started
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
