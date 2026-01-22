@@ -415,6 +415,238 @@ app.get("/api/items/:slug/recipe", async (req, res) => {
   res.json(recipe);
 });
 
+// ============================================
+// RECIPES DATABASE API - Converted relational data
+// ============================================
+
+// GET /api/recipes - List items from the recipes database
+app.get("/api/recipes", async (req, res) => {
+  try {
+    const q = String(req.query.q ?? "").trim();
+    const skill = String(req.query.skill ?? "").trim();
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+
+    let where = "1=1";
+    const params = [];
+
+    if (q) {
+      where += " AND i.name LIKE CONCAT('%', ?, '%')";
+      params.push(q);
+    }
+
+    if (skill) {
+      where += " AND i.skill = ?";
+      params.push(skill);
+    }
+
+    const [rows] = await pool.query(
+      `SELECT i.id, i.slug, i.name, i.skill, i.difficulty, i.base_time_seconds,
+              i.image_url, i.is_base_material,
+              COUNT(DISTINCT rm.id) as material_count,
+              COUNT(DISTINCT rt.id) as tool_count
+       FROM items i
+       LEFT JOIN recipe_materials rm ON rm.item_id = i.id
+       LEFT JOIN recipe_tools rt ON rt.item_id = i.id
+       WHERE ${where}
+       GROUP BY i.id
+       ORDER BY i.name
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    const [[countRow]] = await pool.query(
+      `SELECT COUNT(*) as total FROM items i WHERE ${where}`,
+      params
+    );
+
+    res.json({
+      items: rows,
+      total: countRow.total,
+      limit,
+      offset
+    });
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") {
+      return res.status(503).json({ error: "recipes_not_migrated", message: "Run migrate-recipes.js first" });
+    }
+    throw err;
+  }
+});
+
+// GET /api/recipes/:slug - Get recipe with materials and tools from database
+app.get("/api/recipes/:slug", async (req, res) => {
+  try {
+    const slug = req.params.slug;
+
+    const [iRows] = await pool.query(
+      `SELECT id, slug, name, skill, difficulty, base_time_seconds, image_url, is_base_material
+       FROM items WHERE slug = ? LIMIT 1`,
+      [slug]
+    );
+
+    if (!iRows.length) return res.status(404).json({ error: "not_found" });
+
+    const item = iRows[0];
+
+    // Get materials
+    const [materials] = await pool.query(
+      `SELECT rm.material_name, rm.material_slug, rm.quantity, rm.unit, rm.sort_order,
+              mi.name as linked_name, mi.image_url as linked_image
+       FROM recipe_materials rm
+       LEFT JOIN items mi ON mi.id = rm.material_id
+       WHERE rm.item_id = ?
+       ORDER BY rm.sort_order`,
+      [item.id]
+    );
+
+    // Get tools
+    const [tools] = await pool.query(
+      `SELECT rt.tool_name, rt.tool_slug, rt.is_workstation,
+              ti.name as linked_name, ti.image_url as linked_image
+       FROM recipe_tools rt
+       LEFT JOIN items ti ON ti.id = rt.tool_id
+       WHERE rt.item_id = ?`,
+      [item.id]
+    );
+
+    // Get categories
+    const [categories] = await pool.query(
+      `SELECT category FROM item_categories WHERE item_id = ?`,
+      [item.id]
+    );
+
+    res.json({
+      ...item,
+      materials,
+      tools,
+      categories: categories.map(c => c.category)
+    });
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") {
+      return res.status(503).json({ error: "recipes_not_migrated", message: "Run migrate-recipes.js first" });
+    }
+    throw err;
+  }
+});
+
+// GET /api/recipes/:slug/compare - Compare database vs infobox data
+app.get("/api/recipes/:slug/compare", async (req, res) => {
+  try {
+    const slug = req.params.slug;
+
+    // Get from recipes database
+    const [iRows] = await pool.query(
+      `SELECT id, slug, name, skill, difficulty, base_time_seconds, image_url
+       FROM items WHERE slug = ? LIMIT 1`,
+      [slug]
+    );
+
+    let dbData = null;
+    if (iRows.length) {
+      const item = iRows[0];
+      const [materials] = await pool.query(
+        `SELECT material_name, material_slug, quantity, unit FROM recipe_materials WHERE item_id = ? ORDER BY sort_order`,
+        [item.id]
+      );
+      const [tools] = await pool.query(
+        `SELECT tool_name, tool_slug, is_workstation FROM recipe_tools WHERE item_id = ?`,
+        [item.id]
+      );
+      const [categories] = await pool.query(
+        `SELECT category FROM item_categories WHERE item_id = ?`,
+        [item.id]
+      );
+
+      dbData = {
+        name: item.name,
+        skill: item.skill,
+        difficulty: item.difficulty,
+        time_seconds: item.base_time_seconds,
+        materials,
+        tools,
+        categories: categories.map(c => c.category)
+      };
+    }
+
+    // Get from infobox (original)
+    const [pRows] = await pool.query(
+      `SELECT p.id, p.title, i.id as infobox_id
+       FROM pages p
+       LEFT JOIN infoboxes i ON i.page_id = p.id
+       WHERE p.slug = ? LIMIT 1`,
+      [slug]
+    );
+
+    let infoboxData = null;
+    if (pRows.length && pRows[0].infobox_id) {
+      const [fRows] = await pool.query(
+        `SELECT section_name, items_json FROM infobox_fields WHERE infobox_id = ?`,
+        [pRows[0].infobox_id]
+      );
+
+      const fields = {};
+      for (const f of fRows) {
+        fields[f.section_name] = f.items_json ? JSON.parse(f.items_json) : [];
+      }
+
+      infoboxData = {
+        name: pRows[0].title,
+        skill: fields["Skill"]?.[0]?.raw || fields["Skill and improvement"]?.[0]?.raw || null,
+        difficulty: fields["Difficulty"]?.[0]?.raw || null,
+        time: fields["Time"]?.[0]?.raw || null,
+        materials: fields["Material Breakdown"] || fields["Total materials"] || fields["Materials"] || [],
+        tools: fields["Tools"] || fields["Tool"] || [],
+        allFields: fields
+      };
+    }
+
+    if (!dbData && !infoboxData) {
+      return res.status(404).json({ error: "not_found" });
+    }
+
+    res.json({
+      slug,
+      database: dbData,
+      infobox: infoboxData
+    });
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") {
+      return res.status(503).json({ error: "recipes_not_migrated", message: "Run migrate-recipes.js first" });
+    }
+    throw err;
+  }
+});
+
+// GET /api/recipes/stats - Get recipe database statistics
+app.get("/api/recipes-stats", async (req, res) => {
+  try {
+    const [[itemCount]] = await pool.query("SELECT COUNT(*) as count FROM items");
+    const [[materialCount]] = await pool.query("SELECT COUNT(*) as count FROM recipe_materials");
+    const [[toolCount]] = await pool.query("SELECT COUNT(*) as count FROM recipe_tools");
+    const [[linkedMaterials]] = await pool.query("SELECT COUNT(*) as count FROM recipe_materials WHERE material_id IS NOT NULL");
+    const [[linkedTools]] = await pool.query("SELECT COUNT(*) as count FROM recipe_tools WHERE tool_id IS NOT NULL");
+
+    const [skillCounts] = await pool.query(
+      `SELECT skill, COUNT(*) as count FROM items WHERE skill IS NOT NULL GROUP BY skill ORDER BY count DESC LIMIT 20`
+    );
+
+    res.json({
+      items: itemCount.count,
+      materials: materialCount.count,
+      tools: toolCount.count,
+      linked_materials: linkedMaterials.count,
+      linked_tools: linkedTools.count,
+      skills: skillCounts
+    });
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") {
+      return res.status(503).json({ error: "recipes_not_migrated", message: "Run migrate-recipes.js first" });
+    }
+    throw err;
+  }
+});
+
 const port = Number(process.env.PORT ?? 3030);
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);
