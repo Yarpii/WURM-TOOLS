@@ -19,6 +19,8 @@ export interface ItemSearchResult {
   tools?: MaterialItem[];
   materials?: MaterialItem[];
   creation?: MaterialItem[];
+  materialBreakdown?: MaterialItem[];
+  totalMaterials?: MaterialItem[];
   result?: MaterialItem[];
   skillAndImprovement?: MaterialItem[];
   allFields?: Record<string, MaterialItem[]>;
@@ -50,6 +52,8 @@ export interface ItemDetail {
   tools: MaterialItem[];
   result: MaterialItem[];
   creation?: MaterialItem[];
+  materialBreakdown?: MaterialItem[];
+  totalMaterials?: MaterialItem[];
   skillAndImprovement?: MaterialItem[];
   categories: string[];
   infobox: {

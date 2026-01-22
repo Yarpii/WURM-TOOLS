@@ -350,27 +350,19 @@ export function extractRecipes(item: ItemDetail): RecipeWithNames[] {
   const recipes: RecipeWithNames[] = [];
   const resultId = slugToId(item.slug);
 
-  // Determine materials source - use Creation field if available and materials appears to be from Creation
-  let materialsToProcess = item.materials;
-
-  // Check if materials comes from Creation field (contains "Activate" or "Right-click" patterns)
-  const hasCreationPattern = item.materials.some(m =>
-    m.raw.toLowerCase().includes("activate") ||
-    m.raw.toLowerCase().includes("right-click") ||
-    m.raw.toLowerCase().includes("open submenu")
-  );
-
-  if (hasCreationPattern && item.creation && item.creation.length > 0) {
-    // Parse Creation field to extract actual materials
-    const parsed = parseCreationField(item.creation);
-    materialsToProcess = parsed.materials;
-  }
+  // Materials should now come from Material Breakdown or Total materials
+  // (the API now prefers these over Creation)
+  const materialsToProcess = item.materials;
 
   for (const material of materialsToProcess) {
     const { quantity, name } = parseMaterial(material.raw);
 
-    // Skip if name is empty or just instructions
-    if (!name || name.toLowerCase().includes("submenu") || name.toLowerCase().includes("select")) {
+    // Skip if name is empty or contains instruction patterns (shouldn't happen now but just in case)
+    if (!name ||
+        name.toLowerCase().includes("submenu") ||
+        name.toLowerCase().includes("select") ||
+        name.toLowerCase().includes("activate") ||
+        name.toLowerCase().includes("right-click")) {
       continue;
     }
 

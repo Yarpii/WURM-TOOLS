@@ -235,14 +235,17 @@ app.get("/api/items", async (req, res) => {
       row.time = fields["Time"]?.[0]?.raw || null;
       row.tools = fields["Tools"] || fields["Tool"] || [];
 
-      // Materials can be in different fields
-      row.materials = fields["Materials"]
+      // Materials can be in different fields - prefer Material Breakdown or Total materials
+      row.materials = fields["Material Breakdown"]
+        || fields["Total materials"]
+        || fields["Materials"]
         || fields["Ingredients"]
-        || fields["Creation"]
         || [];
 
       row.result = fields["Result"] || fields["Creates"] || [];
       row.creation = fields["Creation"] || [];
+      row.materialBreakdown = fields["Material Breakdown"] || [];
+      row.totalMaterials = fields["Total materials"] || [];
       row.skillAndImprovement = fields["Skill and improvement"] || [];
 
       // Include all fields for debugging/flexibility
@@ -330,14 +333,18 @@ app.get("/api/items/:slug", async (req, res) => {
       || fields["Skill and improvement"]?.[0]?.raw
       || null;
 
-    item.materials = fields["Materials"]
+    // Prefer Material Breakdown or Total materials over Creation
+    item.materials = fields["Material Breakdown"]
+      || fields["Total materials"]
+      || fields["Materials"]
       || fields["Ingredients"]
-      || fields["Creation"]
       || [];
 
     item.tools = fields["Tools"] || fields["Tool"] || [];
     item.result = fields["Result"] || fields["Creates"] || [];
     item.creation = fields["Creation"] || [];
+    item.materialBreakdown = fields["Material Breakdown"] || [];
+    item.totalMaterials = fields["Total materials"] || [];
     item.skillAndImprovement = fields["Skill and improvement"] || [];
   }
 
