@@ -328,6 +328,7 @@
               <div class="stat-card"><div class="num">${stats.items}</div><div class="lbl">Items</div></div>
               <div class="stat-card"><div class="num">${stats.materials}</div><div class="lbl">Materials</div></div>
               <div class="stat-card"><div class="num">${stats.tools}</div><div class="lbl">Tools</div></div>
+              <div class="stat-card"><div class="num">${stats.steps || 0}</div><div class="lbl">Steps</div></div>
               <div class="stat-card"><div class="num">${stats.linked_materials}</div><div class="lbl">Linked Materials</div></div>
               <div class="stat-card"><div class="num">${stats.linked_tools}</div><div class="lbl">Linked Tools</div></div>
             </div>
@@ -426,6 +427,28 @@
         }).join("");
       };
 
+      const renderSteps = (steps, isDb) => {
+        if (!steps || steps.length === 0) return `<div class="small">—</div>`;
+        return steps.map((s, i) => {
+          if (isDb) {
+            let stepText = `${s.step_order}. `;
+            if (s.action === 'activate') {
+              stepText += `Activate ${esc(s.target_name)}`;
+              if (s.target_quantity) stepText += ` (${s.target_quantity} ${s.target_unit})`;
+            } else if (s.action === 'right-click') {
+              stepText += `Right-click ${esc(s.target_name)}`;
+            } else if (s.action === 'submenu') {
+              stepText += `Open submenu "${esc(s.submenu_path || s.target_name)}"`;
+            } else {
+              stepText += esc(s.raw_text || s.target_name);
+            }
+            return `<div class="material-row"><span>${stepText}</span></div>`;
+          } else {
+            return `<div class="material-row"><span>${i+1}. ${esc(s.raw || JSON.stringify(s))}</span></div>`;
+          }
+        }).join("");
+      };
+
       const skillMatch = db?.skill === ib?.skill || (!db?.skill && !ib?.skill);
 
       elDetail.innerHTML = `
@@ -444,6 +467,8 @@
                 <div class="kv"><span>Difficulty</span><span>${esc(db.difficulty || "—")}</span></div>
                 <div class="kv"><span>Time</span><span>${db.time_seconds ? db.time_seconds + 's' : "—"}</span></div>
               </div>
+              <h4 style="margin:12px 0 6px 0;">Creation Steps (${db.steps?.length || 0})</h4>
+              ${renderSteps(db.steps, true)}
               <h4 style="margin:12px 0 6px 0;">Materials (${db.materials?.length || 0})</h4>
               ${renderMaterials(db.materials, true)}
               <h4 style="margin:12px 0 6px 0;">Tools (${db.tools?.length || 0})</h4>
@@ -462,6 +487,8 @@
                 <div class="kv"><span>Difficulty</span><span>${esc(ib.difficulty || "—")}</span></div>
                 <div class="kv"><span>Time</span><span>${esc(ib.time || "—")}</span></div>
               </div>
+              <h4 style="margin:12px 0 6px 0;">Creation Steps (${ib.allFields?.Creation?.length || 0})</h4>
+              ${renderSteps(ib.allFields?.Creation, false)}
               <h4 style="margin:12px 0 6px 0;">Materials (${ib.materials?.length || 0})</h4>
               ${renderMaterials(ib.materials, false)}
               <h4 style="margin:12px 0 6px 0;">Tools (${ib.tools?.length || 0})</h4>

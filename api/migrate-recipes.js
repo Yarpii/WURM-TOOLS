@@ -174,6 +174,7 @@ async function migrate() {
   await pool.query("DROP VIEW IF EXISTS v_recipes");
   await pool.query("DROP VIEW IF EXISTS v_items_summary");
   await pool.query("DROP TABLE IF EXISTS item_categories");
+  await pool.query("DROP TABLE IF EXISTS recipe_steps");
   await pool.query("DROP TABLE IF EXISTS recipe_tools");
   await pool.query("DROP TABLE IF EXISTS recipe_materials");
   await pool.query("DROP TABLE IF EXISTS items");
@@ -254,6 +255,7 @@ async function migrate() {
   let itemCount = 0;
   let materialCount = 0;
   let toolCount = 0;
+  let stepCount = 0;
 
   for (const page of pages) {
     const fields = fieldsByInfobox[page.infobox_id] || {};
@@ -359,6 +361,51 @@ async function migrate() {
       toolCount++;
     }
 
+    // Parse Creation steps
+    const creation = fields["Creation"] || [];
+    let stepOrder = 1;
+    for (const step of creation) {
+      if (!step.raw) continue;
+
+      const action = step.action || "unknown";
+      let targetName = step.raw;
+      let targetSlug = null;
+      let targetQuantity = null;
+      let targetUnit = null;
+      let submenuPath = null;
+
+      // Extract target from links if available
+      if (step.links && step.links.length > 0) {
+        targetSlug = extractSlugFromHref(step.links[0].href);
+        // Use the link text as a cleaner target name
+        if (step.links[0].text) {
+          targetName = step.links[0].text;
+        }
+      }
+
+      // Parse quantity from raw text (e.g., "1.00 kg")
+      const kgMatch = step.raw.match(/\(?([\d.]+)\s*kg\)?/i);
+      if (kgMatch) {
+        targetQuantity = parseFloat(kgMatch[1]);
+        targetUnit = "kg";
+      }
+
+      // For submenu, extract the path
+      if (action === "submenu") {
+        const submenuMatch = step.raw.match(/submenu\s*"([^"]+)"/i);
+        if (submenuMatch) {
+          submenuPath = submenuMatch[1].replace(/&gt;/g, ">").replace(/&lt;/g, "<");
+        }
+      }
+
+      await pool.query(`
+        INSERT INTO recipe_steps (item_id, step_order, action, target_name, target_slug, target_quantity, target_unit, submenu_path, raw_text)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [itemId, stepOrder++, action, targetName, targetSlug, targetQuantity, targetUnit, submenuPath, step.raw]);
+
+      stepCount++;
+    }
+
     // Progress indicator
     if (itemCount % 100 === 0) {
       process.stdout.write(`  Processed ${itemCount}/${pages.length} items...\r`);
@@ -393,6 +440,7 @@ async function migrate() {
   console.log(`   Items:     ${itemCount}`);
   console.log(`   Materials: ${materialCount}`);
   console.log(`   Tools:     ${toolCount}`);
+  console.log(`   Steps:     ${stepCount}`);
   console.log("=" .repeat(50));
 
   // Test query

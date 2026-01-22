@@ -516,10 +516,18 @@ app.get("/api/recipes/:slug", async (req, res) => {
       [item.id]
     );
 
+    // Get creation steps
+    const [steps] = await pool.query(
+      `SELECT step_order, action, target_name, target_slug, target_quantity, target_unit, submenu_path, raw_text
+       FROM recipe_steps WHERE item_id = ? ORDER BY step_order`,
+      [item.id]
+    );
+
     res.json({
       ...item,
       materials,
       tools,
+      steps,
       categories: categories.map(c => c.category)
     });
   } catch (err) {
@@ -557,6 +565,11 @@ app.get("/api/recipes/:slug/compare", async (req, res) => {
         `SELECT category FROM item_categories WHERE item_id = ?`,
         [item.id]
       );
+      const [steps] = await pool.query(
+        `SELECT step_order, action, target_name, target_slug, target_quantity, target_unit, submenu_path, raw_text
+         FROM recipe_steps WHERE item_id = ? ORDER BY step_order`,
+        [item.id]
+      );
 
       dbData = {
         name: item.name,
@@ -565,6 +578,7 @@ app.get("/api/recipes/:slug/compare", async (req, res) => {
         time_seconds: item.base_time_seconds,
         materials,
         tools,
+        steps,
         categories: categories.map(c => c.category)
       };
     }
@@ -624,6 +638,7 @@ app.get("/api/recipes-stats", async (req, res) => {
     const [[itemCount]] = await pool.query("SELECT COUNT(*) as count FROM items");
     const [[materialCount]] = await pool.query("SELECT COUNT(*) as count FROM recipe_materials");
     const [[toolCount]] = await pool.query("SELECT COUNT(*) as count FROM recipe_tools");
+    const [[stepCount]] = await pool.query("SELECT COUNT(*) as count FROM recipe_steps");
     const [[linkedMaterials]] = await pool.query("SELECT COUNT(*) as count FROM recipe_materials WHERE material_id IS NOT NULL");
     const [[linkedTools]] = await pool.query("SELECT COUNT(*) as count FROM recipe_tools WHERE tool_id IS NOT NULL");
 
@@ -635,6 +650,7 @@ app.get("/api/recipes-stats", async (req, res) => {
       items: itemCount.count,
       materials: materialCount.count,
       tools: toolCount.count,
+      steps: stepCount.count,
       linked_materials: linkedMaterials.count,
       linked_tools: linkedTools.count,
       skills: skillCounts
