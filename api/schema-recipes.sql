@@ -5,8 +5,8 @@
 
 -- Items table - craftable items with their properties
 CREATE TABLE IF NOT EXISTS items (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  page_id BIGINT UNIQUE,                    -- Link to pages table
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  page_id BIGINT UNSIGNED UNIQUE,            -- Link to pages table
   slug VARCHAR(255) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
   skill VARCHAR(100),                        -- e.g., "fine carpentry", "blacksmithing"
@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS items (
 
 -- Recipe materials - what materials are needed to craft an item
 CREATE TABLE IF NOT EXISTS recipe_materials (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  item_id BIGINT NOT NULL,                  -- The item being crafted
-  material_id BIGINT,                        -- Link to items table (if material exists)
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  item_id BIGINT UNSIGNED NOT NULL,          -- The item being crafted
+  material_id BIGINT UNSIGNED,               -- Link to items table (if material exists)
   material_name VARCHAR(255) NOT NULL,       -- Name as fallback
   material_slug VARCHAR(255),                -- Slug for linking
   quantity DECIMAL(10,2) NOT NULL DEFAULT 1,
@@ -43,9 +43,9 @@ CREATE TABLE IF NOT EXISTS recipe_materials (
 
 -- Recipe tools - what tools are needed to craft an item
 CREATE TABLE IF NOT EXISTS recipe_tools (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  item_id BIGINT NOT NULL,                  -- The item being crafted
-  tool_id BIGINT,                            -- Link to items table (if tool exists)
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  item_id BIGINT UNSIGNED NOT NULL,          -- The item being crafted
+  tool_id BIGINT UNSIGNED,                   -- Link to items table (if tool exists)
   tool_name VARCHAR(255) NOT NULL,           -- Name as fallback
   tool_slug VARCHAR(255),                    -- Slug for linking
   is_workstation BOOLEAN DEFAULT FALSE,      -- anvil, forge, loom, etc.
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS recipe_tools (
 
 -- Item categories for filtering
 CREATE TABLE IF NOT EXISTS item_categories (
-  item_id BIGINT NOT NULL,
+  item_id BIGINT UNSIGNED NOT NULL,
   category VARCHAR(100) NOT NULL,
 
   PRIMARY KEY (item_id, category),

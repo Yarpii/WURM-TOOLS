@@ -168,7 +168,18 @@ function isBaseMaterial(categories, name) {
 async function migrate() {
   console.log("🚀 Starting recipe migration...\n");
 
-  // Step 1: Create tables
+  // Step 1: Drop existing recipe tables (in order due to FK constraints)
+  console.log("🗑️  Dropping existing recipe tables...");
+  await pool.query("DROP VIEW IF EXISTS v_material_uses");
+  await pool.query("DROP VIEW IF EXISTS v_recipes");
+  await pool.query("DROP VIEW IF EXISTS v_items_summary");
+  await pool.query("DROP TABLE IF EXISTS item_categories");
+  await pool.query("DROP TABLE IF EXISTS recipe_tools");
+  await pool.query("DROP TABLE IF EXISTS recipe_materials");
+  await pool.query("DROP TABLE IF EXISTS items");
+  console.log("  ✓ Dropped\n");
+
+  // Step 2: Create tables fresh
   console.log("📋 Creating tables...");
   const schema = fs.readFileSync(path.join(__dirname, "schema-recipes.sql"), "utf8");
 
@@ -191,14 +202,6 @@ async function migrate() {
     }
   }
   console.log("  ✓ Tables created\n");
-
-  // Step 2: Clear existing data
-  console.log("🗑️  Clearing existing recipe data...");
-  await pool.query("DELETE FROM item_categories");
-  await pool.query("DELETE FROM recipe_tools");
-  await pool.query("DELETE FROM recipe_materials");
-  await pool.query("DELETE FROM items");
-  console.log("  ✓ Cleared\n");
 
   // Step 3: Get all pages with infoboxes
   console.log("📖 Fetching pages with infoboxes...");
