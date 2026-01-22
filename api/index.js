@@ -161,8 +161,9 @@ app.get("/api/pages/:slug/sections", async (req, res) => {
 app.get("/api/items", async (req, res) => {
   const q = String(req.query.q ?? "").trim();
   const category = String(req.query.category ?? "").trim();
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+  const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit) || 50));
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
+  const details = req.query.details === "true"; // Include crafting details
 
   let where = "i.id IS NOT NULL"; // has infobox
   const params = [];
@@ -177,8 +178,9 @@ app.get("/api/items", async (req, res) => {
     params.push(category);
   }
 
+  // Basic query with optional crafting details
   const [rows] = await pool.query(
-    `SELECT p.slug, p.title, p.page_type, i.image_src, i.image_original
+    `SELECT p.id, p.slug, p.title, p.page_type, p.breadcrumbs_json, i.id as infobox_id, i.image_src, i.image_original
      FROM pages p
      JOIN infoboxes i ON i.page_id = p.id
      WHERE ${where}
@@ -186,6 +188,62 @@ app.get("/api/items", async (req, res) => {
      LIMIT ? OFFSET ?`,
     [...params, limit, offset]
   );
+
+  // If details requested, fetch infobox fields for all items
+  if (details && rows.length > 0) {
+    const infoboxIds = rows.map(r => r.infobox_id);
+    const [fieldsRows] = await pool.query(
+      `SELECT infobox_id, section_name, items_json
+       FROM infobox_fields
+       WHERE infobox_id IN (?) AND section_name IN ('Skill', 'Difficulty', 'Time', 'Tools', 'Materials', 'Ingredients')`,
+      [infoboxIds]
+    );
+
+    // Group fields by infobox_id
+    const fieldsByInfobox = {};
+    for (const f of fieldsRows) {
+      if (!fieldsByInfobox[f.infobox_id]) fieldsByInfobox[f.infobox_id] = {};
+      fieldsByInfobox[f.infobox_id][f.section_name] = f.items_json ? JSON.parse(f.items_json) : [];
+    }
+
+    // Also get categories for all items
+    const pageIds = rows.map(r => r.id);
+    const [catRows] = await pool.query(
+      `SELECT pc.page_id, c.name
+       FROM page_categories pc
+       JOIN categories c ON pc.category_id = c.id
+       WHERE pc.page_id IN (?)`,
+      [pageIds]
+    );
+
+    const catsByPage = {};
+    for (const c of catRows) {
+      if (!catsByPage[c.page_id]) catsByPage[c.page_id] = [];
+      catsByPage[c.page_id].push(c.name);
+    }
+
+    // Enrich items with details
+    for (const row of rows) {
+      const fields = fieldsByInfobox[row.infobox_id] || {};
+      row.skill = fields["Skill"]?.[0]?.raw || null;
+      row.difficulty = fields["Difficulty"]?.[0]?.raw || null;
+      row.time = fields["Time"]?.[0]?.raw || null;
+      row.tools = fields["Tools"] || [];
+      row.materials = fields["Materials"] || fields["Ingredients"] || [];
+      row.categories = catsByPage[row.id] || [];
+      row.breadcrumbs = row.breadcrumbs_json ? JSON.parse(row.breadcrumbs_json) : [];
+      delete row.breadcrumbs_json;
+      delete row.infobox_id;
+      delete row.id;
+    }
+  } else {
+    // Clean up internal fields
+    for (const row of rows) {
+      delete row.infobox_id;
+      delete row.id;
+      delete row.breadcrumbs_json;
+    }
+  }
 
   // Get total count for pagination
   const [[countRow]] = await pool.query(

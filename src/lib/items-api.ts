@@ -12,6 +12,14 @@ export interface ItemSearchResult {
   page_type: string;
   image_src: string | null;
   image_original: string | null;
+  // Extended fields when details=true
+  skill?: string | null;
+  difficulty?: string | null;
+  time?: string | null;
+  tools?: MaterialItem[];
+  materials?: MaterialItem[];
+  categories?: string[];
+  breadcrumbs?: string[];
 }
 
 export interface ItemsResponse {
@@ -88,12 +96,13 @@ class ItemsAPI {
     return this.fetch("/api/health");
   }
 
-  async searchItems(query: string, options?: { category?: string; limit?: number; offset?: number }): Promise<ItemsResponse> {
+  async searchItems(query: string, options?: { category?: string; limit?: number; offset?: number; details?: boolean }): Promise<ItemsResponse> {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     if (options?.category) params.set("category", options.category);
     if (options?.limit) params.set("limit", options.limit.toString());
     if (options?.offset) params.set("offset", options.offset.toString());
+    if (options?.details) params.set("details", "true");
     return this.fetch(`/api/items?${params}`);
   }
 

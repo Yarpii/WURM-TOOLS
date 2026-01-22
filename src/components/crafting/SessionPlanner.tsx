@@ -74,7 +74,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
 
       for (const sessionItem of sessionItems) {
         const res = await fetch(
-          `/api/calculate?item=${sessionItem.item.id}&qty=${sessionItem.quantity}&mode=full`
+          `/api/calculate?item=${sessionItem.item.id}&qty=${sessionItem.quantity}&mode=full&source=wurmpedia`
         );
         if (res.ok) {
           const data = await res.json();

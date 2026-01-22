@@ -43,6 +43,7 @@ export function getMySQLPool(): Pool {
 export interface QueryResult<T = Record<string, unknown>> {
   rows: T[];
   rowCount: number;
+  affectedRows: number; // Alias for rowCount (for MySQL compatibility)
 }
 
 /**
@@ -73,10 +74,10 @@ export async function query<T = Record<string, unknown>>(
 
     if (isSelect) {
       const [rows] = await pool.query<RowDataPacket[]>(convertedSql, params);
-      return { rows: rows as T[], rowCount: rows.length };
+      return { rows: rows as T[], rowCount: rows.length, affectedRows: rows.length };
     } else {
       const [result] = await pool.execute<ResultSetHeader>(convertedSql, params);
-      return { rows: [], rowCount: result.affectedRows };
+      return { rows: [], rowCount: result.affectedRows, affectedRows: result.affectedRows };
     }
   } catch (error) {
     // Provide helpful error messages for common connection issues
@@ -124,10 +125,10 @@ export async function getClient(): Promise<DbClient> {
 
       if (isSelect) {
         const [rows] = await connection.query<RowDataPacket[]>(convertedSql, params);
-        return { rows: rows as T[], rowCount: rows.length };
+        return { rows: rows as T[], rowCount: rows.length, affectedRows: rows.length };
       } else {
         const [result] = await connection.execute<ResultSetHeader>(convertedSql, params);
-        return { rows: [], rowCount: result.affectedRows };
+        return { rows: [], rowCount: result.affectedRows, affectedRows: result.affectedRows };
       }
     },
     release: () => {
@@ -159,10 +160,10 @@ export async function withTransaction<T>(
 
       if (isSelect) {
         const [rows] = await connection.query<RowDataPacket[]>(convertedSql, params);
-        return { rows: rows as R[], rowCount: rows.length };
+        return { rows: rows as R[], rowCount: rows.length, affectedRows: rows.length };
       } else {
         const [result] = await connection.execute<ResultSetHeader>(convertedSql, params);
-        return { rows: [], rowCount: result.affectedRows };
+        return { rows: [], rowCount: result.affectedRows, affectedRows: result.affectedRows };
       }
     },
     release: () => {

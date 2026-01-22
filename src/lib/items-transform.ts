@@ -182,8 +182,48 @@ export function transformItemDetail(detail: ItemDetail): Item {
   };
 }
 
-// Transform search result to basic Item format (without full details)
+// Transform search result to Item format (with optional extended details)
 export function transformSearchResult(result: ItemSearchResult): Item {
+  // If extended details are available, use them
+  if (result.skill !== undefined || result.difficulty !== undefined) {
+    // Parse difficulty from string (e.g., "75" or "Level 75")
+    let difficulty: number | null = null;
+    if (result.difficulty) {
+      const match = result.difficulty.match(/(\d+)/);
+      if (match) difficulty = parseInt(match[1], 10);
+    }
+
+    // Parse base time from string (e.g., "30 seconds" or "2 minutes")
+    let baseTime: number | null = null;
+    if (result.time) {
+      const secMatch = result.time.match(/(\d+)\s*(?:sec|second)/i);
+      if (secMatch) baseTime = parseInt(secMatch[1], 10);
+      else {
+        const minMatch = result.time.match(/(\d+)\s*(?:min|minute)/i);
+        if (minMatch) baseTime = parseInt(minMatch[1], 10) * 60;
+      }
+    }
+
+    // Extract category from categories array or breadcrumbs
+    const category = extractCategory(result.categories || [], result.breadcrumbs || []);
+
+    // Check if base material
+    const isBase = isBaseMaterial(result.categories || [], result.title);
+
+    return {
+      id: slugToId(result.slug),
+      name: result.title,
+      category: category,
+      is_base_material: isBase ? 1 : 0,
+      description: result.breadcrumbs?.join(" > ") || null,
+      difficulty: difficulty,
+      skill_type: mapSkillType(result.skill || null),
+      base_time: baseTime,
+      tool_type: mapToolType(result.tools || []),
+    };
+  }
+
+  // Fallback: basic info only
   return {
     id: slugToId(result.slug),
     name: result.title,
@@ -417,7 +457,8 @@ export function getSlugById(id: number): string | undefined {
 export class ItemsTransformService {
   async getAllItems(): Promise<Item[]> {
     try {
-      const response = await itemsApi.searchItems("", { limit: 100 });
+      // Fetch all items with full crafting details
+      const response = await itemsApi.searchItems("", { limit: 1000, details: true });
       const items = response.items.map(transformSearchResult);
 
       // Register ID to slug mapping
@@ -435,7 +476,8 @@ export class ItemsTransformService {
 
   async searchItems(query: string): Promise<Item[]> {
     try {
-      const response = await itemsApi.searchItems(query);
+      // Search with full crafting details
+      const response = await itemsApi.searchItems(query, { details: true });
       const items = response.items.map(transformSearchResult);
 
       // Register ID to slug mapping

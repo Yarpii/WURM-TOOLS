@@ -280,12 +280,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all matching recipes
-    const recipes = await query<WurmpediaRecipe[]>(
+    const recipesResult = await query<WurmpediaRecipe>(
       `SELECT * FROM wurmpedia_recipes ${whereClause}`,
       params
     );
 
-    if (!recipes || recipes.length === 0) {
+    if (!recipesResult || recipesResult.rows.length === 0) {
       return NextResponse.json({
         success: true,
         message: "No recipes found matching the criteria",
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
     let itemsCreated = 0;
     const errors: string[] = [];
 
-    for (const recipe of recipes) {
+    for (const recipe of recipesResult.rows) {
       // Parse JSON fields if they're strings
       if (typeof recipe.materials === "string") {
         try {
@@ -349,7 +349,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Bulk activation complete: ${activated} activated, ${skipped} skipped, ${failed} failed`,
-      total_processed: recipes.length,
+      total_processed: recipesResult.rows.length,
       activated,
       items_created: itemsCreated,
       skipped,
@@ -375,22 +375,22 @@ export async function GET(request: NextRequest) {
     // Get counts
     const [totalResult, withMaterialsResult, activatedResult, notActivatedResult] =
       await Promise.all([
-        query<{ count: number }[]>(
+        query<{ count: number }>(
           "SELECT COUNT(*) as count FROM wurmpedia_recipes"
         ),
-        query<{ count: number }[]>(
+        query<{ count: number }>(
           "SELECT COUNT(*) as count FROM wurmpedia_recipes WHERE has_materials = TRUE"
         ),
-        query<{ count: number }[]>(
+        query<{ count: number }>(
           "SELECT COUNT(*) as count FROM wurmpedia_recipes WHERE activated_at IS NOT NULL"
         ),
-        query<{ count: number }[]>(
+        query<{ count: number }>(
           "SELECT COUNT(*) as count FROM wurmpedia_recipes WHERE has_materials = TRUE AND activated_at IS NULL"
         ),
       ]);
 
     // Get by skill breakdown
-    const bySkill = await query<{ skill: string; total: number; activated: number }[]>(`
+    const bySkillResult = await query<{ skill: string; total: number; activated: number }>(`
       SELECT
         COALESCE(skill, 'Unknown') as skill,
         COUNT(*) as total,
@@ -402,7 +402,7 @@ export async function GET(request: NextRequest) {
     `);
 
     // Get by type breakdown
-    const byType = await query<{ recipe_type: string; total: number; activated: number }[]>(`
+    const byTypeResult = await query<{ recipe_type: string; total: number; activated: number }>(`
       SELECT
         recipe_type,
         COUNT(*) as total,
@@ -414,12 +414,12 @@ export async function GET(request: NextRequest) {
     `);
 
     return NextResponse.json({
-      total_recipes: totalResult?.[0]?.count || 0,
-      with_materials: withMaterialsResult?.[0]?.count || 0,
-      activated: activatedResult?.[0]?.count || 0,
-      not_activated: notActivatedResult?.[0]?.count || 0,
-      by_skill: bySkill || [],
-      by_type: byType || [],
+      total_recipes: totalResult?.rows[0]?.count || 0,
+      with_materials: withMaterialsResult?.rows[0]?.count || 0,
+      activated: activatedResult?.rows[0]?.count || 0,
+      not_activated: notActivatedResult?.rows[0]?.count || 0,
+      by_skill: bySkillResult?.rows || [],
+      by_type: byTypeResult?.rows || [],
     });
   } catch (error) {
     console.error("Bulk stats error:", error);

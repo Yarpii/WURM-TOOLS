@@ -72,7 +72,7 @@ export default function RecipeSuggestions({ items }: RecipeSuggestionsProps) {
 
         for (const craftableItem of craftableItems) {
           // Fetch the recipe for this item
-          const recipeRes = await fetch(`/api/calculate?item=${craftableItem.id}&qty=1&mode=direct`);
+          const recipeRes = await fetch(`/api/calculate?item=${craftableItem.id}&qty=1&mode=full&source=wurmpedia`);
           if (recipeRes.ok) {
             const recipeData = await recipeRes.json();
             const ingredients = recipeData.materials || [];
