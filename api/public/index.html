@@ -273,7 +273,7 @@
       }
     }
 
-    async function doSearch() {
+    async function searchPages() {
       const q = elQ.value.trim();
       if (!q) return;
       setStatus("searching...");
@@ -475,13 +475,12 @@
       `;
     }
 
-    // Override search based on tab
-    const originalDoSearch = doSearch;
+    // Search based on active tab
     async function doSearch() {
       if (currentTab === "recipes") {
         await searchRecipes();
       } else {
-        await originalDoSearch();
+        await searchPages();
       }
     }
 
