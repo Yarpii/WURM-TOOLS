@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getItem, updateItem, deleteItem, getItemByName } from "@/lib/database";
+import { itemsTransformService, getSlugById } from "@/lib/items-transform";
 import { getSession } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
 
@@ -7,9 +8,39 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { searchParams } = new URL(request.url);
+  const source = searchParams.get("source");
   const { id } = await params;
-  const itemId = parseInt(id);
 
+  // Support both numeric ID and slug
+  const itemId = parseInt(id);
+  const isSlug = isNaN(itemId);
+
+  // Use items.wurm.tools as data source when requested
+  if (source === "wurmpedia") {
+    let item;
+    if (isSlug) {
+      // ID is actually a slug
+      item = await itemsTransformService.getItemBySlug(id);
+    } else {
+      // Try to get slug from ID mapping, then fetch
+      const slug = getSlugById(itemId);
+      if (slug) {
+        item = await itemsTransformService.getItemBySlug(slug);
+      } else {
+        // If no mapping, try using the ID as a slug (unlikely to work)
+        item = await itemsTransformService.getItem(itemId);
+      }
+    }
+
+    if (!item) {
+      return NextResponse.json({ error: "Item not found in Wurmpedia" }, { status: 404 });
+    }
+
+    return NextResponse.json(item);
+  }
+
+  // Default: use local database
   if (isNaN(itemId) || itemId < 1) {
     return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
   }
