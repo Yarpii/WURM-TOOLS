@@ -184,30 +184,37 @@ async function migrate() {
   console.log("📋 Creating tables...");
   const schema = fs.readFileSync(path.join(__dirname, "schema-recipes.sql"), "utf8");
 
-  // Split by semicolons but keep CREATE VIEW statements together
+  // Simple split: remove comments and split on semicolons
   const statements = schema
-    .split(/;(?=\s*(?:CREATE|ALTER|DROP|INSERT|--|\n\n|$))/i)
+    .replace(/--.*$/gm, "") // Remove single-line comments
+    .split(";")
     .map(s => s.trim())
-    .filter(s => s && !s.startsWith("--"));
+    .filter(s => s.length > 10); // Filter out empty or tiny fragments
 
-  for (const stmt of statements) {
-    if (stmt) {
-      try {
-        await pool.query(stmt);
-      } catch (err) {
-        // Ignore "already exists" errors
-        if (err.message.includes("already exists")) {
-          continue;
-        }
-        // Show full error for debugging
-        console.error(`\n  ERROR creating table:`);
-        console.error(`  ${err.message}`);
-        console.error(`  SQL: ${stmt.substring(0, 200)}...`);
-        throw err; // Stop migration on error
+  console.log(`  Found ${statements.length} SQL statements`);
+
+  for (let i = 0; i < statements.length; i++) {
+    const stmt = statements[i];
+    try {
+      await pool.query(stmt);
+      // Extract table/view name for logging
+      const match = stmt.match(/(?:CREATE\s+(?:TABLE|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?|CREATE\s+OR\s+REPLACE\s+VIEW\s+)(\w+)/i);
+      if (match) {
+        console.log(`  ✓ Created: ${match[1]}`);
       }
+    } catch (err) {
+      // Ignore "already exists" errors
+      if (err.message.includes("already exists")) {
+        continue;
+      }
+      // Show full error for debugging
+      console.error(`\n  ERROR executing statement ${i + 1}:`);
+      console.error(`  ${err.message}`);
+      console.error(`  SQL: ${stmt.substring(0, 300)}...`);
+      throw err; // Stop migration on error
     }
   }
-  console.log("  ✓ Tables created\n");
+  console.log("  ✓ All tables created\n");
 
   // Step 3: Get all pages with infoboxes
   console.log("📖 Fetching pages with infoboxes...");
