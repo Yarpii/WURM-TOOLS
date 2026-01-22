@@ -7,10 +7,14 @@ import type { ItemSearchResult, ItemDetail, Category } from "@/lib/items-api";
 // API base - defaults to localhost for development, set NEXT_PUBLIC_ITEMS_API_URL in production
 const API_BASE = process.env.NEXT_PUBLIC_ITEMS_API_URL || "http://localhost:3030";
 
-async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+async function apiFetch<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${API_BASE}${path}`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export default function CraftingPage() {
@@ -29,12 +33,10 @@ export default function CraftingPage() {
   // Check API health on mount
   useEffect(() => {
     apiFetch<{ status: string; pages_count: number }>("/api/health")
-      .then(() => setApiStatus("online"))
-      .catch(() => setApiStatus("offline"));
+      .then((data) => setApiStatus(data ? "online" : "offline"));
 
     apiFetch<Category[]>("/api/categories")
-      .then(setCategories)
-      .catch(console.error);
+      .then((data) => data && setCategories(data));
   }, []);
 
   // Click outside to close dropdown
@@ -59,17 +61,14 @@ export default function CraftingPage() {
 
     searchTimeout.current = setTimeout(async () => {
       setLoading(true);
-      try {
-        const params = new URLSearchParams({ q: query });
-        if (selectedCategory) params.set("category", selectedCategory);
-        const data = await apiFetch<{ items: ItemSearchResult[] }>(`/api/items?${params}`);
+      const params = new URLSearchParams({ q: query });
+      if (selectedCategory) params.set("category", selectedCategory);
+      const data = await apiFetch<{ items: ItemSearchResult[] }>(`/api/items?${params}`);
+      if (data) {
         setItems(data.items);
         setShowDropdown(true);
-      } catch (err) {
-        console.error("Search failed:", err);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     }, 200);
 
     return () => {
@@ -81,14 +80,9 @@ export default function CraftingPage() {
     setShowDropdown(false);
     setQuery(item.title);
     setItemLoading(true);
-    try {
-      const detail = await apiFetch<ItemDetail>(`/api/items/${encodeURIComponent(item.slug)}`);
-      setSelectedItem(detail);
-    } catch (err) {
-      console.error("Failed to load item:", err);
-    } finally {
-      setItemLoading(false);
-    }
+    const detail = await apiFetch<ItemDetail>(`/api/items/${encodeURIComponent(item.slug)}`);
+    if (detail) setSelectedItem(detail);
+    setItemLoading(false);
   };
 
   const getImageUrl = (path: string | null) => {
@@ -282,7 +276,7 @@ export default function CraftingPage() {
                                 // Trigger search for the linked item
                                 apiFetch<{ items: ItemSearchResult[] }>(`/api/items?q=${encodeURIComponent(link.text || slug)}`)
                                   .then(data => {
-                                    if (data.items.length > 0) {
+                                    if (data && data.items.length > 0) {
                                       selectItem(data.items[0]);
                                     }
                                   });
