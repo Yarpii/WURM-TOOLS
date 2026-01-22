@@ -406,7 +406,9 @@
         if (!materials || materials.length === 0) return `<div class="small">—</div>`;
         return materials.map(m => {
           if (isDb) {
-            return `<div class="material-row"><span class="qty">${m.quantity} ${m.unit}</span><span>${esc(m.material_name)}</span></div>`;
+            // Format: "5x planks" or "1.5 kg iron lump"
+            const qty = m.unit === 'kg' ? `${m.quantity} kg` : `${Math.round(m.quantity)}x`;
+            return `<div class="material-row"><span class="qty">${qty}</span><span>${esc(m.material_name)}</span></div>`;
           } else {
             return `<div class="material-row"><span>${esc(m.raw || JSON.stringify(m))}</span></div>`;
           }
