@@ -161,8 +161,9 @@ app.get("/api/pages/:slug/sections", async (req, res) => {
 app.get("/api/items", async (req, res) => {
   const q = String(req.query.q ?? "").trim();
   const category = String(req.query.category ?? "").trim();
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+  const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit) || 50));
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
+  const details = req.query.details === "true"; // Include crafting details
 
   let where = "i.id IS NOT NULL"; // has infobox
   const params = [];
@@ -177,8 +178,9 @@ app.get("/api/items", async (req, res) => {
     params.push(category);
   }
 
+  // Basic query with optional crafting details
   const [rows] = await pool.query(
-    `SELECT p.slug, p.title, p.page_type, i.image_src, i.image_original
+    `SELECT p.id, p.slug, p.title, p.page_type, p.breadcrumbs_json, i.id as infobox_id, i.image_src, i.image_original
      FROM pages p
      JOIN infoboxes i ON i.page_id = p.id
      WHERE ${where}
@@ -186,6 +188,83 @@ app.get("/api/items", async (req, res) => {
      LIMIT ? OFFSET ?`,
     [...params, limit, offset]
   );
+
+  // If details requested, fetch infobox fields for all items
+  if (details && rows.length > 0) {
+    const infoboxIds = rows.map(r => r.infobox_id);
+    const [fieldsRows] = await pool.query(
+      `SELECT infobox_id, section_name, items_json
+       FROM infobox_fields
+       WHERE infobox_id IN (?)`,
+      [infoboxIds]
+    );
+
+    // Group fields by infobox_id
+    const fieldsByInfobox = {};
+    for (const f of fieldsRows) {
+      if (!fieldsByInfobox[f.infobox_id]) fieldsByInfobox[f.infobox_id] = {};
+      fieldsByInfobox[f.infobox_id][f.section_name] = f.items_json ? JSON.parse(f.items_json) : [];
+    }
+
+    // Also get categories for all items
+    const pageIds = rows.map(r => r.id);
+    const [catRows] = await pool.query(
+      `SELECT pc.page_id, c.name
+       FROM page_categories pc
+       JOIN categories c ON pc.category_id = c.id
+       WHERE pc.page_id IN (?)`,
+      [pageIds]
+    );
+
+    const catsByPage = {};
+    for (const c of catRows) {
+      if (!catsByPage[c.page_id]) catsByPage[c.page_id] = [];
+      catsByPage[c.page_id].push(c.name);
+    }
+
+    // Enrich items with details
+    for (const row of rows) {
+      const fields = fieldsByInfobox[row.infobox_id] || {};
+
+      // Try multiple possible field names for skill
+      row.skill = fields["Skill"]?.[0]?.raw
+        || fields["Skill and improvement"]?.[0]?.raw
+        || null;
+
+      row.difficulty = fields["Difficulty"]?.[0]?.raw || null;
+      row.time = fields["Time"]?.[0]?.raw || null;
+      row.tools = fields["Tools"] || fields["Tool"] || [];
+
+      // Materials can be in different fields - prefer Material Breakdown or Total materials
+      row.materials = fields["Material Breakdown"]
+        || fields["Total materials"]
+        || fields["Materials"]
+        || fields["Ingredients"]
+        || [];
+
+      row.result = fields["Result"] || fields["Creates"] || [];
+      row.creation = fields["Creation"] || [];
+      row.materialBreakdown = fields["Material Breakdown"] || [];
+      row.totalMaterials = fields["Total materials"] || [];
+      row.skillAndImprovement = fields["Skill and improvement"] || [];
+
+      // Include all fields for debugging/flexibility
+      row.allFields = fields;
+
+      row.categories = catsByPage[row.id] || [];
+      row.breadcrumbs = row.breadcrumbs_json ? JSON.parse(row.breadcrumbs_json) : [];
+      delete row.breadcrumbs_json;
+      delete row.infobox_id;
+      delete row.id;
+    }
+  } else {
+    // Clean up internal fields
+    for (const row of rows) {
+      delete row.infobox_id;
+      delete row.id;
+      delete row.breadcrumbs_json;
+    }
+  }
 
   // Get total count for pagination
   const [[countRow]] = await pool.query(
@@ -249,10 +328,24 @@ app.get("/api/items/:slug", async (req, res) => {
     };
 
     // Extract common crafting fields for convenience
-    item.skill = fields["Skill"]?.[0]?.raw || null;
-    item.materials = fields["Materials"] || fields["Ingredients"] || [];
+    // Try multiple possible field names
+    item.skill = fields["Skill"]?.[0]?.raw
+      || fields["Skill and improvement"]?.[0]?.raw
+      || null;
+
+    // Prefer Material Breakdown or Total materials over Creation
+    item.materials = fields["Material Breakdown"]
+      || fields["Total materials"]
+      || fields["Materials"]
+      || fields["Ingredients"]
+      || [];
+
     item.tools = fields["Tools"] || fields["Tool"] || [];
     item.result = fields["Result"] || fields["Creates"] || [];
+    item.creation = fields["Creation"] || [];
+    item.materialBreakdown = fields["Material Breakdown"] || [];
+    item.totalMaterials = fields["Total materials"] || [];
+    item.skillAndImprovement = fields["Skill and improvement"] || [];
   }
 
   // Get categories

@@ -28,9 +28,9 @@ export async function GET(request: Request) {
     // Use items.wurm.tools as data source when requested
     if (source === "wurmpedia") {
       // For wurmpedia source, we can use either slug or item ID
-      let itemSlug = slug;
+      let itemSlug: string | null = slug;
       if (!itemSlug && itemId) {
-        itemSlug = getSlugById(itemId);
+        itemSlug = getSlugById(itemId) || null;
       }
 
       if (!itemSlug) {

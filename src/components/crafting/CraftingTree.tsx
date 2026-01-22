@@ -60,7 +60,7 @@ export default function CraftingTree({ items }: CraftingTreeProps) {
       setError(null);
       try {
         const res = await fetch(
-          `/api/calculate?item=${selectedItem.id}&qty=${quantity}&mode=full`
+          `/api/calculate?item=${selectedItem.id}&qty=${quantity}&mode=full&source=wurmpedia`
         );
         const data = await res.json();
         if (res.ok && data.tree) {

@@ -182,8 +182,48 @@ export function transformItemDetail(detail: ItemDetail): Item {
   };
 }
 
-// Transform search result to basic Item format (without full details)
+// Transform search result to Item format (with optional extended details)
 export function transformSearchResult(result: ItemSearchResult): Item {
+  // If extended details are available, use them
+  if (result.skill !== undefined || result.difficulty !== undefined) {
+    // Parse difficulty from string (e.g., "75" or "Level 75")
+    let difficulty: number | null = null;
+    if (result.difficulty) {
+      const match = result.difficulty.match(/(\d+)/);
+      if (match) difficulty = parseInt(match[1], 10);
+    }
+
+    // Parse base time from string (e.g., "30 seconds" or "2 minutes")
+    let baseTime: number | null = null;
+    if (result.time) {
+      const secMatch = result.time.match(/(\d+)\s*(?:sec|second)/i);
+      if (secMatch) baseTime = parseInt(secMatch[1], 10);
+      else {
+        const minMatch = result.time.match(/(\d+)\s*(?:min|minute)/i);
+        if (minMatch) baseTime = parseInt(minMatch[1], 10) * 60;
+      }
+    }
+
+    // Extract category from categories array or breadcrumbs
+    const category = extractCategory(result.categories || [], result.breadcrumbs || []);
+
+    // Check if base material
+    const isBase = isBaseMaterial(result.categories || [], result.title);
+
+    return {
+      id: slugToId(result.slug),
+      name: result.title,
+      category: category,
+      is_base_material: isBase ? 1 : 0,
+      description: result.breadcrumbs?.join(" > ") || null,
+      difficulty: difficulty,
+      skill_type: mapSkillType(result.skill || null),
+      base_time: baseTime,
+      tool_type: mapToolType(result.tools || []),
+    };
+  }
+
+  // Fallback: basic info only
   return {
     id: slugToId(result.slug),
     name: result.title,
@@ -215,20 +255,123 @@ function parseMaterial(raw: string): { quantity: number; name: string } {
   return { quantity: 1, name: raw.trim() };
 }
 
+// Parse Creation field to extract materials
+// Creation format examples:
+// - "Activate glowing metal lump (1.00 kg)"
+// - "Right-click large anvil"
+// - "Open submenu \"Create > Weapon heads\""
+function parseCreationField(creationItems: MaterialItem[]): { materials: MaterialItem[]; tools: MaterialItem[] } {
+  const materials: MaterialItem[] = [];
+  const tools: MaterialItem[] = [];
+
+  for (const item of creationItems) {
+    const raw = item.raw;
+    const rawLower = raw.toLowerCase();
+
+    // Skip menu/submenu instructions
+    if (rawLower.includes("open submenu") || rawLower.includes("select")) {
+      continue;
+    }
+
+    // "Activate X (Y.YY kg)" pattern - this is the main material
+    const activateMatch = raw.match(/^activate\s+(?:glowing\s+)?(.+?)(?:\s*\((\d+\.?\d*)\s*kg\))?$/i);
+    if (activateMatch) {
+      const name = activateMatch[1].trim();
+      const qty = activateMatch[2] ? parseFloat(activateMatch[2]) : 1;
+      materials.push({
+        raw: `${qty} kg ${name}`,
+        links: item.links
+      });
+      continue;
+    }
+
+    // "Right-click X" pattern - this is usually the tool/container
+    const rightClickMatch = raw.match(/^right-click\s+(.+)$/i);
+    if (rightClickMatch) {
+      tools.push({
+        raw: rightClickMatch[1].trim(),
+        links: item.links
+      });
+      continue;
+    }
+
+    // "Use X on Y" pattern
+    const useOnMatch = raw.match(/^use\s+(.+?)\s+on\s+(.+)$/i);
+    if (useOnMatch) {
+      materials.push({ raw: useOnMatch[1].trim(), links: item.links });
+      tools.push({ raw: useOnMatch[2].trim(), links: item.links });
+      continue;
+    }
+
+    // Check links for materials
+    if (item.links && item.links.length > 0) {
+      // If there are links, extract material names from them
+      for (const link of item.links) {
+        // Skip common non-material links
+        if (link.text.toLowerCase().includes("activate") ||
+            link.text.toLowerCase().includes("create") ||
+            link.text.toLowerCase().includes("submenu")) {
+          continue;
+        }
+
+        // Check if it's a lump/material
+        if (link.text.toLowerCase().includes("lump") ||
+            link.text.toLowerCase().includes("plank") ||
+            link.text.toLowerCase().includes("log") ||
+            link.text.toLowerCase().includes("clay") ||
+            link.text.toLowerCase().includes("leather")) {
+          // Extract quantity from raw text if present
+          const qtyMatch = raw.match(/\((\d+\.?\d*)\s*kg\)/i);
+          const qty = qtyMatch ? parseFloat(qtyMatch[1]) : 1;
+          materials.push({
+            raw: `${qty} kg ${link.text}`,
+            links: [link]
+          });
+        }
+        // Check if it's a tool/workbench
+        else if (link.text.toLowerCase().includes("anvil") ||
+                 link.text.toLowerCase().includes("forge") ||
+                 link.text.toLowerCase().includes("bench") ||
+                 link.text.toLowerCase().includes("loom")) {
+          tools.push({
+            raw: link.text,
+            links: [link]
+          });
+        }
+      }
+    }
+  }
+
+  return { materials, tools };
+}
+
 // Extract recipes from item materials
 export function extractRecipes(item: ItemDetail): RecipeWithNames[] {
   const recipes: RecipeWithNames[] = [];
   const resultId = slugToId(item.slug);
 
-  for (const material of item.materials) {
+  // Materials should now come from Material Breakdown or Total materials
+  // (the API now prefers these over Creation)
+  const materialsToProcess = item.materials;
+
+  for (const material of materialsToProcess) {
     const { quantity, name } = parseMaterial(material.raw);
+
+    // Skip if name is empty or contains instruction patterns (shouldn't happen now but just in case)
+    if (!name ||
+        name.toLowerCase().includes("submenu") ||
+        name.toLowerCase().includes("select") ||
+        name.toLowerCase().includes("activate") ||
+        name.toLowerCase().includes("right-click")) {
+      continue;
+    }
 
     // Try to get slug from links if available
     let ingredientSlug = name.toLowerCase().replace(/\s+/g, "_");
     if (material.links && material.links.length > 0) {
       const href = material.links[0].href;
-      // Extract slug from /wiki/Item_Name format
-      const match = href.match(/\/wiki\/(.+)$/);
+      // Extract slug from /wiki/Item_Name or /index.php/Item_Name format
+      const match = href.match(/\/(?:wiki|index\.php)\/(.+)$/);
       if (match) {
         ingredientSlug = match[1].toLowerCase();
       }
@@ -417,7 +560,8 @@ export function getSlugById(id: number): string | undefined {
 export class ItemsTransformService {
   async getAllItems(): Promise<Item[]> {
     try {
-      const response = await itemsApi.searchItems("", { limit: 100 });
+      // Fetch all items with full crafting details
+      const response = await itemsApi.searchItems("", { limit: 1000, details: true });
       const items = response.items.map(transformSearchResult);
 
       // Register ID to slug mapping
@@ -435,7 +579,8 @@ export class ItemsTransformService {
 
   async searchItems(query: string): Promise<Item[]> {
     try {
-      const response = await itemsApi.searchItems(query);
+      // Search with full crafting details
+      const response = await itemsApi.searchItems(query, { details: true });
       const items = response.items.map(transformSearchResult);
 
       // Register ID to slug mapping
