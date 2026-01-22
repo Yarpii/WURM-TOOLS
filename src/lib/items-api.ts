@@ -18,6 +18,10 @@ export interface ItemSearchResult {
   time?: string | null;
   tools?: MaterialItem[];
   materials?: MaterialItem[];
+  creation?: MaterialItem[];
+  result?: MaterialItem[];
+  skillAndImprovement?: MaterialItem[];
+  allFields?: Record<string, MaterialItem[]>;
   categories?: string[];
   breadcrumbs?: string[];
 }
@@ -45,6 +49,8 @@ export interface ItemDetail {
   materials: MaterialItem[];
   tools: MaterialItem[];
   result: MaterialItem[];
+  creation?: MaterialItem[];
+  skillAndImprovement?: MaterialItem[];
   categories: string[];
   infobox: {
     title: string;

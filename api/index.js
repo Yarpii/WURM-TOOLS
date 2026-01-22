@@ -195,7 +195,7 @@ app.get("/api/items", async (req, res) => {
     const [fieldsRows] = await pool.query(
       `SELECT infobox_id, section_name, items_json
        FROM infobox_fields
-       WHERE infobox_id IN (?) AND section_name IN ('Skill', 'Difficulty', 'Time', 'Tools', 'Materials', 'Ingredients')`,
+       WHERE infobox_id IN (?)`,
       [infoboxIds]
     );
 
@@ -225,11 +225,29 @@ app.get("/api/items", async (req, res) => {
     // Enrich items with details
     for (const row of rows) {
       const fields = fieldsByInfobox[row.infobox_id] || {};
-      row.skill = fields["Skill"]?.[0]?.raw || null;
+
+      // Try multiple possible field names for skill
+      row.skill = fields["Skill"]?.[0]?.raw
+        || fields["Skill and improvement"]?.[0]?.raw
+        || null;
+
       row.difficulty = fields["Difficulty"]?.[0]?.raw || null;
       row.time = fields["Time"]?.[0]?.raw || null;
-      row.tools = fields["Tools"] || [];
-      row.materials = fields["Materials"] || fields["Ingredients"] || [];
+      row.tools = fields["Tools"] || fields["Tool"] || [];
+
+      // Materials can be in different fields
+      row.materials = fields["Materials"]
+        || fields["Ingredients"]
+        || fields["Creation"]
+        || [];
+
+      row.result = fields["Result"] || fields["Creates"] || [];
+      row.creation = fields["Creation"] || [];
+      row.skillAndImprovement = fields["Skill and improvement"] || [];
+
+      // Include all fields for debugging/flexibility
+      row.allFields = fields;
+
       row.categories = catsByPage[row.id] || [];
       row.breadcrumbs = row.breadcrumbs_json ? JSON.parse(row.breadcrumbs_json) : [];
       delete row.breadcrumbs_json;
@@ -307,10 +325,20 @@ app.get("/api/items/:slug", async (req, res) => {
     };
 
     // Extract common crafting fields for convenience
-    item.skill = fields["Skill"]?.[0]?.raw || null;
-    item.materials = fields["Materials"] || fields["Ingredients"] || [];
+    // Try multiple possible field names
+    item.skill = fields["Skill"]?.[0]?.raw
+      || fields["Skill and improvement"]?.[0]?.raw
+      || null;
+
+    item.materials = fields["Materials"]
+      || fields["Ingredients"]
+      || fields["Creation"]
+      || [];
+
     item.tools = fields["Tools"] || fields["Tool"] || [];
     item.result = fields["Result"] || fields["Creates"] || [];
+    item.creation = fields["Creation"] || [];
+    item.skillAndImprovement = fields["Skill and improvement"] || [];
   }
 
   // Get categories
