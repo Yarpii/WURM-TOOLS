@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wurmpedia DB Viewer</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    body { margin: 0; background: #0b0c10; color: #e8e8e8; }
+    header { padding: 12px 16px; border-bottom: 1px solid #222; display:flex; gap:12px; align-items:center; }
+    header h1 { font-size: 16px; margin: 0; opacity: .9; }
+    header .pill { font-size: 12px; padding: 4px 8px; border: 1px solid #2a2a2a; border-radius: 999px; opacity:.9; }
+    .wrap { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 52px); }
+    .left { border-right: 1px solid #222; display:flex; flex-direction:column; min-width: 280px; }
+    .right { padding: 16px; overflow:auto; }
+    .controls { padding: 12px; border-bottom: 1px solid #222; display:flex; gap:8px; flex-wrap:wrap; }
+    input[type="search"] { flex: 1; min-width: 180px; padding: 10px 10px; border-radius: 10px; border: 1px solid #2a2a2a; background:#0f1117; color:#e8e8e8; }
+    button { padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2a2a; background:#111827; color:#e8e8e8; cursor:pointer; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .list { overflow:auto; padding: 6px; }
+    .item { padding: 10px 10px; border-radius: 10px; border: 1px solid transparent; cursor:pointer; }
+    .item:hover { background:#0f1117; border-color:#262626; }
+    .item.active { background:#111827; border-color:#334155; }
+    .item .title { font-weight: 600; font-size: 14px; }
+    .item .meta { font-size: 12px; opacity:.7; margin-top: 2px; }
+    .hint { opacity:.7; font-size: 13px; padding: 12px; }
+    .grid { display:grid; grid-template-columns: 320px 1fr; gap: 16px; align-items:start; }
+    .card { border: 1px solid #222; border-radius: 14px; padding: 12px; background:#0f1117; }
+    .card h2 { margin: 0 0 8px 0; font-size: 14px; opacity:.9; }
+    .kv { display:flex; justify-content:space-between; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #222; }
+    .kv:last-child { border-bottom: 0; }
+    .tag { display:inline-block; font-size: 12px; padding: 4px 8px; border: 1px solid #2a2a2a; border-radius: 999px; margin: 4px 6px 0 0; opacity:.85; }
+    .section { margin-bottom: 16px; }
+    .section h3 { margin: 0 0 6px 0; font-size: 14px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New"; font-size: 12px; white-space: pre-wrap; }
+    img { max-width: 100%; border-radius: 12px; border: 1px solid #222; background:#0b0c10; }
+    a { color: #93c5fd; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .small { font-size: 12px; opacity:.7; }
+    .error { color: #fecaca; }
+    @media (max-width: 768px) {
+      .wrap { grid-template-columns: 1fr; }
+      .left { border-right: none; border-bottom: 1px solid #222; max-height: 40vh; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Wurmpedia DB Viewer</h1>
+    <span class="pill" id="apiPill">API: ...</span>
+    <span class="pill" id="statusPill">status: idle</span>
+  </header>
+
+  <div class="wrap">
+    <aside class="left">
+      <div class="controls">
+        <input id="q" type="search" placeholder="Zoek... (bv: barrel, plank, sword)" />
+        <button id="btnSearch">Search</button>
+      </div>
+
+      <div class="hint">
+        Tip: type iets en druk Enter. Klik een resultaat om de infobox + sections te zien.
+      </div>
+
+      <div class="list" id="list"></div>
+    </aside>
+
+    <main class="right">
+      <div id="detail" class="hint">Selecteer links een item...</div>
+    </main>
+  </div>
+
+  <script>
+    // Auto-detect API base: same origin in production, localhost for dev
+    const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://127.0.0.1:3030"
+      : "";
+
+    const elQ = document.getElementById("q");
+    const elList = document.getElementById("list");
+    const elDetail = document.getElementById("detail");
+    const elApiPill = document.getElementById("apiPill");
+    const elStatus = document.getElementById("statusPill");
+    const btnSearch = document.getElementById("btnSearch");
+
+    elApiPill.textContent = `API: ${API_BASE || "(same origin)"}`;
+
+    function setStatus(s) { elStatus.textContent = `status: ${s}`; }
+
+    async function apiGet(path) {
+      const url = `${API_BASE}${path}`;
+      const r = await fetch(url);
+      if (!r.ok) {
+        const t = await r.text().catch(() => "");
+        throw new Error(`HTTP ${r.status} for ${path}\n${t}`);
+      }
+      return r.json();
+    }
+
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
+    }
+
+    function renderList(items) {
+      elList.innerHTML = "";
+      if (!items.length) {
+        elList.innerHTML = `<div class="hint">Geen resultaten.</div>`;
+        return;
+      }
+      for (const it of items) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.dataset.slug = it.slug;
+        div.innerHTML = `
+          <div class="title">${esc(it.title)}</div>
+          <div class="meta">${esc(it.slug)} • ${esc(it.page_type)}</div>
+        `;
+        div.onclick = () => selectSlug(it.slug, div);
+        elList.appendChild(div);
+      }
+    }
+
+    function setActive(div) {
+      for (const node of elList.querySelectorAll(".item")) node.classList.remove("active");
+      if (div) div.classList.add("active");
+    }
+
+    function formatInfoboxField(field) {
+      const items = field.items ?? [];
+      if (!Array.isArray(items) || items.length === 0) return `<div class="small">—</div>`;
+
+      return `
+        <ul>
+          ${items.map(x => {
+            const raw = esc(x.raw ?? "");
+            const links = Array.isArray(x.links) ? x.links : [];
+            const linksHtml = links.length
+              ? `<div class="small">links: ${links.map(l => `<a href="#" data-href="${esc(l.href)}">${esc(l.text || l.href)}</a>`).join(", ")}</div>`
+              : "";
+            return `<li>${raw}${linksHtml}</li>`;
+          }).join("")}
+        </ul>
+      `;
+    }
+
+    async function selectSlug(slug, div) {
+      setActive(div);
+      setStatus("loading...");
+      elDetail.innerHTML = `<div class="hint">Loading <b>${esc(slug)}</b>...</div>`;
+
+      try {
+        const [page, infobox, sections] = await Promise.all([
+          apiGet(`/api/pages/${encodeURIComponent(slug)}`),
+          apiGet(`/api/pages/${encodeURIComponent(slug)}/infobox`),
+          apiGet(`/api/pages/${encodeURIComponent(slug)}/sections`)
+        ]);
+
+        const crumbs = (() => {
+          try {
+            const bj = page.breadcrumbs_json;
+            if (!bj) return [];
+            if (Array.isArray(bj)) return bj;
+            return JSON.parse(bj);
+          } catch { return []; }
+        })();
+
+        const img = infobox?.image_original || infobox?.image_src || "";
+        const imgHtml = img ? `<img src="${esc(img)}" alt="${esc(infobox?.image_alt || page.title)}" />` : "";
+
+        const infoboxFields = infobox?.fields || [];
+
+        const sectionsHtml = (sections || []).map(s => `
+          <div class="section card">
+            <h3>${esc(s.heading)}</h3>
+            <div class="small">#${esc(s.heading_id || "")}</div>
+            <div style="margin-top:8px;">${esc(s.content_text || "").replaceAll("\n","<br/>")}</div>
+          </div>
+        `).join("");
+
+        elDetail.innerHTML = `
+          <div class="grid">
+            <div class="card">
+              <h2>${esc(page.title)}</h2>
+              <div class="small mono">${esc(page.slug)} • type=${esc(page.page_type)} • article_id=${esc(page.article_id)} • rev=${esc(page.revision_id)}</div>
+
+              ${crumbs.length ? `<div style="margin-top:10px;">
+                ${crumbs.map(c => `<span class="tag">${esc(c)}</span>`).join("")}
+              </div>` : ""}
+
+              <div style="margin-top:12px;">${imgHtml}</div>
+
+              <div style="margin-top:12px;">
+                <div class="kv"><span>Infobox</span><span>${infobox ? "yes" : "no"}</span></div>
+                <div class="kv"><span>Fields</span><span>${esc(infoboxFields.length)}</span></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card">
+                <h2>Infobox fields</h2>
+                ${infoboxFields.length ? infoboxFields.map(f => `
+                  <div class="section">
+                    <h3>${esc(f.section_name)}</h3>
+                    ${formatInfoboxField(f)}
+                  </div>
+                `).join("") : `<div class="hint">Geen infobox gevonden.</div>`}
+              </div>
+
+              <div style="height:12px"></div>
+
+              <div class="card">
+                <h2>Body sections</h2>
+                ${sectionsHtml || `<div class="hint">Geen sections gevonden.</div>`}
+              </div>
+
+              <div style="height:12px"></div>
+
+              <div class="card">
+                <h2>Debug raw</h2>
+                <div class="mono">${esc(JSON.stringify({page, infobox, sections}, null, 2))}</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        elDetail.querySelectorAll('a[data-href]').forEach(a => {
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = a.getAttribute('data-href');
+            // Navigate to the linked page if it's a wiki link
+            const slug = href.replace(/^\/wiki\//, "").replace(/^\//, "");
+            if (slug) {
+              elQ.value = slug;
+              doSearch();
+            }
+          });
+        });
+
+        setStatus("ready");
+      } catch (err) {
+        console.error(err);
+        elDetail.innerHTML = `
+          <div class="card">
+            <h2 class="error">Error</h2>
+            <div class="mono error">${esc(err.message || String(err))}</div>
+            <div class="hint">Check of je API draait en CORS aan staat. API_BASE: <span class="mono">${esc(API_BASE)}</span></div>
+          </div>
+        `;
+        setStatus("error");
+      }
+    }
+
+    async function doSearch() {
+      const q = elQ.value.trim();
+      if (!q) return;
+      setStatus("searching...");
+      btnSearch.disabled = true;
+      try {
+        const items = await apiGet(`/api/search?q=${encodeURIComponent(q)}`);
+        renderList(items);
+        setStatus(`results: ${items.length}`);
+      } catch (e) {
+        console.error(e);
+        elList.innerHTML = `<div class="hint error">Search error: ${esc(e.message)}</div>`;
+        setStatus("error");
+      } finally {
+        btnSearch.disabled = false;
+      }
+    }
+
+    btnSearch.addEventListener("click", doSearch);
+    elQ.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doSearch();
+    });
+
+    // Auto-demo
+    elQ.value = "barrel";
+    doSearch();
+  </script>
+</body>
+</html>
