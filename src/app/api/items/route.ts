@@ -37,7 +37,8 @@ export async function GET(request: Request) {
         return NextResponse.json(items);
       }
 
-      const items = await itemsTransformService.getAllItems();
+      // Use recipe database as primary source (has better structured data)
+      const items = await itemsTransformService.getAllItemsFromDB();
       return NextResponse.json(items);
     }
 
