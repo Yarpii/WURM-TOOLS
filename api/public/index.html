@@ -73,11 +73,6 @@
   </div>
 
   <script>
-    // Auto-detect API base: same origin in production, localhost for dev
-    const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://127.0.0.1:3030"
-      : "";
-
     const elQ = document.getElementById("q");
     const elList = document.getElementById("list");
     const elDetail = document.getElementById("detail");
@@ -85,13 +80,20 @@
     const elStatus = document.getElementById("statusPill");
     const btnSearch = document.getElementById("btnSearch");
 
-    elApiPill.textContent = `API: ${API_BASE || "(same origin)"}`;
+    // Check API health on load
+    (async () => {
+      try {
+        const health = await fetch("/api/health").then(r => r.json());
+        elApiPill.textContent = `API: ok (${health.pages_count} pages)`;
+      } catch {
+        elApiPill.textContent = "API: offline";
+      }
+    })();
 
     function setStatus(s) { elStatus.textContent = `status: ${s}`; }
 
     async function apiGet(path) {
-      const url = `${API_BASE}${path}`;
-      const r = await fetch(url);
+      const r = await fetch(path);
       if (!r.ok) {
         const t = await r.text().catch(() => "");
         throw new Error(`HTTP ${r.status} for ${path}\n${t}`);
@@ -247,7 +249,7 @@
           <div class="card">
             <h2 class="error">Error</h2>
             <div class="mono error">${esc(err.message || String(err))}</div>
-            <div class="hint">Check of je API draait en CORS aan staat. API_BASE: <span class="mono">${esc(API_BASE)}</span></div>
+            <div class="hint">Check of de API draait op dezelfde origin.</div>
           </div>
         `;
         setStatus("error");

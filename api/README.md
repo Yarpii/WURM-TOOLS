@@ -1,6 +1,6 @@
 # Wurmpedia Items API
 
-Standalone API voor items.wurm.online - serveert Wurmpedia data.
+Standalone API voor items.wurm.tools - serveert Wurmpedia data.
 
 ## Setup
 

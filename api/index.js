@@ -42,8 +42,22 @@ const pool = mysql.createPool({
 });
 
 app.get("/api/health", async (req, res) => {
-  const [[row]] = await pool.query("SELECT 1 AS ok");
-  res.json(row);
+  try {
+    const [[dbCheck]] = await pool.query("SELECT 1 AS ok");
+    const [[stats]] = await pool.query("SELECT COUNT(*) AS pages_count FROM pages");
+    res.json({
+      status: "ok",
+      database: dbCheck.ok === 1,
+      pages_count: stats.pages_count,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: "error",
+      database: false,
+      error: err.message
+    });
+  }
 });
 
 app.get("/api/search", async (req, res) => {
