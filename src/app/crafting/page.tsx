@@ -116,7 +116,7 @@ export default function CraftingPage() {
   useEffect(() => {
     const loadItems = async () => {
       try {
-        const res = await fetch("/api/items");
+        const res = await fetch("/api/items?source=wurmpedia");
         if (res.ok) {
           const data = await res.json();
           setItems(data);
@@ -332,7 +332,7 @@ function BasicCalculator() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/items").then((r) => r.json()).then(setItems);
+    fetch("/api/items?source=wurmpedia").then((r) => r.json()).then(setItems);
   }, []);
 
   useEffect(() => {
@@ -363,12 +363,12 @@ function BasicCalculator() {
     setIsLoading(true);
     try {
       if (mode === "calculate") {
-        const res = await fetch(`/api/calculate?item=${item.id}&qty=${quantity}&mode=${matMode}`);
+        const res = await fetch(`/api/calculate?item=${item.id}&qty=${quantity}&mode=${matMode}&source=wurmpedia`);
         const data = await res.json();
         setMaterials(data.materials || []);
         setTree(data.tree || null);
       } else {
-        const res = await fetch(`/api/reverse?item=${item.id}&all=${includeIndirect ? "1" : "0"}`);
+        const res = await fetch(`/api/reverse?item=${item.id}&all=${includeIndirect ? "1" : "0"}&source=wurmpedia`);
         const data = await res.json();
         setCraftable(data);
       }
@@ -748,7 +748,7 @@ function AdvancedCalculator() {
   const [viewMode, setViewMode] = useState<ViewMode>("expected");
 
   useEffect(() => {
-    fetch("/api/items")
+    fetch("/api/items?source=wurmpedia")
       .then((r) => r.json())
       .then((data) => {
         const craftable = data.filter((i: Item & { is_base_material: number }) => !i.is_base_material);
@@ -785,6 +785,7 @@ function AdvancedCalculator() {
         woa: windOfAges.toString(),
         coc: circleOfCunning.toString(),
         includeSkillPath: showSkillPath.toString(),
+        source: "wurmpedia",
       });
       const response = await fetch(`/api/advanced-calculate?${params}`);
       const data = await response.json();
@@ -1031,7 +1032,7 @@ function SkillOptimizer() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/items?categories=true")
+    fetch("/api/items?categories=true&source=wurmpedia")
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setCategories(data); });
   }, []);
@@ -1043,6 +1044,7 @@ function SkillOptimizer() {
         skill: currentSkill.toString(),
         targetSkill: targetSkill.toString(),
         toolQL: toolQL.toString(),
+        source: "wurmpedia",
       });
       if (category) params.set("category", category);
       const response = await fetch(`/api/skill-optimizer?${params}`);
