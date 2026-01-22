@@ -153,6 +153,175 @@ app.get("/api/pages/:slug/sections", async (req, res) => {
   res.json(rows);
 });
 
+// ============================================
+// ITEMS API - For crafting integration
+// ============================================
+
+// GET /api/items - List all items with infobox (craftable items)
+app.get("/api/items", async (req, res) => {
+  const q = String(req.query.q ?? "").trim();
+  const category = String(req.query.category ?? "").trim();
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+  const offset = Math.max(0, parseInt(req.query.offset) || 0);
+
+  let where = "i.id IS NOT NULL"; // has infobox
+  const params = [];
+
+  if (q) {
+    where += " AND p.title LIKE CONCAT('%', ?, '%')";
+    params.push(q);
+  }
+
+  if (category) {
+    where += " AND EXISTS (SELECT 1 FROM page_categories pc JOIN categories c ON pc.category_id = c.id WHERE pc.page_id = p.id AND c.name = ?)";
+    params.push(category);
+  }
+
+  const [rows] = await pool.query(
+    `SELECT p.slug, p.title, p.page_type, i.image_src, i.image_original
+     FROM pages p
+     JOIN infoboxes i ON i.page_id = p.id
+     WHERE ${where}
+     ORDER BY p.title
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  // Get total count for pagination
+  const [[countRow]] = await pool.query(
+    `SELECT COUNT(*) as total FROM pages p JOIN infoboxes i ON i.page_id = p.id WHERE ${where}`,
+    params
+  );
+
+  res.json({
+    items: rows,
+    total: countRow.total,
+    limit,
+    offset
+  });
+});
+
+// GET /api/items/:slug - Get item with full infobox data
+app.get("/api/items/:slug", async (req, res) => {
+  const slug = req.params.slug;
+
+  const [pRows] = await pool.query(
+    `SELECT p.id, p.slug, p.title, p.page_type, p.breadcrumbs_json,
+            i.id as infobox_id, i.title as infobox_title, i.image_src, i.image_alt, i.image_original
+     FROM pages p
+     LEFT JOIN infoboxes i ON i.page_id = p.id
+     WHERE p.slug = ?
+     LIMIT 1`,
+    [slug]
+  );
+
+  if (!pRows.length) return res.status(404).json({ error: "not_found" });
+
+  const page = pRows[0];
+  const item = {
+    slug: page.slug,
+    title: page.title,
+    page_type: page.page_type,
+    breadcrumbs: page.breadcrumbs_json ? JSON.parse(page.breadcrumbs_json) : [],
+    image: page.image_original || page.image_src || null,
+    image_alt: page.image_alt,
+    infobox: null
+  };
+
+  if (page.infobox_id) {
+    const [fRows] = await pool.query(
+      `SELECT section_name, items_json
+       FROM infobox_fields
+       WHERE infobox_id = ?
+       ORDER BY section_name`,
+      [page.infobox_id]
+    );
+
+    // Parse infobox fields into a more usable structure
+    const fields = {};
+    for (const f of fRows) {
+      fields[f.section_name] = f.items_json ? JSON.parse(f.items_json) : [];
+    }
+
+    item.infobox = {
+      title: page.infobox_title,
+      fields
+    };
+
+    // Extract common crafting fields for convenience
+    item.skill = fields["Skill"]?.[0]?.raw || null;
+    item.materials = fields["Materials"] || fields["Ingredients"] || [];
+    item.tools = fields["Tools"] || fields["Tool"] || [];
+    item.result = fields["Result"] || fields["Creates"] || [];
+  }
+
+  // Get categories
+  const [catRows] = await pool.query(
+    `SELECT c.name FROM categories c
+     JOIN page_categories pc ON pc.category_id = c.id
+     WHERE pc.page_id = ?`,
+    [page.id]
+  );
+  item.categories = catRows.map(r => r.name);
+
+  res.json(item);
+});
+
+// GET /api/categories - List all categories
+app.get("/api/categories", async (req, res) => {
+  const [rows] = await pool.query(
+    `SELECT c.name, COUNT(pc.page_id) as count
+     FROM categories c
+     LEFT JOIN page_categories pc ON pc.category_id = c.id
+     GROUP BY c.id, c.name
+     ORDER BY c.name`
+  );
+  res.json(rows);
+});
+
+// GET /api/items/:slug/recipe - Get recipe/materials for an item
+app.get("/api/items/:slug/recipe", async (req, res) => {
+  const slug = req.params.slug;
+
+  const [pRows] = await pool.query(
+    `SELECT p.id, p.title, i.id as infobox_id
+     FROM pages p
+     JOIN infoboxes i ON i.page_id = p.id
+     WHERE p.slug = ?
+     LIMIT 1`,
+    [slug]
+  );
+
+  if (!pRows.length) return res.status(404).json({ error: "not_found" });
+
+  const [fRows] = await pool.query(
+    `SELECT section_name, items_json
+     FROM infobox_fields
+     WHERE infobox_id = ?`,
+    [pRows[0].infobox_id]
+  );
+
+  const fields = {};
+  for (const f of fRows) {
+    fields[f.section_name] = f.items_json ? JSON.parse(f.items_json) : [];
+  }
+
+  // Extract recipe-relevant fields
+  const recipe = {
+    item: pRows[0].title,
+    slug: slug,
+    skill: fields["Skill"]?.[0]?.raw || null,
+    difficulty: fields["Difficulty"]?.[0]?.raw || null,
+    materials: fields["Materials"] || fields["Ingredients"] || [],
+    tools: fields["Tools"] || fields["Tool"] || [],
+    result: fields["Result"] || fields["Creates"] || [],
+    time: fields["Time"]?.[0]?.raw || null,
+    all_fields: fields
+  };
+
+  res.json(recipe);
+});
+
 const port = Number(process.env.PORT ?? 3030);
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);
