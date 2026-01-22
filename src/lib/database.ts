@@ -6262,3 +6262,303 @@ export async function getArchaeologyStats(): Promise<{
     by_site_type: siteTypeStats,
   };
 }
+
+// ============================================
+// RECIPE DATABASE FUNCTIONS
+// For structured recipe data (items, materials, tools, steps)
+// ============================================
+
+export interface RecipeItem {
+  id: number;
+  slug: string;
+  name: string;
+  skill: string | null;
+  difficulty: number | null;
+  base_time_seconds: number | null;
+  image_url: string | null;
+  is_base_material: boolean;
+  material_count?: number;
+  tool_count?: number;
+}
+
+export interface RecipeItemMaterial {
+  id: number;
+  material_name: string;
+  material_slug: string;
+  quantity: number;
+  unit: string;
+  sort_order: number;
+}
+
+export interface RecipeItemTool {
+  id: number;
+  tool_name: string;
+  tool_slug: string;
+  is_workstation: boolean;
+}
+
+export interface RecipeItemStep {
+  id: number;
+  step_order: number;
+  action: string;
+  target_name: string;
+  target_slug: string | null;
+  target_quantity: number | null;
+  target_unit: string | null;
+  submenu_path: string | null;
+  raw_text: string | null;
+}
+
+export interface RecipeItemFull extends RecipeItem {
+  materials: RecipeItemMaterial[];
+  tools: RecipeItemTool[];
+  steps: RecipeItemStep[];
+  categories: string[];
+}
+
+/**
+ * Get all recipe items (from items table with material/tool counts)
+ */
+export async function getAllRecipeItems(options?: {
+  limit?: number;
+  offset?: number;
+  skill?: string;
+}): Promise<{ items: RecipeItem[]; total: number }> {
+  const limit = options?.limit || 100;
+  const offset = options?.offset || 0;
+
+  let whereClause = "";
+  const params: (string | number)[] = [];
+
+  if (options?.skill) {
+    whereClause = "WHERE i.skill = ?";
+    params.push(options.skill);
+  }
+
+  const countResult = await query<{ count: number }>(
+    `SELECT COUNT(*) as count FROM items i ${whereClause}`,
+    params
+  );
+  const total = countResult.rows[0]?.count || 0;
+
+  const result = await query<RecipeItem>(
+    `SELECT
+      i.id,
+      i.slug,
+      i.name,
+      i.skill,
+      i.difficulty,
+      i.base_time_seconds,
+      i.image_url,
+      i.is_base_material,
+      (SELECT COUNT(*) FROM recipe_materials rm WHERE rm.item_id = i.id) as material_count,
+      (SELECT COUNT(*) FROM recipe_tools rt WHERE rt.item_id = i.id) as tool_count
+    FROM items i
+    ${whereClause}
+    ORDER BY i.name ASC
+    LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  return { items: result.rows, total };
+}
+
+/**
+ * Search recipe items by name
+ */
+export async function searchRecipeItems(
+  searchQuery: string,
+  options?: { limit?: number; offset?: number; skill?: string }
+): Promise<{ items: RecipeItem[]; total: number }> {
+  const limit = options?.limit || 50;
+  const offset = options?.offset || 0;
+  const searchPattern = `%${searchQuery}%`;
+
+  let whereClause = "WHERE i.name LIKE ?";
+  const params: (string | number)[] = [searchPattern];
+
+  if (options?.skill) {
+    whereClause += " AND i.skill = ?";
+    params.push(options.skill);
+  }
+
+  const countResult = await query<{ count: number }>(
+    `SELECT COUNT(*) as count FROM items i ${whereClause}`,
+    params
+  );
+  const total = countResult.rows[0]?.count || 0;
+
+  const result = await query<RecipeItem>(
+    `SELECT
+      i.id,
+      i.slug,
+      i.name,
+      i.skill,
+      i.difficulty,
+      i.base_time_seconds,
+      i.image_url,
+      i.is_base_material,
+      (SELECT COUNT(*) FROM recipe_materials rm WHERE rm.item_id = i.id) as material_count,
+      (SELECT COUNT(*) FROM recipe_tools rt WHERE rt.item_id = i.id) as tool_count
+    FROM items i
+    ${whereClause}
+    ORDER BY i.name ASC
+    LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  return { items: result.rows, total };
+}
+
+/**
+ * Get a single recipe item by slug with all materials, tools, steps, and categories
+ */
+export async function getRecipeItemBySlug(slug: string): Promise<RecipeItemFull | null> {
+  // Get the item
+  const itemResult = await query<RecipeItem>(
+    `SELECT
+      id, slug, name, skill, difficulty, base_time_seconds, image_url, is_base_material
+    FROM items
+    WHERE slug = ?`,
+    [slug]
+  );
+
+  if (itemResult.rows.length === 0) {
+    return null;
+  }
+
+  const item = itemResult.rows[0];
+
+  // Get materials, tools, steps, categories in parallel
+  const [materialsResult, toolsResult, stepsResult, categoriesResult] = await Promise.all([
+    query<RecipeItemMaterial>(
+      `SELECT id, material_name, material_slug, quantity, unit, sort_order
+       FROM recipe_materials
+       WHERE item_id = ?
+       ORDER BY sort_order ASC`,
+      [item.id]
+    ),
+    query<RecipeItemTool>(
+      `SELECT id, tool_name, tool_slug, is_workstation
+       FROM recipe_tools
+       WHERE item_id = ?`,
+      [item.id]
+    ),
+    query<RecipeItemStep>(
+      `SELECT id, step_order, action, target_name, target_slug, target_quantity, target_unit, submenu_path, raw_text
+       FROM recipe_steps
+       WHERE item_id = ?
+       ORDER BY step_order ASC`,
+      [item.id]
+    ),
+    query<{ category: string }>(
+      `SELECT category FROM item_categories WHERE item_id = ?`,
+      [item.id]
+    ),
+  ]);
+
+  return {
+    ...item,
+    materials: materialsResult.rows,
+    tools: toolsResult.rows,
+    steps: stepsResult.rows,
+    categories: categoriesResult.rows.map(c => c.category),
+  };
+}
+
+/**
+ * Get a single recipe item by ID with all materials, tools, steps, and categories
+ */
+export async function getRecipeItemById(id: number): Promise<RecipeItemFull | null> {
+  const itemResult = await query<RecipeItem>(
+    `SELECT
+      id, slug, name, skill, difficulty, base_time_seconds, image_url, is_base_material
+    FROM items
+    WHERE id = ?`,
+    [id]
+  );
+
+  if (itemResult.rows.length === 0) {
+    return null;
+  }
+
+  const item = itemResult.rows[0];
+
+  const [materialsResult, toolsResult, stepsResult, categoriesResult] = await Promise.all([
+    query<RecipeItemMaterial>(
+      `SELECT id, material_name, material_slug, quantity, unit, sort_order
+       FROM recipe_materials
+       WHERE item_id = ?
+       ORDER BY sort_order ASC`,
+      [item.id]
+    ),
+    query<RecipeItemTool>(
+      `SELECT id, tool_name, tool_slug, is_workstation
+       FROM recipe_tools
+       WHERE item_id = ?`,
+      [item.id]
+    ),
+    query<RecipeItemStep>(
+      `SELECT id, step_order, action, target_name, target_slug, target_quantity, target_unit, submenu_path, raw_text
+       FROM recipe_steps
+       WHERE item_id = ?
+       ORDER BY step_order ASC`,
+      [item.id]
+    ),
+    query<{ category: string }>(
+      `SELECT category FROM item_categories WHERE item_id = ?`,
+      [item.id]
+    ),
+  ]);
+
+  return {
+    ...item,
+    materials: materialsResult.rows,
+    tools: toolsResult.rows,
+    steps: stepsResult.rows,
+    categories: categoriesResult.rows.map(c => c.category),
+  };
+}
+
+/**
+ * Get available skills from recipe items
+ */
+export async function getRecipeSkills(): Promise<string[]> {
+  const result = await query<{ skill: string }>(
+    `SELECT DISTINCT skill FROM items WHERE skill IS NOT NULL AND skill != '' ORDER BY skill ASC`
+  );
+  return result.rows.map(r => r.skill);
+}
+
+/**
+ * Get recipe items statistics
+ */
+export async function getRecipeItemStats(): Promise<{
+  total_items: number;
+  items_with_recipes: number;
+  base_materials: number;
+  by_skill: Record<string, number>;
+}> {
+  const [total, withRecipes, baseMaterials, bySkill] = await Promise.all([
+    query<{ count: number }>("SELECT COUNT(*) as count FROM items"),
+    query<{ count: number }>(
+      "SELECT COUNT(DISTINCT i.id) as count FROM items i INNER JOIN recipe_materials rm ON rm.item_id = i.id"
+    ),
+    query<{ count: number }>("SELECT COUNT(*) as count FROM items WHERE is_base_material = TRUE"),
+    query<{ skill: string; count: number }>(
+      "SELECT skill, COUNT(*) as count FROM items WHERE skill IS NOT NULL GROUP BY skill ORDER BY count DESC"
+    ),
+  ]);
+
+  const skillStats: Record<string, number> = {};
+  bySkill.rows.forEach(r => {
+    skillStats[r.skill] = r.count;
+  });
+
+  return {
+    total_items: total.rows[0]?.count || 0,
+    items_with_recipes: withRecipes.rows[0]?.count || 0,
+    base_materials: baseMaterials.rows[0]?.count || 0,
+    by_skill: skillStats,
+  };
+}
