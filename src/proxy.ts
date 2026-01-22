@@ -109,7 +109,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
       "style-src 'self' 'unsafe-inline'", // Tailwind requires unsafe-inline
       "img-src 'self' data: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://www.wurmpedia.com https://discord.com https://discordapp.com",
+      "connect-src 'self' https://www.wurmpedia.com https://discord.com https://discordapp.com https://items.wurm.tools http://localhost:3030",
       "frame-ancestors 'none'",
       "form-action 'self'",
       "base-uri 'self'",

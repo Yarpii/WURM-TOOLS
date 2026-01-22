@@ -7,6 +7,7 @@ import {
   getItemByName,
   getCategories,
 } from "@/lib/database";
+import { itemsTransformService } from "@/lib/items-transform";
 import { getSession } from "@/lib/auth";
 import { sanitizeError, validatePagination } from "@/lib/security";
 
@@ -15,6 +16,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q");
     const categoriesOnly = searchParams.get("categories");
+    const source = searchParams.get("source"); // "wurmpedia" for items.wurm.tools
 
     // Pagination parameters with validation
     const { page, limit } = validatePagination(
@@ -23,6 +25,23 @@ export async function GET(request: Request) {
     );
     const paginate = searchParams.get("paginate") === "true";
 
+    // Use items.wurm.tools as data source when requested
+    if (source === "wurmpedia") {
+      if (categoriesOnly) {
+        const categories = await itemsTransformService.getCategories();
+        return NextResponse.json(categories);
+      }
+
+      if (query) {
+        const items = await itemsTransformService.searchItems(query);
+        return NextResponse.json(items);
+      }
+
+      const items = await itemsTransformService.getAllItems();
+      return NextResponse.json(items);
+    }
+
+    // Default: use local database
     if (categoriesOnly) {
       const categories = await getCategories();
       return NextResponse.json(categories);
