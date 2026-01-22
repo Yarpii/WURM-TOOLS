@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import type { ItemSearchResult, ItemDetail, Category } from "@/lib/items-api";
 
-// API base - relative fetch works when both are on same domain, otherwise use full URL
-const API_BASE = process.env.NEXT_PUBLIC_ITEMS_API_URL || "https://items.wurm.tools";
+// API base - defaults to localhost for development, set NEXT_PUBLIC_ITEMS_API_URL in production
+const API_BASE = process.env.NEXT_PUBLIC_ITEMS_API_URL || "http://localhost:3030";
 
 async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
