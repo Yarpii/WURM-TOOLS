@@ -2,10 +2,18 @@
  * Items Transform Service
  * Fetches data from items.wurm.tools API and transforms it to the format
  * expected by the crafting page.
+ *
+ * Now also supports local database (recipe tables) as primary source.
  */
 
 import { itemsApi, ItemDetail, MaterialItem, ItemSearchResult, RecipeDBItem, RecipeMaterial } from "./items-api";
 import type { Item, Recipe, RecipeWithNames, SkillType, ToolType, MaterialResult, CraftingNode } from "./types";
+import {
+  getAllRecipeItems,
+  searchRecipeItems,
+  getRecipeItemBySlug,
+  type RecipeItemFull,
+} from "./database";
 
 // Generate a consistent numeric ID from a slug
 function slugToId(slug: string): number {
@@ -800,12 +808,13 @@ export class ItemsTransformService {
 
   // ============================================
   // RECIPE DATABASE METHODS
-  // These use the migrated relational tables for better data accuracy
+  // These use the local MySQL recipe tables for better data accuracy
   // ============================================
 
   async getAllItemsFromDB(): Promise<Item[]> {
     try {
-      const response = await itemsApi.getAllRecipesDB({ limit: 1000 });
+      // Use local database directly
+      const response = await getAllRecipeItems({ limit: 1000 });
       const items = response.items.map(dbItem => ({
         id: dbItem.id,
         name: dbItem.name,
@@ -825,17 +834,18 @@ export class ItemsTransformService {
 
       return items;
     } catch (error) {
-      console.error("Failed to fetch items from recipe database:", error);
-      // Fallback to infobox-based method
+      console.error("Failed to fetch items from local recipe database:", error);
+      // Fallback to external API
       return this.getAllItems();
     }
   }
 
   async getItemFromDB(slug: string): Promise<Item | null> {
     try {
-      const recipe = await itemsApi.getRecipeDB(slug);
+      const recipe = await getRecipeItemBySlug(slug);
+      if (!recipe) return null;
       registerIdSlug(recipe.id, recipe.slug);
-      return transformRecipeDBItem(recipe);
+      return transformRecipeDBItemLocal(recipe);
     } catch {
       return null;
     }
@@ -847,13 +857,18 @@ export class ItemsTransformService {
     tree: CraftingNode | null;
   }> {
     try {
-      const recipe = await itemsApi.getRecipeDB(slug);
-      const item = transformRecipeDBItem(recipe);
+      // Use local database
+      const recipe = await getRecipeItemBySlug(slug);
+      if (!recipe) {
+        return { item: null, materials: [], tree: null };
+      }
+
+      const item = transformRecipeDBItemLocal(recipe);
       registerIdSlug(recipe.id, recipe.slug);
 
       if (mode === "easy") {
         // "Easy" mode: just return direct ingredients from recipe
-        const materials = recipeMaterialsToResults(recipe.materials, quantity);
+        const materials = recipeMaterialsToResultsLocal(recipe.materials, quantity);
 
         // Build a simple tree showing direct materials
         const tree: CraftingNode = {
@@ -877,7 +892,7 @@ export class ItemsTransformService {
         return { item, materials, tree };
       } else {
         // "Full" mode: recursively calculate all base materials
-        const tree = await buildCraftingTreeFromDB(slug, quantity);
+        const tree = await buildCraftingTreeFromDBLocal(slug, quantity);
         if (!tree) {
           return { item, materials: [], tree: null };
         }
@@ -886,7 +901,7 @@ export class ItemsTransformService {
         return { item, materials, tree };
       }
     } catch (error) {
-      console.error("Failed to calculate materials from recipe DB:", error);
+      console.error("Failed to calculate materials from local recipe DB:", error);
       return { item: null, materials: [], tree: null };
     }
   }
@@ -899,7 +914,8 @@ export class ItemsTransformService {
     submenu?: string;
   }[]> {
     try {
-      const recipe = await itemsApi.getRecipeDB(slug);
+      const recipe = await getRecipeItemBySlug(slug);
+      if (!recipe) return [];
       return recipe.steps.map(step => ({
         action: step.action,
         target: step.target_name,
@@ -910,6 +926,126 @@ export class ItemsTransformService {
     } catch {
       return [];
     }
+  }
+}
+
+// ============================================
+// LOCAL DATABASE HELPER FUNCTIONS
+// ============================================
+
+// Transform local RecipeItemFull to Item format
+function transformRecipeDBItemLocal(recipe: RecipeItemFull): Item {
+  return {
+    id: recipe.id,
+    name: recipe.name,
+    category: recipe.categories[0]?.toLowerCase().replace(/ /g, "_") || "misc",
+    is_base_material: recipe.is_base_material ? 1 : 0,
+    description: null,
+    difficulty: recipe.difficulty,
+    skill_type: mapSkillType(recipe.skill),
+    base_time: recipe.base_time_seconds,
+    tool_type: recipe.tools.length > 0 ? mapToolTypeFromString(recipe.tools[0].tool_name) : null,
+  };
+}
+
+// Convert local recipe materials to MaterialResult format
+function recipeMaterialsToResultsLocal(
+  materials: RecipeItemFull["materials"],
+  multiplier: number = 1
+): MaterialResult[] {
+  return materials.map(mat => {
+    const qty = mat.quantity * multiplier;
+    return {
+      id: slugToId(mat.material_slug),
+      name: mat.material_name,
+      category: "materials",
+      quantity: qty,
+      formatted: formatMaterialQuantity(qty, mat.unit),
+      is_base: true,
+    };
+  });
+}
+
+// Build crafting tree from local database
+async function buildCraftingTreeFromDBLocal(
+  slug: string,
+  quantity: number = 1,
+  depth: number = 0,
+  maxDepth: number = 5,
+  visited: Set<string> = new Set()
+): Promise<CraftingNode | null> {
+  // Prevent infinite loops
+  if (visited.has(slug) || depth > maxDepth) {
+    return null;
+  }
+  visited.add(slug);
+
+  try {
+    const recipe = await getRecipeItemBySlug(slug);
+    if (!recipe) return null;
+
+    const item = transformRecipeDBItemLocal(recipe);
+
+    const node: CraftingNode = {
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      quantity: quantity,
+      is_base: item.is_base_material === 1 || recipe.materials.length === 0,
+      depth: depth,
+      children: [],
+    };
+
+    // If base material or no materials, return leaf node
+    if (node.is_base) {
+      return node;
+    }
+
+    // Recursively build children from materials
+    for (const material of recipe.materials) {
+      const childSlug = material.material_slug;
+      const matQty = material.quantity * quantity;
+
+      try {
+        const childNode = await buildCraftingTreeFromDBLocal(
+          childSlug,
+          matQty,
+          depth + 1,
+          maxDepth,
+          new Set(visited)
+        );
+
+        if (childNode) {
+          node.children.push(childNode);
+        } else {
+          // Material not found in database, add as leaf
+          node.children.push({
+            id: slugToId(childSlug),
+            name: material.material_name,
+            category: "materials",
+            quantity: matQty,
+            is_base: true,
+            depth: depth + 1,
+            children: [],
+          });
+        }
+      } catch {
+        // Material not found, add as base material
+        node.children.push({
+          id: slugToId(childSlug),
+          name: material.material_name,
+          category: "materials",
+          quantity: matQty,
+          is_base: true,
+          depth: depth + 1,
+          children: [],
+        });
+      }
+    }
+
+    return node;
+  } catch {
+    return null;
   }
 }
 
