@@ -196,9 +196,14 @@ async function migrate() {
         await pool.query(stmt);
       } catch (err) {
         // Ignore "already exists" errors
-        if (!err.message.includes("already exists")) {
-          console.error(`  Warning: ${err.message.substring(0, 80)}`);
+        if (err.message.includes("already exists")) {
+          continue;
         }
+        // Show full error for debugging
+        console.error(`\n  ERROR creating table:`);
+        console.error(`  ${err.message}`);
+        console.error(`  SQL: ${stmt.substring(0, 200)}...`);
+        throw err; // Stop migration on error
       }
     }
   }

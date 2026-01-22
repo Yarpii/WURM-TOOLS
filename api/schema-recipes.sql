@@ -6,7 +6,7 @@
 -- Items table - craftable items with their properties
 CREATE TABLE IF NOT EXISTS items (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  page_id BIGINT UNSIGNED UNIQUE,            -- Link to pages table
+  page_id BIGINT UNSIGNED UNIQUE,            -- Link to pages table (no FK constraint for flexibility)
   slug VARCHAR(255) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
   skill VARCHAR(100),                        -- e.g., "fine carpentry", "blacksmithing"
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS items (
   INDEX idx_items_skill (skill),
   INDEX idx_items_difficulty (difficulty),
   INDEX idx_items_base (is_base_material),
-  FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE SET NULL
+  INDEX idx_items_page (page_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Recipe materials - what materials are needed to craft an item
