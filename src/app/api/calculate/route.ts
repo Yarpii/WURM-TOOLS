@@ -40,21 +40,36 @@ export async function GET(request: Request) {
         );
       }
 
-      const result = await itemsTransformService.calculateMaterials(itemId, quantity);
+      // Use the new recipe database for structured data
+      const materialMode = mode === "full" ? "full" : "easy";
+      const result = await itemsTransformService.calculateMaterialsFromDB(itemSlug, quantity, materialMode);
 
       if (!result.item) {
-        return NextResponse.json(
-          { error: "Item not found in Wurmpedia" },
-          { status: 404 }
-        );
+        // Fallback to infobox-based method if recipe DB fails
+        const fallbackResult = await itemsTransformService.calculateMaterials(itemId, quantity);
+        if (!fallbackResult.item) {
+          return NextResponse.json(
+            { error: "Item not found in Wurmpedia" },
+            { status: 404 }
+          );
+        }
+        return NextResponse.json({
+          item: fallbackResult.item,
+          materials: fallbackResult.materials,
+          tree: fallbackResult.tree,
+          mode: "full",
+          description: "Materials from Wurmpedia (fallback)"
+        });
       }
 
       return NextResponse.json({
         item: result.item,
         materials: result.materials,
         tree: result.tree,
-        mode: "full", // Wurmpedia always returns full tree
-        description: "Materials from Wurmpedia"
+        mode: materialMode,
+        description: materialMode === "easy"
+          ? "Direct recipe ingredients from database"
+          : "All base materials from database"
       });
     }
 

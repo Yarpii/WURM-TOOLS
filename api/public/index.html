@@ -39,6 +39,20 @@
     .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .small { font-size: 12px; opacity:.7; }
     .error { color: #fecaca; }
+    .tab-btn { background:#0b0c10; border-color:#333; }
+    .tab-btn.active { background:#1e3a5f; border-color:#3b82f6; }
+    .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .compare-col { border:1px solid #333; border-radius:10px; padding:12px; background:#0f1117; }
+    .compare-col h3 { margin:0 0 10px 0; font-size:14px; color:#93c5fd; }
+    .match { color: #86efac; }
+    .mismatch { color: #fecaca; background:#3b1515; padding:2px 4px; border-radius:4px; }
+    .material-row { display:flex; gap:8px; padding:6px 0; border-bottom:1px dashed #222; font-size:13px; }
+    .material-row:last-child { border-bottom:0; }
+    .qty { min-width:50px; color:#93c5fd; }
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:12px; margin-bottom:16px; }
+    .stat-card { background:#111827; border:1px solid #222; border-radius:10px; padding:12px; text-align:center; }
+    .stat-card .num { font-size:24px; font-weight:bold; color:#60a5fa; }
+    .stat-card .lbl { font-size:12px; opacity:.7; }
     @media (max-width: 768px) {
       .wrap { grid-template-columns: 1fr; }
       .left { border-right: none; border-bottom: 1px solid #222; max-height: 40vh; }
@@ -51,6 +65,9 @@
     <h1>Wurmpedia DB Viewer</h1>
     <span class="pill" id="apiPill">API: ...</span>
     <span class="pill" id="statusPill">status: idle</span>
+    <div style="flex:1"></div>
+    <button id="tabPages" class="tab-btn active">Pages</button>
+    <button id="tabRecipes" class="tab-btn">Recipes DB</button>
   </header>
 
   <div class="wrap">
@@ -256,7 +273,7 @@
       }
     }
 
-    async function doSearch() {
+    async function searchPages() {
       const q = elQ.value.trim();
       if (!q) return;
       setStatus("searching...");
@@ -271,6 +288,228 @@
         setStatus("error");
       } finally {
         btnSearch.disabled = false;
+      }
+    }
+
+    // ============================================
+    // RECIPES TAB
+    // ============================================
+
+    const tabPages = document.getElementById("tabPages");
+    const tabRecipes = document.getElementById("tabRecipes");
+    let currentTab = "pages";
+
+    function setTab(tab) {
+      currentTab = tab;
+      tabPages.classList.toggle("active", tab === "pages");
+      tabRecipes.classList.toggle("active", tab === "recipes");
+      elQ.value = "";
+      elList.innerHTML = "";
+      elDetail.innerHTML = `<div class="hint">Selecteer links een item...</div>`;
+
+      if (tab === "recipes") {
+        elQ.placeholder = "Zoek recept... (bv: large cart, sword)";
+        loadRecipeStats();
+      } else {
+        elQ.placeholder = "Zoek... (bv: barrel, plank, sword)";
+      }
+    }
+
+    tabPages.onclick = () => setTab("pages");
+    tabRecipes.onclick = () => setTab("recipes");
+
+    async function loadRecipeStats() {
+      try {
+        const stats = await apiGet("/api/recipes-stats");
+        elDetail.innerHTML = `
+          <div class="card">
+            <h2>Recipes Database Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-card"><div class="num">${stats.items}</div><div class="lbl">Items</div></div>
+              <div class="stat-card"><div class="num">${stats.materials}</div><div class="lbl">Materials</div></div>
+              <div class="stat-card"><div class="num">${stats.tools}</div><div class="lbl">Tools</div></div>
+              <div class="stat-card"><div class="num">${stats.steps || 0}</div><div class="lbl">Steps</div></div>
+              <div class="stat-card"><div class="num">${stats.linked_materials}</div><div class="lbl">Linked Materials</div></div>
+              <div class="stat-card"><div class="num">${stats.linked_tools}</div><div class="lbl">Linked Tools</div></div>
+            </div>
+            <h3>Top Skills</h3>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              ${stats.skills.map(s => `<span class="tag">${esc(s.skill)} (${s.count})</span>`).join("")}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        elDetail.innerHTML = `<div class="card"><div class="error">Error loading stats: ${esc(err.message)}</div><div class="hint">Run <code>node migrate-recipes.js</code> first to populate the recipes database.</div></div>`;
+      }
+    }
+
+    async function searchRecipes() {
+      const q = elQ.value.trim();
+      if (!q) {
+        loadRecipeStats();
+        return;
+      }
+      setStatus("searching recipes...");
+      btnSearch.disabled = true;
+      try {
+        const data = await apiGet(`/api/recipes?q=${encodeURIComponent(q)}&limit=50`);
+        renderRecipeList(data.items);
+        setStatus(`recipes: ${data.items.length}/${data.total}`);
+      } catch (e) {
+        console.error(e);
+        elList.innerHTML = `<div class="hint error">Search error: ${esc(e.message)}</div>`;
+        setStatus("error");
+      } finally {
+        btnSearch.disabled = false;
+      }
+    }
+
+    function renderRecipeList(items) {
+      elList.innerHTML = "";
+      if (!items.length) {
+        elList.innerHTML = `<div class="hint">Geen recipes gevonden.</div>`;
+        return;
+      }
+      for (const it of items) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.dataset.slug = it.slug;
+        div.innerHTML = `
+          <div class="title">${esc(it.name)}</div>
+          <div class="meta">${esc(it.skill || "—")} • ${it.material_count} mats • ${it.tool_count} tools</div>
+        `;
+        div.onclick = () => selectRecipe(it.slug, div);
+        elList.appendChild(div);
+      }
+    }
+
+    async function selectRecipe(slug, div) {
+      setActive(div);
+      setStatus("loading comparison...");
+      elDetail.innerHTML = `<div class="hint">Loading comparison for <b>${esc(slug)}</b>...</div>`;
+
+      try {
+        const compare = await apiGet(`/api/recipes/${encodeURIComponent(slug)}/compare`);
+        renderComparison(compare);
+        setStatus("ready");
+      } catch (err) {
+        console.error(err);
+        elDetail.innerHTML = `<div class="card error">Error: ${esc(err.message)}</div>`;
+        setStatus("error");
+      }
+    }
+
+    function renderComparison(data) {
+      const db = data.database;
+      const ib = data.infobox;
+
+      const renderMaterials = (materials, isDb) => {
+        if (!materials || materials.length === 0) return `<div class="small">—</div>`;
+        return materials.map(m => {
+          if (isDb) {
+            // Format: "5x planks" or "1.5 kg iron lump"
+            const qty = m.unit === 'kg' ? `${m.quantity} kg` : `${Math.round(m.quantity)}x`;
+            return `<div class="material-row"><span class="qty">${qty}</span><span>${esc(m.material_name)}</span></div>`;
+          } else {
+            return `<div class="material-row"><span>${esc(m.raw || JSON.stringify(m))}</span></div>`;
+          }
+        }).join("");
+      };
+
+      const renderTools = (tools, isDb) => {
+        if (!tools || tools.length === 0) return `<div class="small">—</div>`;
+        return tools.map(t => {
+          if (isDb) {
+            return `<div class="material-row"><span>${esc(t.tool_name)}${t.is_workstation ? ' (workstation)' : ''}</span></div>`;
+          } else {
+            return `<div class="material-row"><span>${esc(t.raw || JSON.stringify(t))}</span></div>`;
+          }
+        }).join("");
+      };
+
+      const renderSteps = (steps, isDb) => {
+        if (!steps || steps.length === 0) return `<div class="small">—</div>`;
+        return steps.map((s, i) => {
+          if (isDb) {
+            let stepText = `${s.step_order}. `;
+            if (s.action === 'activate') {
+              stepText += `Activate ${esc(s.target_name)}`;
+              if (s.target_quantity) stepText += ` (${s.target_quantity} ${s.target_unit})`;
+            } else if (s.action === 'right-click') {
+              stepText += `Right-click ${esc(s.target_name)}`;
+            } else if (s.action === 'submenu') {
+              stepText += `Open submenu "${esc(s.submenu_path || s.target_name)}"`;
+            } else {
+              stepText += esc(s.raw_text || s.target_name);
+            }
+            return `<div class="material-row"><span>${stepText}</span></div>`;
+          } else {
+            return `<div class="material-row"><span>${i+1}. ${esc(s.raw || JSON.stringify(s))}</span></div>`;
+          }
+        }).join("");
+      };
+
+      const skillMatch = db?.skill === ib?.skill || (!db?.skill && !ib?.skill);
+
+      elDetail.innerHTML = `
+        <div class="card" style="margin-bottom:16px;">
+          <h2>${esc(data.slug)}</h2>
+          <div class="small">Vergelijk de geconverteerde database met de originele infobox data</div>
+        </div>
+
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h3>Database (geconverteerd)</h3>
+            ${db ? `
+              <div class="section">
+                <div class="kv"><span>Name</span><span>${esc(db.name)}</span></div>
+                <div class="kv"><span>Skill</span><span class="${skillMatch ? 'match' : 'mismatch'}">${esc(db.skill || "—")}</span></div>
+                <div class="kv"><span>Difficulty</span><span>${esc(db.difficulty || "—")}</span></div>
+                <div class="kv"><span>Time</span><span>${db.time_seconds ? db.time_seconds + 's' : "—"}</span></div>
+              </div>
+              <h4 style="margin:12px 0 6px 0;">Creation Steps (${db.steps?.length || 0})</h4>
+              ${renderSteps(db.steps, true)}
+              <h4 style="margin:12px 0 6px 0;">Materials (${db.materials?.length || 0})</h4>
+              ${renderMaterials(db.materials, true)}
+              <h4 style="margin:12px 0 6px 0;">Tools (${db.tools?.length || 0})</h4>
+              ${renderTools(db.tools, true)}
+              <h4 style="margin:12px 0 6px 0;">Categories</h4>
+              <div>${db.categories?.map(c => `<span class="tag">${esc(c)}</span>`).join("") || "—"}</div>
+            ` : `<div class="hint">Niet in recipes database</div>`}
+          </div>
+
+          <div class="compare-col">
+            <h3>Infobox (origineel)</h3>
+            ${ib ? `
+              <div class="section">
+                <div class="kv"><span>Name</span><span>${esc(ib.name)}</span></div>
+                <div class="kv"><span>Skill</span><span class="${skillMatch ? 'match' : 'mismatch'}">${esc(ib.skill || "—")}</span></div>
+                <div class="kv"><span>Difficulty</span><span>${esc(ib.difficulty || "—")}</span></div>
+                <div class="kv"><span>Time</span><span>${esc(ib.time || "—")}</span></div>
+              </div>
+              <h4 style="margin:12px 0 6px 0;">Creation Steps (${ib.allFields?.Creation?.length || 0})</h4>
+              ${renderSteps(ib.allFields?.Creation, false)}
+              <h4 style="margin:12px 0 6px 0;">Materials (${ib.materials?.length || 0})</h4>
+              ${renderMaterials(ib.materials, false)}
+              <h4 style="margin:12px 0 6px 0;">Tools (${ib.tools?.length || 0})</h4>
+              ${renderTools(ib.tools, false)}
+              <h4 style="margin:12px 0 6px 0;">All Fields</h4>
+              <details>
+                <summary class="small" style="cursor:pointer;">Toon alle infobox velden</summary>
+                <div class="mono" style="margin-top:8px; font-size:11px; max-height:300px; overflow:auto;">${esc(JSON.stringify(ib.allFields, null, 2))}</div>
+              </details>
+            ` : `<div class="hint">Geen infobox gevonden</div>`}
+          </div>
+        </div>
+      `;
+    }
+
+    // Search based on active tab
+    async function doSearch() {
+      if (currentTab === "recipes") {
+        await searchRecipes();
+      } else {
+        await searchPages();
       }
     }
 

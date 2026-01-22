@@ -5,8 +5,8 @@
 
 -- Items table - craftable items with their properties
 CREATE TABLE IF NOT EXISTS items (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  page_id BIGINT UNIQUE,                    -- Link to pages table
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  page_id BIGINT UNSIGNED UNIQUE,            -- Link to pages table (no FK constraint for flexibility)
   slug VARCHAR(255) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
   skill VARCHAR(100),                        -- e.g., "fine carpentry", "blacksmithing"
@@ -20,14 +20,14 @@ CREATE TABLE IF NOT EXISTS items (
   INDEX idx_items_skill (skill),
   INDEX idx_items_difficulty (difficulty),
   INDEX idx_items_base (is_base_material),
-  FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE SET NULL
+  INDEX idx_items_page (page_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Recipe materials - what materials are needed to craft an item
 CREATE TABLE IF NOT EXISTS recipe_materials (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  item_id BIGINT NOT NULL,                  -- The item being crafted
-  material_id BIGINT,                        -- Link to items table (if material exists)
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  item_id BIGINT UNSIGNED NOT NULL,          -- The item being crafted
+  material_id BIGINT UNSIGNED,               -- Link to items table (if material exists)
   material_name VARCHAR(255) NOT NULL,       -- Name as fallback
   material_slug VARCHAR(255),                -- Slug for linking
   quantity DECIMAL(10,2) NOT NULL DEFAULT 1,
@@ -43,9 +43,9 @@ CREATE TABLE IF NOT EXISTS recipe_materials (
 
 -- Recipe tools - what tools are needed to craft an item
 CREATE TABLE IF NOT EXISTS recipe_tools (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  item_id BIGINT NOT NULL,                  -- The item being crafted
-  tool_id BIGINT,                            -- Link to items table (if tool exists)
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  item_id BIGINT UNSIGNED NOT NULL,          -- The item being crafted
+  tool_id BIGINT UNSIGNED,                   -- Link to items table (if tool exists)
   tool_name VARCHAR(255) NOT NULL,           -- Name as fallback
   tool_slug VARCHAR(255),                    -- Slug for linking
   is_workstation BOOLEAN DEFAULT FALSE,      -- anvil, forge, loom, etc.
@@ -58,11 +58,29 @@ CREATE TABLE IF NOT EXISTS recipe_tools (
 
 -- Item categories for filtering
 CREATE TABLE IF NOT EXISTS item_categories (
-  item_id BIGINT NOT NULL,
+  item_id BIGINT UNSIGNED NOT NULL,
   category VARCHAR(100) NOT NULL,
 
   PRIMARY KEY (item_id, category),
   INDEX idx_category (category),
+  FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Recipe steps - Creation instructions (Activate, Right-click, submenu)
+CREATE TABLE IF NOT EXISTS recipe_steps (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  item_id BIGINT UNSIGNED NOT NULL,          -- The item being crafted
+  step_order INT NOT NULL,                    -- Order of the step (1, 2, 3...)
+  action VARCHAR(50) NOT NULL,                -- 'activate', 'right-click', 'submenu'
+  target_name VARCHAR(255) NOT NULL,          -- What to activate/click (e.g., "glowing metal lump")
+  target_slug VARCHAR(255),                   -- Slug for linking
+  target_quantity DECIMAL(10,2),              -- e.g., 1.00 kg
+  target_unit VARCHAR(20),                    -- 'kg', 'piece'
+  submenu_path VARCHAR(255),                  -- For submenu: "Create > Weapon heads"
+  raw_text TEXT,                              -- Original text for reference
+
+  INDEX idx_step_item (item_id),
+  INDEX idx_step_order (item_id, step_order),
   FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

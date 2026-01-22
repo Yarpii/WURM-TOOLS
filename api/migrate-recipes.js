@@ -168,37 +168,53 @@ function isBaseMaterial(categories, name) {
 async function migrate() {
   console.log("🚀 Starting recipe migration...\n");
 
-  // Step 1: Create tables
+  // Step 1: Drop existing recipe tables (in order due to FK constraints)
+  console.log("🗑️  Dropping existing recipe tables...");
+  await pool.query("DROP VIEW IF EXISTS v_material_uses");
+  await pool.query("DROP VIEW IF EXISTS v_recipes");
+  await pool.query("DROP VIEW IF EXISTS v_items_summary");
+  await pool.query("DROP TABLE IF EXISTS item_categories");
+  await pool.query("DROP TABLE IF EXISTS recipe_steps");
+  await pool.query("DROP TABLE IF EXISTS recipe_tools");
+  await pool.query("DROP TABLE IF EXISTS recipe_materials");
+  await pool.query("DROP TABLE IF EXISTS items");
+  console.log("  ✓ Dropped\n");
+
+  // Step 2: Create tables fresh
   console.log("📋 Creating tables...");
   const schema = fs.readFileSync(path.join(__dirname, "schema-recipes.sql"), "utf8");
 
-  // Split by semicolons but keep CREATE VIEW statements together
+  // Simple split: remove comments and split on semicolons
   const statements = schema
-    .split(/;(?=\s*(?:CREATE|ALTER|DROP|INSERT|--|\n\n|$))/i)
+    .replace(/--.*$/gm, "") // Remove single-line comments
+    .split(";")
     .map(s => s.trim())
-    .filter(s => s && !s.startsWith("--"));
+    .filter(s => s.length > 10); // Filter out empty or tiny fragments
 
-  for (const stmt of statements) {
-    if (stmt) {
-      try {
-        await pool.query(stmt);
-      } catch (err) {
-        // Ignore "already exists" errors
-        if (!err.message.includes("already exists")) {
-          console.error(`  Warning: ${err.message.substring(0, 80)}`);
-        }
+  console.log(`  Found ${statements.length} SQL statements`);
+
+  for (let i = 0; i < statements.length; i++) {
+    const stmt = statements[i];
+    try {
+      await pool.query(stmt);
+      // Extract table/view name for logging
+      const match = stmt.match(/(?:CREATE\s+(?:TABLE|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?|CREATE\s+OR\s+REPLACE\s+VIEW\s+)(\w+)/i);
+      if (match) {
+        console.log(`  ✓ Created: ${match[1]}`);
       }
+    } catch (err) {
+      // Ignore "already exists" errors
+      if (err.message.includes("already exists")) {
+        continue;
+      }
+      // Show full error for debugging
+      console.error(`\n  ERROR executing statement ${i + 1}:`);
+      console.error(`  ${err.message}`);
+      console.error(`  SQL: ${stmt.substring(0, 300)}...`);
+      throw err; // Stop migration on error
     }
   }
-  console.log("  ✓ Tables created\n");
-
-  // Step 2: Clear existing data
-  console.log("🗑️  Clearing existing recipe data...");
-  await pool.query("DELETE FROM item_categories");
-  await pool.query("DELETE FROM recipe_tools");
-  await pool.query("DELETE FROM recipe_materials");
-  await pool.query("DELETE FROM items");
-  console.log("  ✓ Cleared\n");
+  console.log("  ✓ All tables created\n");
 
   // Step 3: Get all pages with infoboxes
   console.log("📖 Fetching pages with infoboxes...");
@@ -251,6 +267,7 @@ async function migrate() {
   let itemCount = 0;
   let materialCount = 0;
   let toolCount = 0;
+  let stepCount = 0;
 
   for (const page of pages) {
     const fields = fieldsByInfobox[page.infobox_id] || {};
@@ -356,6 +373,51 @@ async function migrate() {
       toolCount++;
     }
 
+    // Parse Creation steps
+    const creation = fields["Creation"] || [];
+    let stepOrder = 1;
+    for (const step of creation) {
+      if (!step.raw) continue;
+
+      const action = step.action || "unknown";
+      let targetName = step.raw;
+      let targetSlug = null;
+      let targetQuantity = null;
+      let targetUnit = null;
+      let submenuPath = null;
+
+      // Extract target from links if available
+      if (step.links && step.links.length > 0) {
+        targetSlug = extractSlugFromHref(step.links[0].href);
+        // Use the link text as a cleaner target name
+        if (step.links[0].text) {
+          targetName = step.links[0].text;
+        }
+      }
+
+      // Parse quantity from raw text (e.g., "1.00 kg")
+      const kgMatch = step.raw.match(/\(?([\d.]+)\s*kg\)?/i);
+      if (kgMatch) {
+        targetQuantity = parseFloat(kgMatch[1]);
+        targetUnit = "kg";
+      }
+
+      // For submenu, extract the path
+      if (action === "submenu") {
+        const submenuMatch = step.raw.match(/submenu\s*"([^"]+)"/i);
+        if (submenuMatch) {
+          submenuPath = submenuMatch[1].replace(/&gt;/g, ">").replace(/&lt;/g, "<");
+        }
+      }
+
+      await pool.query(`
+        INSERT INTO recipe_steps (item_id, step_order, action, target_name, target_slug, target_quantity, target_unit, submenu_path, raw_text)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [itemId, stepOrder++, action, targetName, targetSlug, targetQuantity, targetUnit, submenuPath, step.raw]);
+
+      stepCount++;
+    }
+
     // Progress indicator
     if (itemCount % 100 === 0) {
       process.stdout.write(`  Processed ${itemCount}/${pages.length} items...\r`);
@@ -390,6 +452,7 @@ async function migrate() {
   console.log(`   Items:     ${itemCount}`);
   console.log(`   Materials: ${materialCount}`);
   console.log(`   Tools:     ${toolCount}`);
+  console.log(`   Steps:     ${stepCount}`);
   console.log("=" .repeat(50));
 
   // Test query
