@@ -134,14 +134,3 @@ SELECT
   rm.unit
 FROM recipe_materials rm
 JOIN items i ON i.id = rm.item_id;
-
--- View: Legacy recipes interface (for backward compatibility with old code)
--- Maps recipe_materials to the old recipes table structure
-CREATE OR REPLACE VIEW recipes AS
-SELECT
-  rm.id,
-  rm.item_id as result_item_id,
-  rm.material_id as ingredient_item_id,
-  CAST(rm.quantity AS SIGNED) as quantity
-FROM recipe_materials rm
-WHERE rm.material_id IS NOT NULL;

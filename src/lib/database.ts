@@ -220,19 +220,31 @@ export async function getCategories(): Promise<string[]> {
 }
 
 export async function getRecipe(itemId: number): Promise<Recipe[]> {
-  const result = await query<Recipe>("SELECT * FROM recipes WHERE result_item_id = ?", [itemId]);
+  const result = await query<Recipe>(
+    `SELECT
+      rm.id,
+      rm.item_id as result_item_id,
+      rm.material_id as ingredient_item_id,
+      CAST(rm.quantity AS SIGNED) as quantity
+    FROM recipe_materials rm
+    WHERE rm.item_id = ? AND rm.material_id IS NOT NULL`,
+    [itemId]
+  );
   return result.rows;
 }
 
 export async function getAllRecipes(): Promise<RecipeWithNames[]> {
   const result = await query<RecipeWithNames>(`
     SELECT
-      r.*,
+      rm.id,
+      rm.item_id as result_item_id,
+      rm.material_id as ingredient_item_id,
+      CAST(rm.quantity AS SIGNED) as quantity,
       ri.name as result_name,
       ii.name as ingredient_name
-    FROM recipes r
-    JOIN items ri ON r.result_item_id = ri.id
-    JOIN items ii ON r.ingredient_item_id = ii.id
+    FROM recipe_materials rm
+    JOIN items ri ON rm.item_id = ri.id
+    JOIN items ii ON rm.material_id = ii.id
     ORDER BY ri.name, ii.name
   `);
   return result.rows;
@@ -402,7 +414,9 @@ export async function buildShallowCraftingTree(
 
 export async function findCraftableFrom(itemId: number): Promise<CraftableResult[]> {
   const result = await query<{ result_item_id: number; quantity: number }>(
-    "SELECT result_item_id, quantity FROM recipes WHERE ingredient_item_id = ?",
+    `SELECT rm.item_id as result_item_id, CAST(rm.quantity AS SIGNED) as quantity
+     FROM recipe_materials rm
+     WHERE rm.material_id = ?`,
     [itemId]
   );
 
@@ -513,7 +527,7 @@ export async function updateItemCraftingData(
 }
 
 export async function deleteItem(id: number): Promise<boolean> {
-  await query("DELETE FROM recipes WHERE result_item_id = ? OR ingredient_item_id = ?", [id, id]);
+  await query("DELETE FROM recipe_materials WHERE item_id = ? OR material_id = ?", [id, id]);
   const result = await query("DELETE FROM items WHERE id = ?", [id]);
   return result.rowCount > 0;
 }
@@ -524,15 +538,21 @@ export async function addRecipeIngredient(
   quantity: number
 ): Promise<number | null> {
   const existing = await query<{ id: number }>(
-    "SELECT id FROM recipes WHERE result_item_id = ? AND ingredient_item_id = ?",
+    "SELECT id FROM recipe_materials WHERE item_id = ? AND material_id = ?",
     [resultId, ingredientId]
   );
 
   if (existing.rows.length > 0) return null;
 
+  // Get the ingredient name for the material_name field
+  const ingredient = await getItem(ingredientId);
+  const materialName = ingredient?.name || "Unknown";
+  const materialSlug = ingredient?.slug || null;
+
   await query(
-    "INSERT INTO recipes (result_item_id, ingredient_item_id, quantity) VALUES (?, ?, ?)",
-    [resultId, ingredientId, quantity]
+    `INSERT INTO recipe_materials (item_id, material_id, material_name, material_slug, quantity)
+     VALUES (?, ?, ?, ?, ?)`,
+    [resultId, ingredientId, materialName, materialSlug, quantity]
   );
 
   const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
@@ -543,12 +563,12 @@ export async function updateRecipeIngredient(
   recipeId: number,
   quantity: number
 ): Promise<boolean> {
-  const result = await query("UPDATE recipes SET quantity = ? WHERE id = ?", [quantity, recipeId]);
+  const result = await query("UPDATE recipe_materials SET quantity = ? WHERE id = ?", [quantity, recipeId]);
   return result.rowCount > 0;
 }
 
 export async function deleteRecipeIngredient(recipeId: number): Promise<boolean> {
-  const result = await query("DELETE FROM recipes WHERE id = ?", [recipeId]);
+  const result = await query("DELETE FROM recipe_materials WHERE id = ?", [recipeId]);
   return result.rowCount > 0;
 }
 
@@ -637,7 +657,7 @@ export async function importFromJson(data: {
 }
 
 export async function clearAllData(): Promise<void> {
-  await query("DELETE FROM recipes");
+  await query("DELETE FROM recipe_materials");
   await query("DELETE FROM items");
 }
 
@@ -650,7 +670,7 @@ export async function getStats(): Promise<{
 }> {
   const [itemsResult, recipesResult, baseResult, categoriesResult] = await Promise.all([
     query<{ count: number }>("SELECT COUNT(*) as count FROM items"),
-    query<{ count: number }>("SELECT COUNT(*) as count FROM recipes"),
+    query<{ count: number }>("SELECT COUNT(*) as count FROM recipe_materials"),
     query<{ count: number }>("SELECT COUNT(*) as count FROM items WHERE is_base_material = 1"),
     query<{ category: string }>("SELECT DISTINCT category FROM items ORDER BY category"),
   ]);
