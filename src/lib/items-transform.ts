@@ -816,10 +816,10 @@ export class ItemsTransformService {
   // These use the local MySQL recipe tables for better data accuracy
   // ============================================
 
-  async getAllItemsFromDB(): Promise<Item[]> {
+  async getAllItemsFromDB(options?: { limit?: number }): Promise<Item[]> {
     try {
-      // Use local database directly
-      const response = await getAllRecipeItems({ limit: 1000 });
+      // Use local database directly - default high limit for admin use
+      const response = await getAllRecipeItems({ limit: options?.limit ?? 10000 });
       const items = response.items.map(dbItem => ({
         id: dbItem.id,
         name: dbItem.name,

@@ -15,6 +15,8 @@ interface CategoryWithCount {
   count: number;
 }
 
+const ITEMS_PER_PAGE = 100;
+
 export default function ItemsTab({ items, categories, onDataChange, showMessage }: ItemsTabProps) {
   const [itemForm, setItemForm] = useState({
     id: 0,
@@ -30,6 +32,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
   const [filterSkill, setFilterSkill] = useState("");
   const [filterType, setFilterType] = useState<"all" | "base" | "crafted">("all");
   const [filterCategory, setFilterCategory] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Category management state
   const [categoriesWithCounts, setCategoriesWithCounts] = useState<CategoryWithCount[]>([]);
@@ -190,17 +193,29 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     });
   }, [items, searchQuery, filterSkill, filterType, filterCategory, itemCategories]);
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterSkill, filterType, filterCategory]);
+
   // Load categories for filtered items when filter changes
   useEffect(() => {
     if (filterCategory) {
-      // Load categories for visible items
-      filteredItems.forEach(item => {
+      // Load categories for visible items on current page
+      paginatedItems.forEach(item => {
         if (!itemCategories[item.id]) {
           loadItemCategories(item.id);
         }
       });
     }
-  }, [filterCategory, filteredItems.length]);
+  }, [filterCategory, paginatedItems]);
 
   const handleItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -549,7 +564,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {filteredItems.map((item) => (
+                {paginatedItems.map((item) => (
                   <tr key={item.id} className={`hover:bg-white/5 ${selectedItems.has(item.id) ? 'bg-accent/10' : ''}`}>
                     <td className="py-2">
                       <input
@@ -620,6 +635,62 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+              <div className="text-sm text-text-secondary">
+                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} of {filteredItems.length} items
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm bg-bg-tertiary border border-border rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm bg-bg-tertiary border border-border rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <div className="flex items-center gap-1">
+                  {/* Page number input */}
+                  <input
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={currentPage}
+                    onChange={(e) => {
+                      const page = parseInt(e.target.value);
+                      if (page >= 1 && page <= totalPages) {
+                        setCurrentPage(page);
+                      }
+                    }}
+                    className="w-16 px-2 py-1 text-sm text-center bg-bg-tertiary border border-border rounded text-white"
+                  />
+                  <span className="text-text-secondary text-sm">/ {totalPages}</span>
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm bg-bg-tertiary border border-border rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm bg-bg-tertiary border border-border rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Last
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
