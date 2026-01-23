@@ -16,39 +16,8 @@ INSERT IGNORE INTO achievements (id, name, description, category, icon, xp_rewar
 ('helpful', 'Helpful', 'Receive 5 positive ratings', 'community', 'star', 300, 'positive_ratings', 5, FALSE),
 ('veteran', 'Veteran', 'Be a member for 30 days', 'special', 'award', 500, 'days_member', 30, TRUE);
 
--- ========== SEED DATA: BASE MATERIALS ==========
-
-INSERT IGNORE INTO items (name, category, is_base_material, description) VALUES
-    ('Log', 'wood', TRUE, 'Harvested from trees'),
-    ('Iron Ore', 'ore', TRUE, 'Mined from rock'),
-    ('Clay', 'material', TRUE, 'Dug from clay tiles'),
-    ('Cotton', 'material', TRUE, 'Harvested from cotton plants'),
-    ('Water', 'material', TRUE, 'Collected from wells or tiles'),
-    ('Rock Shards', 'material', TRUE, 'Mined from rock'),
-    ('Pelt', 'material', TRUE, 'From killed animals'),
-    ('Leather', 'material', TRUE, 'Processed from hides');
-
--- ========== SEED DATA: CRAFTED ITEMS ==========
-
-INSERT IGNORE INTO items (name, category, is_base_material, description) VALUES
-    ('Plank', 'wood', FALSE, 'Sawn from logs'),
-    ('Shaft', 'wood', FALSE, 'Carved from logs'),
-    ('Small Nail', 'metal', FALSE, 'Made from iron lumps'),
-    ('Large Nail', 'metal', FALSE, 'Made from iron lumps'),
-    ('Iron Lump', 'metal', FALSE, 'Smelted from iron ore'),
-    ('Wheel', 'vehicle', FALSE, 'Used in carts and wagons'),
-    ('Wheel Axle', 'vehicle', FALSE, 'Connects wheels'),
-    ('Cart', 'vehicle', FALSE, 'Small transport vehicle'),
-    ('Large Cart', 'vehicle', FALSE, 'Larger transport vehicle'),
-    ('Rope', 'material', FALSE, 'Made from cotton'),
-    ('Brick', 'building', FALSE, 'Made from clay'),
-    ('Mortar', 'building', FALSE, 'Made from clay and sand'),
-    ('Mallet', 'tool', FALSE, 'Wooden hammer'),
-    ('Hammer', 'tool', FALSE, 'Metal hammer'),
-    ('Saw', 'tool', FALSE, 'For cutting planks'),
-    ('Spindle', 'tool', FALSE, 'For making rope');
-
 -- ========== SEED DATA: TIMER PRESETS ==========
+-- NOTE: Items/recipes are imported from game content database, not seeded here
 
 INSERT IGNORE INTO timer_presets (user_id, name, timer_type, duration_minutes, description, color, icon, is_public) VALUES
     (NULL, 'Sleep Bonus (5h)', 'sleep_bonus', 300, 'Standard sleep bonus duration', '#22c55e', 'moon', TRUE),

@@ -87,34 +87,6 @@ CREATE TABLE IF NOT EXISTS recipe_steps (
   FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ========== LEGACY TABLES (for backwards compatibility) ==========
--- These are kept for existing admin/recipe management features
-
-CREATE TABLE IF NOT EXISTS legacy_items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    category VARCHAR(50) DEFAULT 'misc',
-    is_base_material BOOLEAN DEFAULT FALSE,
-    description TEXT,
-    difficulty INT,
-    skill_type VARCHAR(50),
-    base_time INT,
-    tool_type VARCHAR(50)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS legacy_recipes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    result_item_id INT NOT NULL,
-    ingredient_item_id INT NOT NULL,
-    quantity DECIMAL(10, 4) NOT NULL DEFAULT 1,
-
-    CONSTRAINT fk_legacy_recipes_result FOREIGN KEY (result_item_id) REFERENCES legacy_items(id) ON DELETE CASCADE,
-    CONSTRAINT fk_legacy_recipes_ingredient FOREIGN KEY (ingredient_item_id) REFERENCES legacy_items(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX idx_legacy_recipes_result ON legacy_recipes(result_item_id);
-CREATE INDEX idx_legacy_recipes_ingredient ON legacy_recipes(ingredient_item_id);
-
 -- ========== USEFUL VIEWS ==========
 
 -- View: Items with material count
