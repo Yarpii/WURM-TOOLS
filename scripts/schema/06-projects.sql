@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS project_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
-    item_id INT NOT NULL,
+    item_id BIGINT UNSIGNED NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     completed_quantity INT DEFAULT 0,
     is_complete BOOLEAN GENERATED ALWAYS AS (completed_quantity >= quantity) STORED,
