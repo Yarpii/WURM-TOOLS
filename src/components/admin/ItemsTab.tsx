@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { Item } from "@/lib/types";
 
 interface ItemsTabProps {
@@ -8,6 +8,11 @@ interface ItemsTabProps {
   categories: string[];
   onDataChange: () => void;
   showMessage: (type: "success" | "error", text: string) => void;
+}
+
+interface CategoryWithCount {
+  category: string;
+  count: number;
 }
 
 export default function ItemsTab({ items, categories, onDataChange, showMessage }: ItemsTabProps) {
@@ -24,6 +29,133 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSkill, setFilterSkill] = useState("");
   const [filterType, setFilterType] = useState<"all" | "base" | "crafted">("all");
+  const [filterCategory, setFilterCategory] = useState("");
+
+  // Category management state
+  const [categoriesWithCounts, setCategoriesWithCounts] = useState<CategoryWithCount[]>([]);
+  const [itemCategories, setItemCategories] = useState<Record<number, string[]>>({});
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [newCategory, setNewCategory] = useState("");
+  const [editingCategories, setEditingCategories] = useState<number | null>(null);
+  const [uncategorizedCount, setUncategorizedCount] = useState(0);
+
+  // Load categories with counts
+  useEffect(() => {
+    loadCategoriesWithCounts();
+    loadUncategorizedCount();
+  }, []);
+
+  const loadCategoriesWithCounts = async () => {
+    try {
+      const res = await fetch("/api/categories?counts=1");
+      if (res.ok) {
+        const data = await res.json();
+        setCategoriesWithCounts(data);
+      }
+    } catch (error) {
+      console.error("Failed to load categories:", error);
+    }
+  };
+
+  const loadUncategorizedCount = async () => {
+    try {
+      const res = await fetch("/api/categories?uncategorized=1");
+      if (res.ok) {
+        const data = await res.json();
+        setUncategorizedCount(data.length);
+      }
+    } catch (error) {
+      console.error("Failed to load uncategorized count:", error);
+    }
+  };
+
+  const loadItemCategories = async (itemId: number) => {
+    try {
+      const res = await fetch(`/api/items/${itemId}/categories`);
+      if (res.ok) {
+        const cats = await res.json();
+        setItemCategories(prev => ({ ...prev, [itemId]: cats }));
+      }
+    } catch (error) {
+      console.error("Failed to load item categories:", error);
+    }
+  };
+
+  const saveItemCategories = async (itemId: number, cats: string[]) => {
+    try {
+      const res = await fetch(`/api/items/${itemId}/categories`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categories: cats }),
+      });
+      if (res.ok) {
+        showMessage("success", "Categories updated!");
+        setItemCategories(prev => ({ ...prev, [itemId]: cats }));
+        loadCategoriesWithCounts();
+        loadUncategorizedCount();
+      } else {
+        const data = await res.json();
+        showMessage("error", data.error || "Failed to update categories");
+      }
+    } catch (error) {
+      showMessage("error", "Failed to update categories");
+    }
+  };
+
+  const bulkAssignCategory = async (category: string, action: "add" | "remove" = "add") => {
+    if (selectedItems.size === 0) {
+      showMessage("error", "No items selected");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemIds: Array.from(selectedItems),
+          category,
+          action,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        showMessage("success", `${action === "add" ? "Added" : "Removed"} "${category}" ${action === "add" ? "to" : "from"} ${data.updated} items`);
+        setSelectedItems(new Set());
+        loadCategoriesWithCounts();
+        loadUncategorizedCount();
+        // Clear cached categories for affected items
+        setItemCategories({});
+      } else {
+        const data = await res.json();
+        showMessage("error", data.error || "Failed to update categories");
+      }
+    } catch (error) {
+      showMessage("error", "Failed to update categories");
+    }
+  };
+
+  const toggleSelectItem = (itemId: number) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    const ids = new Set(filteredItems.map(i => i.id));
+    setSelectedItems(ids);
+  };
+
+  const clearSelection = () => {
+    setSelectedItems(new Set());
+  };
 
   // Get unique skills from items
   const skills = useMemo(() => {
@@ -44,9 +176,31 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
         (filterType === "base" && item.is_base_material) ||
         (filterType === "crafted" && !item.is_base_material);
 
-      return matchesSearch && matchesSkill && matchesType;
+      // Category filter - if "uncategorized" is selected, show items without categories
+      let matchesCategory = true;
+      if (filterCategory === "__uncategorized__") {
+        const cats = itemCategories[item.id];
+        matchesCategory = !cats || cats.length === 0;
+      } else if (filterCategory) {
+        const cats = itemCategories[item.id];
+        matchesCategory = cats?.includes(filterCategory) || false;
+      }
+
+      return matchesSearch && matchesSkill && matchesType && matchesCategory;
     });
-  }, [items, searchQuery, filterSkill, filterType]);
+  }, [items, searchQuery, filterSkill, filterType, filterCategory, itemCategories]);
+
+  // Load categories for filtered items when filter changes
+  useEffect(() => {
+    if (filterCategory) {
+      // Load categories for visible items
+      filteredItems.forEach(item => {
+        if (!itemCategories[item.id]) {
+          loadItemCategories(item.id);
+        }
+      });
+    }
+  }, [filterCategory, filteredItems.length]);
 
   const handleItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +279,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
   return (
     <div className="space-y-6">
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
           <div className="text-2xl font-bold text-accent">{items.length}</div>
           <div className="text-sm text-text-secondary">Total Items</div>
@@ -139,10 +293,66 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
           <div className="text-sm text-text-secondary">Craftable Items</div>
         </div>
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
-          <div className="text-2xl font-bold text-purple-400">{skills.length}</div>
-          <div className="text-sm text-text-secondary">Skills</div>
+          <div className="text-2xl font-bold text-purple-400">{categoriesWithCounts.length}</div>
+          <div className="text-sm text-text-secondary">Categories</div>
         </div>
+        <button
+          onClick={() => setFilterCategory("__uncategorized__")}
+          className="bg-bg-secondary border border-border p-4 rounded-xl text-center hover:border-orange-500 transition-colors"
+        >
+          <div className="text-2xl font-bold text-orange-400">{uncategorizedCount}</div>
+          <div className="text-sm text-text-secondary">Uncategorized</div>
+        </button>
       </div>
+
+      {/* Bulk Actions */}
+      {selectedItems.size > 0 && (
+        <div className="bg-accent/10 border border-accent/30 p-4 rounded-xl flex flex-wrap items-center gap-4">
+          <span className="text-accent font-medium">{selectedItems.size} items selected</span>
+          <div className="flex items-center gap-2">
+            <select
+              className="px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-white text-sm"
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  bulkAssignCategory(e.target.value, "add");
+                  e.target.value = "";
+                }
+              }}
+            >
+              <option value="">Add to category...</option>
+              {categoriesWithCounts.map((c) => (
+                <option key={c.category} value={c.category}>{c.category} ({c.count})</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Or new category..."
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-white text-sm w-40"
+            />
+            <button
+              onClick={() => {
+                if (newCategory.trim()) {
+                  bulkAssignCategory(newCategory.trim(), "add");
+                  setNewCategory("");
+                }
+              }}
+              disabled={!newCategory.trim()}
+              className="px-3 py-2 bg-accent hover:bg-accent-hover rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add
+            </button>
+          </div>
+          <button
+            onClick={clearSelection}
+            className="px-3 py-2 bg-bg-tertiary border border-border hover:bg-white/10 rounded-lg text-sm ml-auto"
+          >
+            Clear Selection
+          </button>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Item Form */}
@@ -273,6 +483,18 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               ))}
             </select>
 
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-white text-sm"
+            >
+              <option value="">All Categories</option>
+              <option value="__uncategorized__">⚠️ Uncategorized ({uncategorizedCount})</option>
+              {categoriesWithCounts.map((c) => (
+                <option key={c.category} value={c.category}>{c.category} ({c.count})</option>
+              ))}
+            </select>
+
             <div className="flex gap-1 bg-bg-tertiary rounded-lg p-1">
               {[
                 { value: "all", label: "All" },
@@ -293,6 +515,13 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               ))}
             </div>
 
+            <button
+              onClick={selectAllFiltered}
+              className="px-3 py-1 text-sm text-text-secondary hover:text-white transition-colors"
+            >
+              Select All ({filteredItems.length})
+            </button>
+
             <span className="text-text-secondary text-sm self-center ml-2">
               {filteredItems.length} items
             </span>
@@ -303,7 +532,16 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
             <table className="w-full">
               <thead className="sticky top-0 bg-bg-secondary">
                 <tr className="text-left text-text-secondary text-sm border-b border-border">
+                  <th className="pb-2 w-8">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.size === filteredItems.length && filteredItems.length > 0}
+                      onChange={(e) => e.target.checked ? selectAllFiltered() : clearSelection()}
+                      className="rounded"
+                    />
+                  </th>
                   <th className="pb-2">Name</th>
+                  <th className="pb-2">Categories</th>
                   <th className="pb-2">Skill</th>
                   <th className="pb-2 text-center">Diff</th>
                   <th className="pb-2 text-center">Type</th>
@@ -312,12 +550,39 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               </thead>
               <tbody className="divide-y divide-border/50">
                 {filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/5">
+                  <tr key={item.id} className={`hover:bg-white/5 ${selectedItems.has(item.id) ? 'bg-accent/10' : ''}`}>
+                    <td className="py-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(item.id)}
+                        onChange={() => toggleSelectItem(item.id)}
+                        className="rounded"
+                      />
+                    </td>
                     <td className="py-2">
                       <span className="font-medium">{item.name}</span>
                       {item.slug && (
                         <span className="text-text-muted text-xs ml-2">/{item.slug}</span>
                       )}
+                    </td>
+                    <td className="py-2">
+                      <CategoryEditor
+                        itemId={item.id}
+                        categories={itemCategories[item.id] || []}
+                        allCategories={categoriesWithCounts.map(c => c.category)}
+                        isEditing={editingCategories === item.id}
+                        onStartEdit={() => {
+                          if (!itemCategories[item.id]) {
+                            loadItemCategories(item.id);
+                          }
+                          setEditingCategories(item.id);
+                        }}
+                        onSave={(cats) => {
+                          saveItemCategories(item.id, cats);
+                          setEditingCategories(null);
+                        }}
+                        onCancel={() => setEditingCategories(null)}
+                      />
                     </td>
                     <td className="py-2 text-text-secondary text-sm">
                       {item.skill || "-"}
@@ -356,6 +621,157 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
             </table>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Category Editor Component
+function CategoryEditor({
+  itemId,
+  categories,
+  allCategories,
+  isEditing,
+  onStartEdit,
+  onSave,
+  onCancel,
+}: {
+  itemId: number;
+  categories: string[];
+  allCategories: string[];
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSave: (categories: string[]) => void;
+  onCancel: () => void;
+}) {
+  const [editCategories, setEditCategories] = useState<string[]>(categories);
+  const [newCat, setNewCat] = useState("");
+
+  // Reset when starting to edit
+  useEffect(() => {
+    if (isEditing) {
+      setEditCategories(categories);
+    }
+  }, [isEditing, categories]);
+
+  if (!isEditing) {
+    return (
+      <button
+        onClick={onStartEdit}
+        className="text-left group"
+      >
+        {categories.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {categories.map((cat) => (
+              <span
+                key={cat}
+                className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400"
+              >
+                {cat}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-text-muted group-hover:text-orange-400">
+            + Add category
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  const addCategory = (cat: string) => {
+    const normalized = cat.trim().toLowerCase();
+    if (normalized && !editCategories.includes(normalized)) {
+      setEditCategories([...editCategories, normalized]);
+    }
+    setNewCat("");
+  };
+
+  const removeCategory = (cat: string) => {
+    setEditCategories(editCategories.filter((c) => c !== cat));
+  };
+
+  return (
+    <div className="space-y-2 min-w-[200px]">
+      {/* Current categories */}
+      <div className="flex flex-wrap gap-1">
+        {editCategories.map((cat) => (
+          <span
+            key={cat}
+            className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 flex items-center gap-1"
+          >
+            {cat}
+            <button
+              onClick={() => removeCategory(cat)}
+              className="hover:text-red-400"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+
+      {/* Add from existing */}
+      <div className="flex gap-1">
+        <select
+          className="flex-1 px-2 py-1 bg-bg-tertiary border border-border rounded text-xs text-white"
+          value=""
+          onChange={(e) => {
+            if (e.target.value) {
+              addCategory(e.target.value);
+            }
+          }}
+        >
+          <option value="">Select category...</option>
+          {allCategories
+            .filter((c) => !editCategories.includes(c))
+            .map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      {/* Add new */}
+      <div className="flex gap-1">
+        <input
+          type="text"
+          placeholder="New category..."
+          value={newCat}
+          onChange={(e) => setNewCat(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && newCat.trim()) {
+              e.preventDefault();
+              addCategory(newCat);
+            }
+          }}
+          className="flex-1 px-2 py-1 bg-bg-tertiary border border-border rounded text-xs text-white"
+        />
+        <button
+          onClick={() => addCategory(newCat)}
+          disabled={!newCat.trim()}
+          className="px-2 py-1 bg-accent hover:bg-accent-hover rounded text-xs disabled:opacity-50"
+        >
+          +
+        </button>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-1">
+        <button
+          onClick={() => onSave(editCategories)}
+          className="flex-1 px-2 py-1 bg-success/20 text-success hover:bg-success/30 rounded text-xs"
+        >
+          Save
+        </button>
+        <button
+          onClick={onCancel}
+          className="flex-1 px-2 py-1 bg-bg-tertiary border border-border hover:bg-white/10 rounded text-xs"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );

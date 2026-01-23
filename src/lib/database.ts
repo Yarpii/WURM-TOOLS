@@ -218,6 +218,51 @@ export async function getCategories(): Promise<string[]> {
   return result.rows.map((r) => r.category);
 }
 
+// Get categories for a specific item
+export async function getItemCategories(itemId: number): Promise<string[]> {
+  const result = await query<{ category: string }>(
+    "SELECT category FROM item_categories WHERE item_id = ? ORDER BY category",
+    [itemId]
+  );
+  return result.rows.map((r) => r.category);
+}
+
+// Set categories for an item (replaces existing)
+export async function setItemCategories(itemId: number, categories: string[]): Promise<void> {
+  // Delete existing categories
+  await query("DELETE FROM item_categories WHERE item_id = ?", [itemId]);
+
+  // Insert new categories
+  if (categories.length > 0) {
+    const values = categories.map(cat => [itemId, cat.trim().toLowerCase()]);
+    const placeholders = values.map(() => "(?, ?)").join(", ");
+    const flatValues = values.flat();
+    await query(
+      `INSERT INTO item_categories (item_id, category) VALUES ${placeholders}`,
+      flatValues
+    );
+  }
+}
+
+// Get all categories with item counts
+export async function getCategoriesWithCounts(): Promise<{ category: string; count: number }[]> {
+  const result = await query<{ category: string; count: number }>(
+    `SELECT category, COUNT(*) as count FROM item_categories GROUP BY category ORDER BY category`
+  );
+  return result.rows;
+}
+
+// Get items without any category assigned
+export async function getUncategorizedItems(): Promise<Item[]> {
+  const result = await query<Item>(
+    `SELECT i.* FROM items i
+     LEFT JOIN item_categories ic ON i.id = ic.item_id
+     WHERE ic.item_id IS NULL
+     ORDER BY i.name`
+  );
+  return result.rows;
+}
+
 export async function getSkills(): Promise<string[]> {
   const result = await query<{ skill: string }>(
     "SELECT DISTINCT skill FROM items WHERE skill IS NOT NULL ORDER BY skill"
