@@ -12,6 +12,7 @@ import {
   getAllRecipeItems,
   searchRecipeItems,
   getRecipeItemBySlug,
+  getCategories as getDBCategories,
   type RecipeItemFull,
 } from "./database";
 
@@ -774,9 +775,13 @@ export class ItemsTransformService {
     try {
       const categories = await itemsApi.getCategories();
       return categories.map(c => c.name);
-    } catch (error) {
-      console.error("Failed to fetch categories:", error);
-      return [];
+    } catch {
+      // Fallback to local database when external API is unavailable
+      try {
+        return await getDBCategories();
+      } catch {
+        return [];
+      }
     }
   }
 
