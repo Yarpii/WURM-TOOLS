@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS discord_link_codes (
     user_id INT NOT NULL,
     verification_code VARCHAR(8) NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at DATETIME NOT NULL,
     used_at TIMESTAMP NULL,
 
     CONSTRAINT fk_discord_link_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS email_verification_codes (
     email VARCHAR(255) NOT NULL,
     code VARCHAR(6) NOT NULL,
     code_type ENUM('email_verify', '2fa_login', 'password_reset') NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at DATETIME NOT NULL,
     used_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS pending_2fa_sessions (
     user_id INT NOT NULL,
     session_token VARCHAR(64) NOT NULL UNIQUE,
     code VARCHAR(6) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at DATETIME NOT NULL,
     remember_me BOOLEAN NOT NULL DEFAULT FALSE,
     ip_address VARCHAR(45) NULL,
     user_agent VARCHAR(500) NULL,

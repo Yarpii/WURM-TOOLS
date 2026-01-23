@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS user_timers (
     timer_type VARCHAR(30) NOT NULL,
     duration_minutes INT NOT NULL,
     start_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    end_time TIMESTAMP NOT NULL,
+    end_time DATETIME NOT NULL,
     is_recurring BOOLEAN DEFAULT FALSE,
     recurrence_interval INT,
     notify_discord BOOLEAN DEFAULT FALSE,
@@ -57,10 +57,7 @@ CREATE TABLE IF NOT EXISTS user_timers (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_user_timers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT chk_user_timers_type CHECK (timer_type IN (
-        'sleep_bonus', 'fatigue', 'crop', 'animal', 'sermon',
-        'meditation', 'custom', 'cooldown', 'bulk'
-    ))
+    CONSTRAINT chk_user_timers_type CHECK (timer_type IN ('sleep_bonus', 'fatigue', 'crop', 'animal', 'sermon', 'meditation', 'custom', 'cooldown', 'bulk'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_user_timers_user ON user_timers(user_id);
@@ -96,7 +93,7 @@ CREATE TABLE IF NOT EXISTS events (
     server VARCHAR(50),
     location VARCHAR(200),
     coordinates VARCHAR(50),
-    start_date TIMESTAMP NOT NULL,
+    start_date DATETIME NOT NULL,
     end_date TIMESTAMP NULL,
     is_all_day BOOLEAN DEFAULT FALSE,
     is_public BOOLEAN DEFAULT TRUE,
@@ -109,10 +106,7 @@ CREATE TABLE IF NOT EXISTS events (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT chk_events_type CHECK (event_type IN (
-        'impalong', 'rift', 'unique', 'sermon_group', 'market',
-        'pvp', 'community', 'personal', 'other'
-    ))
+    CONSTRAINT chk_events_type CHECK (event_type IN ('impalong', 'rift', 'unique', 'sermon_group', 'market', 'pvp', 'community', 'personal', 'other'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_events_user ON events(user_id);

@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS resource_sync_metadata (
   local_path VARCHAR(500) NOT NULL,
   file_size BIGINT NOT NULL,
   mime_type VARCHAR(255) NOT NULL,
-  drive_modified_time TIMESTAMP NOT NULL,
+  drive_modified_time DATETIME NOT NULL,
   last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   checksum VARCHAR(64) NULL,
 
