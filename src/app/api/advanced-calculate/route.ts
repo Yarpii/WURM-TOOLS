@@ -71,6 +71,83 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Generate prediction summary for the frontend
+  const difficulty = item.difficulty || 20;
+  const playerSkill = settings.playerSkill || 50;
+  const toolQL = settings.toolQL || 50;
+  const materialQL = settings.materialQL || 50;
+
+  // Calculate success chance
+  const successChance = Math.min(100, Math.max(1, 50 + (playerSkill - difficulty)));
+
+  // Success label
+  const getSuccessLabel = (chance: number): string => {
+    if (chance >= 90) return "Very Easy";
+    if (chance >= 70) return "Easy";
+    if (chance >= 50) return "Moderate";
+    if (chance >= 30) return "Difficult";
+    return "Very Hard";
+  };
+
+  // Quality calculations
+  const averageQL = Math.min(100, playerSkill * 0.6 + toolQL * 0.2 + materialQL * 0.2);
+  const minQL = Math.max(1, averageQL * 0.5);
+  const maxQL = Math.min(100, averageQL * 1.3);
+
+  // Time calculations
+  const baseTime = item.base_time || 10;
+  const totalActions = result.totalCraftingSteps * quantity;
+  const woaModifier = settings.windOfAges ? 1 - (settings.windOfAges / 200) : 1;
+  const timePerItem = baseTime * woaModifier;
+  const totalTime = totalActions * timePerItem;
+
+  // Format time
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+    return `${(seconds / 3600).toFixed(1)}h`;
+  };
+
+  // Waste and failure calculations
+  const failureRate = 100 - successChance;
+  const wasteMultiplier = 1 + (failureRate / 100) * 0.5;
+
+  // Tool repairs (rough estimate: 1 repair per 100 actions at avg skill)
+  const repairsNeeded = Math.ceil(totalActions / (100 + playerSkill));
+
+  // Skill gain calculations
+  const skillDiff = difficulty - playerSkill;
+  const gainPerAction = Math.max(0.001, 0.1 * Math.max(0, 1 + skillDiff / 50) * (settings.hasSleepBonus ? 3 : 1));
+  const cocBonus = settings.circleOfCunning ? 1 + (settings.circleOfCunning / 100) : 1;
+  const totalSkillGain = gainPerAction * totalActions * cocBonus;
+  const newSkillLevel = Math.min(100, playerSkill + totalSkillGain);
+
+  // Optimal difficulty check (skill - 20 to skill + 10 is optimal for training)
+  const isOptimalDifficulty = difficulty >= playerSkill - 20 && difficulty <= playerSkill + 10;
+
+  // Actions to next level
+  const nextLevel = Math.ceil(playerSkill);
+  const skillNeeded = nextLevel - playerSkill;
+  const actionsToNextLevel = gainPerAction > 0 ? Math.ceil(skillNeeded / gainPerAction) : 999;
+
+  const prediction = {
+    successChance,
+    successLabel: getSuccessLabel(successChance),
+    averageQL,
+    minQL,
+    maxQL,
+    totalTime,
+    totalTimeFormatted: formatTime(totalTime),
+    timePerItem,
+    wasteMultiplier,
+    failureRate,
+    repairsNeeded,
+    totalSkillGain,
+    newSkillLevel,
+    isOptimalDifficulty,
+    actionsToNextLevel,
+  };
+
   // Optionally include skill grinding path
   const includeSkillPath = searchParams.get("includeSkillPath") === "true";
   if (includeSkillPath) {
@@ -94,6 +171,7 @@ export async function GET(request: NextRequest) {
     },
     quantity,
     settings,
+    prediction,
     ...result
   });
 }
