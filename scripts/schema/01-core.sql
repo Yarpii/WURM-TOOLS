@@ -42,7 +42,7 @@ CREATE INDEX idx_users_discord ON users(discord_id);
 CREATE TABLE IF NOT EXISTS sessions (
     id VARCHAR(255) PRIMARY KEY,
     user_id INT NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at DATETIME NOT NULL,
     ip_address VARCHAR(45) NULL,
     user_agent TEXT NULL,
     device_name VARCHAR(100) NULL,
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     token VARCHAR(255) NOT NULL UNIQUE,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at DATETIME NOT NULL,
     used_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
