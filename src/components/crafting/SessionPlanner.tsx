@@ -236,7 +236,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
                     >
                       <span>
                         <span className="font-medium">{item.name}</span>
-                        <span className="text-text-muted text-sm ml-2">({item.category})</span>
+                        <span className="text-text-muted text-sm ml-2">({item.skill || item.categories?.[0] || "misc"})</span>
                       </span>
                       <span className="text-accent">+</span>
                     </button>
@@ -269,7 +269,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
                       <div className="font-medium text-text-primary truncate">
                         {si.item.name}
                       </div>
-                      <div className="text-xs text-text-muted">{si.item.category}</div>
+                      <div className="text-xs text-text-muted">{si.item.skill || si.item.categories?.[0] || "misc"}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button

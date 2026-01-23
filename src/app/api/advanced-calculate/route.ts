@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
   const maxQL = Math.min(100, averageQL * 1.3);
 
   // Time calculations
-  const baseTime = item.base_time || 10;
+  const baseTime = item.base_time_seconds || 10;
   const totalActions = result.totalCraftingSteps * quantity;
   const woaModifier = settings.windOfAges ? 1 - (settings.windOfAges / 200) : 1;
   const timePerItem = baseTime * woaModifier;
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
     result.skillPath = await getSkillGrindingPath(
       targetSkill,
       settings.playerSkill || 50,
-      item.category
+      item.categories?.[0]
     );
   }
 
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
     item: {
       id: item.id,
       name: item.name,
-      category: item.category
+      categories: item.categories
     },
     quantity,
     settings,
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
             item: {
               id: optimalItem.id,
               name: optimalItem.name,
-              category: optimalItem.category
+              categories: optimalItem.categories
             },
             isOptimal: true
           } : null

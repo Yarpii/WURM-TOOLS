@@ -40,6 +40,7 @@ export interface Item {
   base_time_seconds?: number | null;
   image_url?: string | null;
   is_base_material: boolean | number;
+  categories?: string[];
 }
 
 export interface Recipe {

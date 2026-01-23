@@ -19,15 +19,18 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     difficulty: 20,
     base_time_seconds: 10,
     is_base_material: false,
+    categories: [] as string[],
   });
+  const [newCategory, setNewCategory] = useState("");
   const [editingItem, setEditingItem] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSkill, setFilterSkill] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const [filterType, setFilterType] = useState<"all" | "base" | "crafted">("all");
 
   // Get unique skills from items
   const skills = useMemo(() => {
-    const skillSet = new Set(items.map(i => i.skill).filter(Boolean));
+    const skillSet = new Set(items.map(i => i.skill).filter((s): s is string => !!s));
     return Array.from(skillSet).sort();
   }, [items]);
 
@@ -40,13 +43,16 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
 
       const matchesSkill = !filterSkill || item.skill === filterSkill;
 
+      const matchesCategory = !filterCategory ||
+        (item.categories && item.categories.includes(filterCategory));
+
       const matchesType = filterType === "all" ||
         (filterType === "base" && item.is_base_material) ||
         (filterType === "crafted" && !item.is_base_material);
 
-      return matchesSearch && matchesSkill && matchesType;
+      return matchesSearch && matchesSkill && matchesCategory && matchesType;
     });
-  }, [items, searchQuery, filterSkill, filterType]);
+  }, [items, searchQuery, filterSkill, filterCategory, filterType]);
 
   const handleItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +72,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
         difficulty: itemForm.difficulty || null,
         base_time_seconds: itemForm.base_time_seconds || null,
         is_base_material: itemForm.is_base_material,
+        categories: itemForm.categories,
       }),
     });
 
@@ -80,6 +87,18 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     }
   };
 
+  const addCategory = () => {
+    const cat = newCategory.trim().toLowerCase();
+    if (cat && !itemForm.categories.includes(cat)) {
+      setItemForm({ ...itemForm, categories: [...itemForm.categories, cat] });
+    }
+    setNewCategory("");
+  };
+
+  const removeCategory = (cat: string) => {
+    setItemForm({ ...itemForm, categories: itemForm.categories.filter(c => c !== cat) });
+  };
+
   const editItem = (item: Item) => {
     setItemForm({
       id: item.id,
@@ -89,6 +108,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
       difficulty: item.difficulty || 20,
       base_time_seconds: item.base_time_seconds || 10,
       is_base_material: Boolean(item.is_base_material),
+      categories: item.categories || [],
     });
     setEditingItem(true);
   };
@@ -118,14 +138,16 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
       difficulty: 20,
       base_time_seconds: 10,
       is_base_material: false,
+      categories: [],
     });
+    setNewCategory("");
     setEditingItem(false);
   };
 
   return (
     <div className="space-y-6">
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
           <div className="text-2xl font-bold text-accent">{items.length}</div>
           <div className="text-sm text-text-secondary">Total Items</div>
@@ -141,6 +163,10 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
           <div className="text-2xl font-bold text-purple-400">{skills.length}</div>
           <div className="text-sm text-text-secondary">Skills</div>
+        </div>
+        <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
+          <div className="text-2xl font-bold text-orange-400">{categories.length}</div>
+          <div className="text-sm text-text-secondary">Categories</div>
         </div>
       </div>
 
@@ -188,6 +214,57 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                   <option key={skill} value={skill} />
                 ))}
               </datalist>
+            </div>
+
+            <div>
+              <label className="block text-text-secondary text-sm mb-2">Categories</label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCategory();
+                    }
+                  }}
+                  list="categories"
+                  placeholder="Add category..."
+                  className="flex-1 px-4 py-2 bg-bg-tertiary border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <button
+                  type="button"
+                  onClick={addCategory}
+                  className="px-4 py-2 bg-accent/20 text-accent hover:bg-accent/30 rounded-lg transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              <datalist id="categories">
+                {categories.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
+              {itemForm.categories.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {itemForm.categories.map((cat) => (
+                    <span
+                      key={cat}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-sm"
+                    >
+                      {cat}
+                      <button
+                        type="button"
+                        onClick={() => removeCategory(cat)}
+                        className="hover:text-red-400 transition-colors"
+                      >
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -273,6 +350,17 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               ))}
             </select>
 
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-white text-sm"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
             <div className="flex gap-1 bg-bg-tertiary rounded-lg p-1">
               {[
                 { value: "all", label: "All" },
@@ -305,6 +393,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                 <tr className="text-left text-text-secondary text-sm border-b border-border">
                   <th className="pb-2">Name</th>
                   <th className="pb-2">Skill</th>
+                  <th className="pb-2">Categories</th>
                   <th className="pb-2 text-center">Diff</th>
                   <th className="pb-2 text-center">Type</th>
                   <th className="pb-2 text-right">Actions</th>
@@ -321,6 +410,22 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                     </td>
                     <td className="py-2 text-text-secondary text-sm">
                       {item.skill || "-"}
+                    </td>
+                    <td className="py-2">
+                      {item.categories && item.categories.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.categories.map((cat) => (
+                            <span
+                              key={cat}
+                              className="text-xs px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-text-muted text-sm">-</span>
+                      )}
                     </td>
                     <td className="py-2 text-center text-sm">
                       {item.difficulty || "-"}

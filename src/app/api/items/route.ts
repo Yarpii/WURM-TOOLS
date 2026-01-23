@@ -6,6 +6,7 @@ import {
   addItem,
   getItemByName,
   getCategories,
+  setItemCategories,
 } from "@/lib/database";
 import { itemsTransformService } from "@/lib/items-transform";
 import { getSession } from "@/lib/auth";
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, slug, skill, difficulty, base_time_seconds, is_base_material } = body;
+    const { name, slug, skill, difficulty, base_time_seconds, is_base_material, categories } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -111,6 +112,11 @@ export async function POST(request: NextRequest) {
     const sanitizedSkill = skill ? String(skill).trim().slice(0, 100) : null;
     const sanitizedDifficulty = difficulty ? Math.min(100, Math.max(1, parseInt(difficulty))) : null;
     const sanitizedBaseTime = base_time_seconds ? Math.max(1, parseInt(base_time_seconds)) : null;
+
+    // Sanitize categories
+    const sanitizedCategories: string[] = Array.isArray(categories)
+      ? categories.map((c: unknown) => String(c).trim().toLowerCase().slice(0, 100)).filter(Boolean)
+      : [];
 
     const existing = await getItemByName(sanitizedName);
     if (existing) {
@@ -128,6 +134,11 @@ export async function POST(request: NextRequest) {
       sanitizedBaseTime,
       is_base_material || false
     );
+
+    // Set categories for the new item
+    if (sanitizedCategories.length > 0) {
+      await setItemCategories(id, sanitizedCategories);
+    }
 
     return NextResponse.json({ id, success: true });
   } catch (error) {

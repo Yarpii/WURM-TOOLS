@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
   if (itemId) {
     const item = await getItem(itemId);
     if (item) {
-      itemSpecificPath = await getSkillGrindingPath(targetSkill, clampedSkill, item.category);
+      itemSpecificPath = await getSkillGrindingPath(targetSkill, clampedSkill, item.categories?.[0]);
     }
   }
 
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     optimalItem: optimalItem ? {
       id: optimalItem.id,
       name: optimalItem.name,
-      category: optimalItem.category
+      categories: optimalItem.categories
     } : null,
 
     // General skill path
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         const hasSleepBonus = body.hasSleepBonus || false;
 
         // Find best items for each skill range
-        const ranges: { from: number; to: number; item: { id: number; name: string; category: string } | null }[] = [];
+        const ranges: { from: number; to: number; item: { id: number; name: string; categories?: string[] } | null }[] = [];
 
         for (let skill = currentSkill; skill < targetSkill; skill += 5) {
           const endSkill = Math.min(skill + 5, targetSkill);
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
           ranges.push({
             from: skill,
             to: endSkill,
-            item: optimal ? { id: optimal.id, name: optimal.name, category: optimal.category } : null
+            item: optimal ? { id: optimal.id, name: optimal.name, categories: optimal.categories } : null
           });
         }
 
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
               recommendedItem: r.item ? {
                 id: r.item.id,
                 name: r.item.name,
-                category: r.item.category
+                categories: r.item.categories
               } : null
             })),
 

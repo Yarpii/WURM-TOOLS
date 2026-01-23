@@ -171,9 +171,34 @@ function validatePagination(params?: PaginationParams): { offset: number; limit:
 
 // ========== QUERY FUNCTIONS ==========
 
+async function attachCategoriesToItems(items: Item[]): Promise<Item[]> {
+  if (items.length === 0) return items;
+
+  const itemIds = items.map(i => i.id);
+  const placeholders = itemIds.map(() => '?').join(',');
+
+  const categoriesResult = await query<{ item_id: number; category: string }>(
+    `SELECT item_id, category FROM item_categories WHERE item_id IN (${placeholders}) ORDER BY category`,
+    itemIds
+  );
+
+  const categoriesMap = new Map<number, string[]>();
+  for (const row of categoriesResult.rows) {
+    if (!categoriesMap.has(row.item_id)) {
+      categoriesMap.set(row.item_id, []);
+    }
+    categoriesMap.get(row.item_id)!.push(row.category);
+  }
+
+  return items.map(item => ({
+    ...item,
+    categories: categoriesMap.get(item.id) || [],
+  }));
+}
+
 export async function getAllItems(): Promise<Item[]> {
   const result = await query<Item>("SELECT * FROM items ORDER BY name");
-  return result.rows;
+  return attachCategoriesToItems(result.rows);
 }
 
 export async function getItemsPaginated(params?: PaginationParams): Promise<PaginatedResult<Item>> {
@@ -183,9 +208,10 @@ export async function getItemsPaginated(params?: PaginationParams): Promise<Pagi
   const total = countResult.rows[0]?.count || 0;
 
   const dataResult = await query<Item>("SELECT * FROM items ORDER BY name LIMIT ? OFFSET ?", [limit, offset]);
+  const itemsWithCategories = await attachCategoriesToItems(dataResult.rows);
 
   return {
-    data: dataResult.rows,
+    data: itemsWithCategories,
     total,
     page,
     limit,
@@ -195,12 +221,20 @@ export async function getItemsPaginated(params?: PaginationParams): Promise<Pagi
 
 export async function getItem(id: number): Promise<Item | undefined> {
   const result = await query<Item>("SELECT * FROM items WHERE id = ?", [id]);
-  return result.rows[0];
+  const item = result.rows[0];
+  if (!item) return undefined;
+
+  const categories = await getItemCategories(id);
+  return { ...item, categories };
 }
 
 export async function getItemByName(name: string): Promise<Item | undefined> {
   const result = await query<Item>("SELECT * FROM items WHERE LOWER(name) = LOWER(?)", [name]);
-  return result.rows[0];
+  const item = result.rows[0];
+  if (!item) return undefined;
+
+  const categories = await getItemCategories(item.id);
+  return { ...item, categories };
 }
 
 export async function searchItems(searchQuery: string): Promise<Item[]> {
@@ -208,7 +242,7 @@ export async function searchItems(searchQuery: string): Promise<Item[]> {
     "SELECT * FROM items WHERE LOWER(name) LIKE LOWER(?) ORDER BY name",
     [`%${searchQuery}%`]
   );
-  return result.rows;
+  return attachCategoriesToItems(result.rows);
 }
 
 export async function getCategories(): Promise<string[]> {
@@ -216,6 +250,51 @@ export async function getCategories(): Promise<string[]> {
     "SELECT DISTINCT category FROM item_categories ORDER BY category"
   );
   return result.rows.map((r) => r.category);
+}
+
+export async function getItemCategories(itemId: number): Promise<string[]> {
+  const result = await query<{ category: string }>(
+    "SELECT category FROM item_categories WHERE item_id = ? ORDER BY category",
+    [itemId]
+  );
+  return result.rows.map((r) => r.category);
+}
+
+export async function setItemCategories(itemId: number, categories: string[]): Promise<void> {
+  // First, remove all existing categories for this item
+  await query("DELETE FROM item_categories WHERE item_id = ?", [itemId]);
+
+  // Then insert the new categories
+  for (const category of categories) {
+    if (category && category.trim()) {
+      await query(
+        "INSERT INTO item_categories (item_id, category) VALUES (?, ?)",
+        [itemId, category.trim().toLowerCase()]
+      );
+    }
+  }
+}
+
+export async function addItemCategory(itemId: number, category: string): Promise<boolean> {
+  if (!category || !category.trim()) return false;
+
+  try {
+    await query(
+      "INSERT IGNORE INTO item_categories (item_id, category) VALUES (?, ?)",
+      [itemId, category.trim().toLowerCase()]
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function removeItemCategory(itemId: number, category: string): Promise<boolean> {
+  const result = await query(
+    "DELETE FROM item_categories WHERE item_id = ? AND category = ?",
+    [itemId, category.trim().toLowerCase()]
+  );
+  return result.rowCount > 0;
 }
 
 export async function getSkills(): Promise<string[]> {
@@ -569,23 +648,36 @@ export async function importFromJson(data: {
     }
 
     try {
+      const slug = item.slug || item.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
       const existing = await getItemByName(item.name);
       if (existing) {
         await updateItem(
           existing.id,
           item.name,
-          item.category || existing.category,
-          Boolean(item.is_base_material ?? existing.is_base_material),
-          item.description || existing.description || ""
+          slug,
+          item.skill || existing.skill || null,
+          item.difficulty || existing.difficulty || null,
+          item.base_time_seconds || existing.base_time_seconds || null,
+          Boolean(item.is_base_material ?? existing.is_base_material)
         );
+        // Update categories if provided
+        if (item.categories && item.categories.length > 0) {
+          await setItemCategories(existing.id, item.categories);
+        }
         stats.items_updated++;
       } else {
-        await addItem(
+        const newId = await addItem(
           item.name,
-          item.category || "misc",
-          Boolean(item.is_base_material),
-          item.description || ""
+          slug,
+          item.skill || null,
+          item.difficulty || null,
+          item.base_time_seconds || null,
+          Boolean(item.is_base_material)
         );
+        // Set categories if provided
+        if (item.categories && item.categories.length > 0 && newId) {
+          await setItemCategories(newId, item.categories);
+        }
         stats.items_added++;
       }
     } catch {
@@ -804,23 +896,36 @@ export async function importItemsFromCsv(items: CsvItemRow[]): Promise<{
 
   for (const item of items) {
     try {
+      const slug = item.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
       const existing = await getItemByName(item.name);
       if (existing) {
         await updateItem(
           existing.id,
           item.name,
-          item.category || existing.category,
-          Boolean(item.is_base_material ?? existing.is_base_material),
-          item.description || existing.description || ""
+          slug,
+          existing.skill || null,
+          existing.difficulty || null,
+          existing.base_time_seconds || null,
+          Boolean(item.is_base_material ?? existing.is_base_material)
         );
+        // Set category from CSV
+        if (item.category) {
+          await setItemCategories(existing.id, [item.category]);
+        }
         stats.updated++;
       } else {
-        await addItem(
+        const newId = await addItem(
           item.name,
-          item.category || "misc",
-          Boolean(item.is_base_material),
-          item.description || ""
+          slug,
+          null,
+          null,
+          null,
+          Boolean(item.is_base_material)
         );
+        // Set category from CSV
+        if (item.category && newId) {
+          await setItemCategories(newId, [item.category]);
+        }
         stats.added++;
       }
     } catch {
@@ -930,7 +1035,7 @@ export async function calculateAdvancedMaterials(
           quantity: node.quantity,
           successChance,
           qualityPrediction: Math.min(100, settings.playerSkill * 0.8 + settings.toolQL * 0.2),
-          estimatedTime: (nodeItem?.base_time || 10) * node.quantity,
+          estimatedTime: (nodeItem?.base_time_seconds || 10) * node.quantity,
           expectedAttempts: node.quantity / (successChance / 100),
         });
       }
@@ -977,7 +1082,7 @@ export async function getSkillGrindingPath(
 
   // Find items that match the preferred category
   const items = preferredCategory
-    ? (await getAllItems()).filter(i => i.category === preferredCategory)
+    ? (await getAllItems()).filter(i => i.categories?.includes(preferredCategory) || i.skill === preferredCategory)
     : await getAllItems();
 
   for (const step of pathSteps) {
@@ -1023,7 +1128,7 @@ export async function findOptimalTrainingItem(
   const optimalDifficulty = currentSkill + 15;
 
   for (const item of items) {
-    if (preferredCategory && item.category !== preferredCategory) continue;
+    if (preferredCategory && !item.categories?.includes(preferredCategory) && item.skill !== preferredCategory) continue;
 
     const difficulty = item.difficulty || getItemDifficulty(item.name);
     const difficultyDelta = Math.abs(difficulty - optimalDifficulty);
@@ -1060,7 +1165,7 @@ export async function calculateBatchEfficiency(
     };
   }
 
-  const baseTime = item.base_time || 10;
+  const baseTime = item.base_time_seconds || 10;
   // Simplified time calculation based on skill
   const skillMod = Math.max(0.5, 1 - (settings.playerSkill / 200));
   const singleItemTime = baseTime * skillMod;
@@ -3136,7 +3241,7 @@ export async function getProjectMaterials(projectId: number): Promise<ProjectMat
         materialMap.set(matId, {
           item_id: matId,
           item_name: material.name,
-          category: material.category,
+          skill: material.skill,
           required_quantity: quantity,
           completed_quantity: 0,
           remaining_quantity: quantity,
@@ -3242,7 +3347,11 @@ export async function approveAndAddRecipe(submissionId: number, reviewerId: numb
     // Check or create result item
     let resultItem = await getItemByName(submission.item_name);
     if (!resultItem) {
-      const resultId = await addItem(submission.item_name, "misc", false, `Added from recipe submission #${submissionId}`);
+      const slug = submission.item_name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const resultId = await addItem(submission.item_name, slug, null, null, null, false);
+      if (resultId) {
+        await setItemCategories(resultId, ["misc"]);
+      }
       resultItem = await getItem(resultId);
       if (!resultItem) return false;
     }
@@ -3252,7 +3361,11 @@ export async function approveAndAddRecipe(submissionId: number, reviewerId: numb
       let ingredientItem = await getItemByName(ing.name);
       if (!ingredientItem) {
         // Create missing ingredient as base material
-        const ingId = await addItem(ing.name, "material", true, `Added from recipe submission #${submissionId}`);
+        const ingSlug = ing.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        const ingId = await addItem(ing.name, ingSlug, null, null, null, true);
+        if (ingId) {
+          await setItemCategories(ingId, ["material"]);
+        }
         ingredientItem = await getItem(ingId);
         if (!ingredientItem) continue;
       }

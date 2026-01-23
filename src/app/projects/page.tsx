@@ -471,7 +471,7 @@ export default function ProjectsPage() {
                   >
                     <div>
                       <span className="text-text-primary">{mat.item_name}</span>
-                      <span className="text-xs text-text-muted ml-2">({mat.category})</span>
+                      <span className="text-xs text-text-muted ml-2">({mat.skill || "misc"})</span>
                     </div>
                     <div className="text-right">
                       <div className="text-sm">

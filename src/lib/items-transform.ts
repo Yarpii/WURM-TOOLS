@@ -176,17 +176,17 @@ function parseBaseTime(fields: Record<string, MaterialItem[]> | null): number | 
 // Transform Wurmpedia item detail to crafting Item format
 export function transformItemDetail(detail: ItemDetail): Item {
   const fields = detail.infobox?.fields || null;
+  const category = extractCategory(detail.categories, detail.breadcrumbs);
 
   return {
     id: slugToId(detail.slug),
     name: detail.title,
-    category: extractCategory(detail.categories, detail.breadcrumbs),
-    is_base_material: isBaseMaterial(detail.categories, detail.title) ? 1 : 0,
-    description: detail.breadcrumbs.join(" > ") || null,
+    slug: detail.slug,
+    skill: mapSkillType(detail.skill),
     difficulty: parseDifficulty(fields),
-    skill_type: mapSkillType(detail.skill),
-    base_time: parseBaseTime(fields),
-    tool_type: mapToolType(detail.tools),
+    base_time_seconds: parseBaseTime(fields),
+    is_base_material: isBaseMaterial(detail.categories, detail.title) ? 1 : 0,
+    categories: category ? [category] : [],
   };
 }
 
@@ -221,13 +221,12 @@ export function transformSearchResult(result: ItemSearchResult): Item {
     return {
       id: slugToId(result.slug),
       name: result.title,
-      category: category,
-      is_base_material: isBase ? 1 : 0,
-      description: result.breadcrumbs?.join(" > ") || null,
+      slug: result.slug,
+      skill: mapSkillType(result.skill || null),
       difficulty: difficulty,
-      skill_type: mapSkillType(result.skill || null),
-      base_time: baseTime,
-      tool_type: mapToolType(result.tools || []),
+      base_time_seconds: baseTime,
+      is_base_material: isBase ? 1 : 0,
+      categories: category ? [category] : [],
     };
   }
 
@@ -235,13 +234,12 @@ export function transformSearchResult(result: ItemSearchResult): Item {
   return {
     id: slugToId(result.slug),
     name: result.title,
-    category: result.page_type || "misc",
-    is_base_material: 0,
-    description: null,
+    slug: result.slug,
+    skill: null,
     difficulty: null,
-    skill_type: null,
-    base_time: null,
-    tool_type: null,
+    base_time_seconds: null,
+    is_base_material: 0,
+    categories: result.page_type ? [result.page_type] : ["misc"],
   };
 }
 
@@ -421,7 +419,7 @@ export async function buildItemCraftingTree(
     const node: CraftingNode = {
       id: item.id,
       name: item.name,
-      category: item.category,
+      skill: item.skill,
       quantity: quantity,
       is_base: item.is_base_material === 1,
       depth: depth,
@@ -463,7 +461,7 @@ export async function buildItemCraftingTree(
           node.children.push({
             id: slugToId(childSlug),
             name: matName,
-            category: "materials",
+            skill: null,
             quantity: matQty * quantity,
             is_base: true,
             depth: depth + 1,
@@ -475,7 +473,7 @@ export async function buildItemCraftingTree(
         node.children.push({
           id: slugToId(childSlug),
           name: matName,
-          category: "materials",
+          skill: null,
           quantity: matQty * quantity,
           is_base: true,
           depth: depth + 1,
@@ -503,7 +501,7 @@ export function collectBaseMaterials(node: CraftingNode): MaterialResult[] {
         materialsMap.set(n.id, {
           id: n.id,
           name: n.name,
-          category: n.category,
+          skill: n.skill,
           quantity: n.quantity,
           formatted: "", // Will be filled later
           is_base: true,
@@ -574,13 +572,12 @@ export function transformRecipeDBItem(recipe: RecipeDBItem): Item {
   return {
     id: recipe.id,
     name: recipe.name,
-    category: recipe.categories[0]?.toLowerCase().replace(/ /g, "_") || "misc",
-    is_base_material: recipe.is_base_material ? 1 : 0,
-    description: null,
+    slug: recipe.slug,
+    skill: mapSkillType(recipe.skill),
     difficulty: recipe.difficulty,
-    skill_type: mapSkillType(recipe.skill),
-    base_time: recipe.base_time_seconds,
-    tool_type: recipe.tools.length > 0 ? mapToolTypeFromString(recipe.tools[0].tool_name) : null,
+    base_time_seconds: recipe.base_time_seconds,
+    is_base_material: recipe.is_base_material ? 1 : 0,
+    categories: recipe.categories.map(c => c.toLowerCase().replace(/ /g, "_")),
   };
 }
 
@@ -636,7 +633,7 @@ export async function buildCraftingTreeFromDB(
     const node: CraftingNode = {
       id: item.id,
       name: item.name,
-      category: item.category,
+      skill: item.skill,
       quantity: quantity,
       is_base: item.is_base_material === 1 || recipe.materials.length === 0,
       depth: depth,
@@ -669,7 +666,7 @@ export async function buildCraftingTreeFromDB(
           node.children.push({
             id: slugToId(childSlug),
             name: material.material_name,
-            category: "materials",
+            skill: null,
             quantity: matQty,
             is_base: true,
             depth: depth + 1,
@@ -681,7 +678,7 @@ export async function buildCraftingTreeFromDB(
         node.children.push({
           id: slugToId(childSlug),
           name: material.material_name,
-          category: "materials",
+          skill: null,
           quantity: matQty,
           is_base: true,
           depth: depth + 1,
@@ -703,7 +700,7 @@ export function recipeMaterialsToResults(materials: RecipeMaterial[], multiplier
     return {
       id: slugToId(mat.material_slug),
       name: mat.material_name,
-      category: "materials",
+      skill: null,
       quantity: qty,
       formatted: formatMaterialQuantity(qty, mat.unit),
       is_base: true,
@@ -818,13 +815,12 @@ export class ItemsTransformService {
       const items = response.items.map(dbItem => ({
         id: dbItem.id,
         name: dbItem.name,
-        category: "misc", // Will be enriched when full item is fetched
-        is_base_material: dbItem.is_base_material ? 1 : 0,
-        description: null,
+        slug: dbItem.slug,
+        skill: mapSkillType(dbItem.skill),
         difficulty: dbItem.difficulty,
-        skill_type: mapSkillType(dbItem.skill),
-        base_time: dbItem.base_time_seconds,
-        tool_type: null,
+        base_time_seconds: dbItem.base_time_seconds,
+        is_base_material: dbItem.is_base_material ? 1 : 0,
+        categories: [], // Categories are loaded separately if needed
       } as Item));
 
       // Register ID to slug mapping
@@ -874,14 +870,14 @@ export class ItemsTransformService {
         const tree: CraftingNode = {
           id: item.id,
           name: item.name,
-          category: item.category,
+          skill: item.skill,
           quantity: quantity,
           is_base: false,
           depth: 0,
           children: recipe.materials.map(mat => ({
             id: slugToId(mat.material_slug),
             name: mat.material_name,
-            category: "materials",
+            skill: null,
             quantity: mat.quantity * quantity,
             is_base: true,
             depth: 1,
@@ -938,13 +934,12 @@ function transformRecipeDBItemLocal(recipe: RecipeItemFull): Item {
   return {
     id: recipe.id,
     name: recipe.name,
-    category: recipe.categories[0]?.toLowerCase().replace(/ /g, "_") || "misc",
-    is_base_material: recipe.is_base_material ? 1 : 0,
-    description: null,
+    slug: recipe.slug,
+    skill: mapSkillType(recipe.skill),
     difficulty: recipe.difficulty,
-    skill_type: mapSkillType(recipe.skill),
-    base_time: recipe.base_time_seconds,
-    tool_type: recipe.tools.length > 0 ? mapToolTypeFromString(recipe.tools[0].tool_name) : null,
+    base_time_seconds: recipe.base_time_seconds,
+    is_base_material: recipe.is_base_material ? 1 : 0,
+    categories: recipe.categories.map(c => c.toLowerCase().replace(/ /g, "_")),
   };
 }
 
@@ -958,7 +953,7 @@ function recipeMaterialsToResultsLocal(
     return {
       id: slugToId(mat.material_slug),
       name: mat.material_name,
-      category: "materials",
+      skill: null,
       quantity: qty,
       formatted: formatMaterialQuantity(qty, mat.unit),
       is_base: true,
@@ -989,7 +984,7 @@ async function buildCraftingTreeFromDBLocal(
     const node: CraftingNode = {
       id: item.id,
       name: item.name,
-      category: item.category,
+      skill: item.skill,
       quantity: quantity,
       is_base: item.is_base_material === 1 || recipe.materials.length === 0,
       depth: depth,
@@ -1022,7 +1017,7 @@ async function buildCraftingTreeFromDBLocal(
           node.children.push({
             id: slugToId(childSlug),
             name: material.material_name,
-            category: "materials",
+            skill: null,
             quantity: matQty,
             is_base: true,
             depth: depth + 1,
@@ -1034,7 +1029,7 @@ async function buildCraftingTreeFromDBLocal(
         node.children.push({
           id: slugToId(childSlug),
           name: material.material_name,
-          category: "materials",
+          skill: null,
           quantity: matQty,
           is_base: true,
           depth: depth + 1,

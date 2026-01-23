@@ -267,7 +267,7 @@ export default function CraftingTree({ items }: CraftingTreeProps) {
                       }`}
                     >
                       <span className="font-medium">{item.name}</span>
-                      <span className="text-text-muted text-sm ml-2">({item.category})</span>
+                      <span className="text-text-muted text-sm ml-2">({item.skill || item.categories?.[0] || "misc"})</span>
                     </button>
                   ))}
                 </div>

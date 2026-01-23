@@ -75,7 +75,8 @@ interface SkillMetrics {
 interface OptimalItem {
   id: number;
   name: string;
-  category: string;
+  skill?: string | null;
+  categories?: string[];
   difficulty: number;
   successChance: number;
   isInSweetSpot: boolean;
@@ -319,7 +320,7 @@ function BasicCalculator() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [materials, setMaterials] = useState<MaterialResult[]>([]);
   const [tree, setTree] = useState<CraftingNode | null>(null);
-  const [craftable, setCraftable] = useState<{ id: number; name: string; category: string; formatted: string }[]>([]);
+  const [craftable, setCraftable] = useState<{ id: number; name: string; skill?: string | null; formatted: string }[]>([]);
   const [includeIndirect, setIncludeIndirect] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -401,7 +402,7 @@ function BasicCalculator() {
   const renderTree = (node: CraftingNode): React.ReactNode => (
     <div key={`${node.id}-${node.depth}`} className="relative">
       <div className={`flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-bg-hover transition-colors ${node.is_base ? "text-success" : "text-text-primary"}`}>
-        <span className={`category-dot category-${node.category}`} />
+        <span className={`category-dot category-${node.skill || "misc"}`} />
         <span className="font-medium">{node.name}</span>
         <span className="text-text-muted text-sm ml-auto">
           x{node.quantity % 1 === 0 ? node.quantity : node.quantity.toFixed(2)}
@@ -415,9 +416,10 @@ function BasicCalculator() {
     </div>
   );
 
-  const materialsByCategory = materials.reduce((acc, mat) => {
-    if (!acc[mat.category]) acc[mat.category] = [];
-    acc[mat.category].push(mat);
+  const materialsBySkill = materials.reduce((acc, mat) => {
+    const skill = mat.skill || "misc";
+    if (!acc[skill]) acc[skill] = [];
+    acc[skill].push(mat);
     return acc;
   }, {} as Record<string, MaterialResult[]>);
 
@@ -475,9 +477,9 @@ function BasicCalculator() {
                       index === selectedIndex ? "bg-accent/10 text-accent" : "hover:bg-bg-hover text-text-primary"
                     }`}
                   >
-                    <span className={`category-dot category-${item.category}`} />
+                    <span className={`category-dot category-${item.skill || item.categories?.[0] || "misc"}`} />
                     <span className="flex-1 truncate">{item.name}</span>
-                    <span className="text-xs text-text-muted capitalize">{item.category}</span>
+                    <span className="text-xs text-text-muted capitalize">{item.skill || item.categories?.[0] || "misc"}</span>
                   </button>
                 ))}
               </div>
@@ -578,21 +580,21 @@ function BasicCalculator() {
                 </span>
               </div>
               <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
-                <span className="text-text-muted">Skill Type</span>
-                <span className={`font-semibold capitalize ${selectedItem.skill_type ? 'text-text-primary' : 'text-text-muted italic'}`}>
-                  {selectedItem.skill_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                <span className="text-text-muted">Skill</span>
+                <span className={`font-semibold capitalize ${selectedItem.skill ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.skill?.replace(/_/g, ' ') ?? 'Unknown'}
                 </span>
               </div>
               <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
                 <span className="text-text-muted">Base Time</span>
-                <span className={`font-semibold ${selectedItem.base_time ? 'text-text-primary' : 'text-text-muted italic'}`}>
-                  {selectedItem.base_time ? `${selectedItem.base_time}s` : 'Unknown'}
+                <span className={`font-semibold ${selectedItem.base_time_seconds ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.base_time_seconds ? `${selectedItem.base_time_seconds}s` : 'Unknown'}
                 </span>
               </div>
               <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded-lg">
-                <span className="text-text-muted">Tool</span>
-                <span className={`font-semibold capitalize ${selectedItem.tool_type ? 'text-text-primary' : 'text-text-muted italic'}`}>
-                  {selectedItem.tool_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                <span className="text-text-muted">Categories</span>
+                <span className={`font-semibold capitalize ${selectedItem.categories?.length ? 'text-text-primary' : 'text-text-muted italic'}`}>
+                  {selectedItem.categories?.join(', ') || 'None'}
                 </span>
               </div>
             </div>
@@ -655,11 +657,11 @@ function BasicCalculator() {
                 </span>
               </div>
               <div className="space-y-4">
-                {Object.entries(materialsByCategory).map(([category, mats]) => (
-                  <div key={category}>
+                {Object.entries(materialsBySkill).map(([skill, mats]) => (
+                  <div key={skill}>
                     <h4 className="text-xs uppercase text-text-muted mb-2 flex items-center gap-2">
-                      <span className={`category-dot category-${category}`} />
-                      {category}
+                      <span className={`category-dot category-${skill}`} />
+                      {skill}
                     </h4>
                     <div className="grid gap-2">
                       {mats.map((mat) => (
@@ -699,7 +701,7 @@ function BasicCalculator() {
                     className="flex items-center justify-between bg-bg-tertiary rounded-lg px-4 py-3 border border-border hover:border-accent/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`category-dot category-${item.category}`} />
+                      <span className={`category-dot category-${item.skill || "misc"}`} />
                       <span className="text-text-primary">{item.name}</span>
                     </div>
                     <span className="text-text-muted text-sm">needs x{item.formatted}</span>
@@ -834,7 +836,7 @@ function AdvancedCalculator() {
                     className="w-full px-4 py-2.5 text-left hover:bg-bg-hover text-text-primary flex justify-between items-center border-b border-border last:border-0"
                   >
                     <span className="truncate">{item.name}</span>
-                    <span className="text-text-muted text-xs capitalize ml-2">{item.category}</span>
+                    <span className="text-text-muted text-xs capitalize ml-2">{item.skill || item.categories?.[0] || "misc"}</span>
                   </button>
                 ))}
               </div>
@@ -875,14 +877,14 @@ function AdvancedCalculator() {
                 </div>
                 <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded">
                   <span className="text-text-muted">Base Time</span>
-                  <span className={selectedItem.base_time ? 'text-text-primary font-medium' : 'text-text-muted italic'}>
-                    {selectedItem.base_time ? `${selectedItem.base_time}s` : '?'}
+                  <span className={selectedItem.base_time_seconds ? 'text-text-primary font-medium' : 'text-text-muted italic'}>
+                    {selectedItem.base_time_seconds ? `${selectedItem.base_time_seconds}s` : '?'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-2 bg-bg-tertiary rounded col-span-2">
                   <span className="text-text-muted">Skill</span>
-                  <span className={`capitalize ${selectedItem.skill_type ? 'text-text-primary font-medium' : 'text-text-muted italic'}`}>
-                    {selectedItem.skill_type?.replace(/_/g, ' ') ?? 'Unknown'}
+                  <span className={`capitalize ${selectedItem.skill ? 'text-text-primary font-medium' : 'text-text-muted italic'}`}>
+                    {selectedItem.skill?.replace(/_/g, ' ') ?? 'Unknown'}
                   </span>
                 </div>
               </div>
@@ -989,7 +991,7 @@ function AdvancedCalculator() {
                 {result.expectedMaterials.map((mat) => (
                   <div key={mat.id} className="flex items-center justify-between bg-bg-tertiary rounded-lg px-4 py-2.5 border border-border">
                     <div className="flex items-center gap-3">
-                      <span className={`category-dot category-${mat.category}`} />
+                      <span className={`category-dot category-${mat.skill || "misc"}`} />
                       <span className="text-text-primary">{mat.name}</span>
                     </div>
                     <span className="text-accent font-mono font-semibold">{getQuantityDisplay(mat)}</span>
@@ -1182,7 +1184,7 @@ function SkillOptimizer() {
                       <span className="text-2xl font-bold text-text-muted">#{index + 1}</span>
                       <div>
                         <span className="text-text-primary font-semibold">{item.name}</span>
-                        <span className="text-xs text-text-muted capitalize ml-2">{item.category}</span>
+                        <span className="text-xs text-text-muted capitalize ml-2">{item.skill || item.categories?.[0] || "misc"}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">

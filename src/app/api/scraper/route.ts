@@ -7,6 +7,7 @@ import {
   getRecipe,
   updateItem,
   deleteRecipeIngredient,
+  setItemCategories,
 } from "@/lib/database";
 import { getSession } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
@@ -657,6 +658,8 @@ async function importScrapedItems(
   for (const item of items) {
     const existingId = getItemIdFromCache(item.name);
 
+    const slug = item.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
     if (existingId) {
       if (mode === "skip") {
         result.items_skipped++;
@@ -664,7 +667,11 @@ async function importScrapedItems(
       }
 
       try {
-        await updateItem(existingId, item.name, item.category, item.isBaseMaterial, item.description);
+        await updateItem(existingId, item.name, slug, null, null, null, item.isBaseMaterial);
+        // Set the category for the item
+        if (item.category) {
+          await setItemCategories(existingId, [item.category]);
+        }
         result.items_updated++;
 
         if (mode === "force") {
@@ -678,9 +685,13 @@ async function importScrapedItems(
       }
     } else {
       try {
-        await addItem(item.name, item.category, item.isBaseMaterial, item.description);
+        const newId = await addItem(item.name, slug, null, null, null, item.isBaseMaterial);
+        // Set the category for the new item
+        if (item.category && newId) {
+          await setItemCategories(newId, [item.category]);
+        }
         result.items_added++;
-        existingItemsCache.set(item.name.toLowerCase(), -1);
+        existingItemsCache.set(item.name.toLowerCase(), newId);
       } catch (e) {
         result.errors.push(`Error adding item ${item.name}: ${e}`);
       }
@@ -694,9 +705,14 @@ async function importScrapedItems(
     for (const ing of item.ingredients) {
       if (!itemExistsInCache(ing.name)) {
         try {
-          await addItem(ing.name, "material", true, "");
+          const ingSlug = ing.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+          const newIngId = await addItem(ing.name, ingSlug, null, null, null, true);
+          // Set default category for ingredient
+          if (newIngId) {
+            await setItemCategories(newIngId, ["material"]);
+          }
           result.items_added++;
-          existingItemsCache.set(ing.name.toLowerCase(), -1);
+          existingItemsCache.set(ing.name.toLowerCase(), newIngId);
         } catch {
           // Already exists
         }
