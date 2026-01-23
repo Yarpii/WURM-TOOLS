@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS account_lockouts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL UNIQUE,
     locked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    locked_until TIMESTAMP NOT NULL,
+    locked_until DATETIME NOT NULL,
     failed_attempts INT NOT NULL DEFAULT 0,
     reason VARCHAR(255),
 
