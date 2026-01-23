@@ -17,7 +17,6 @@ import type {
   RecipeWithNames,
   CraftingNode,
   MaterialResult,
-  CraftableResult,
   ImportStats,
   CsvPreviewResult,
   CraftingSettings,
@@ -410,50 +409,6 @@ export async function buildShallowCraftingTree(
   }
 
   return node;
-}
-
-export async function findCraftableFrom(itemId: number): Promise<CraftableResult[]> {
-  const result = await query<{ result_item_id: number; quantity: number }>(
-    `SELECT rm.item_id as result_item_id, CAST(rm.quantity AS SIGNED) as quantity
-     FROM recipe_materials rm
-     WHERE rm.material_id = ?`,
-    [itemId]
-  );
-
-  const craftable: CraftableResult[] = [];
-  for (const row of result.rows) {
-    const item = await getItem(row.result_item_id);
-    if (item) {
-      craftable.push({
-        item,
-        quantity_needed: row.quantity,
-      });
-    }
-  }
-
-  return craftable;
-}
-
-export async function findAllCraftableFrom(
-  itemId: number,
-  visited: Set<number> = new Set()
-): Promise<CraftableResult[]> {
-  if (visited.has(itemId)) return [];
-  visited.add(itemId);
-
-  const direct = await findCraftableFrom(itemId);
-  const all: CraftableResult[] = [...direct];
-
-  for (const craftable of direct) {
-    const nested = await findAllCraftableFrom(craftable.item.id, visited);
-    for (const nestedItem of nested) {
-      if (!all.some((a) => a.item.id === nestedItem.item.id)) {
-        all.push(nestedItem);
-      }
-    }
-  }
-
-  return all;
 }
 
 // ========== CRUD FUNCTIONS ==========
