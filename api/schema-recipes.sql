@@ -133,3 +133,36 @@ SELECT
   rm.unit
 FROM recipe_materials rm
 JOIN items i ON i.id = rm.item_id;
+
+-- ============================================
+-- PROJECT TRACKING TABLES
+-- ============================================
+
+-- Projects table - user crafting projects
+CREATE TABLE IF NOT EXISTS projects (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  status ENUM('planning', 'in_progress', 'completed', 'paused') DEFAULT 'planning',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_projects_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Project items - items needed for a project
+CREATE TABLE IF NOT EXISTS project_items (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  project_id BIGINT UNSIGNED NOT NULL,
+  item_id BIGINT UNSIGNED NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  completed_quantity INT DEFAULT 0,
+  is_complete BOOLEAN GENERATED ALWAYS AS (completed_quantity >= quantity) STORED,
+  notes TEXT,
+  priority INT DEFAULT 0,
+
+  INDEX idx_project_items_project (project_id),
+  INDEX idx_project_items_item (item_id),
+  CONSTRAINT fk_project_items_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  CONSTRAINT fk_project_items_item FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
