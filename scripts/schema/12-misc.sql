@@ -1,4 +1,4 @@
--- WURM-TOOLS MySQL Schema - Part 12: Miscellaneous (Webhooks, Prospects, Submissions)
+-- WURM-TOOLS MySQL Schema - Part 12: Miscellaneous (Webhooks, Prospects)
 -- Run: mysql -u root -p wurmtools < 12-misc.sql
 -- Depends on: 01-core.sql
 
@@ -76,26 +76,3 @@ CREATE INDEX idx_prospects_status ON prospects(status);
 CREATE INDEX idx_prospects_priority ON prospects(priority);
 CREATE INDEX idx_prospects_quality ON prospects(quality_rating);
 
--- ========== RECIPE SUBMISSIONS ==========
-
-CREATE TABLE IF NOT EXISTS recipe_submissions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    item_name VARCHAR(100) NOT NULL,
-    ingredients TEXT NOT NULL,
-    source_url VARCHAR(500),
-    notes TEXT,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    admin_notes TEXT,
-    reviewed_by INT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    reviewed_at TIMESTAMP NULL,
-
-    CONSTRAINT fk_recipe_submissions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_recipe_submissions_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
-    CONSTRAINT chk_recipe_submissions_status CHECK (status IN ('pending', 'approved', 'rejected'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX idx_recipe_submissions_user ON recipe_submissions(user_id);
-CREATE INDEX idx_recipe_submissions_status ON recipe_submissions(status);
-CREATE INDEX idx_recipe_submissions_created ON recipe_submissions(created_at);

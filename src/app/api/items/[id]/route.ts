@@ -91,16 +91,18 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, category, is_base_material, description } = body;
+    const { name, slug, skill, difficulty, base_time_seconds, is_base_material } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     // SECURITY: Input validation - sanitize inputs
-    const sanitizedName = String(name).trim().slice(0, 100);
-    const sanitizedCategory = String(category || "misc").trim().slice(0, 50);
-    const sanitizedDescription = String(description || "").trim().slice(0, 500);
+    const sanitizedName = String(name).trim().slice(0, 255);
+    const sanitizedSlug = String(slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")).trim().slice(0, 255);
+    const sanitizedSkill = skill ? String(skill).trim().slice(0, 100) : null;
+    const sanitizedDifficulty = difficulty ? Math.min(100, Math.max(1, parseInt(difficulty))) : null;
+    const sanitizedBaseTime = base_time_seconds ? Math.max(1, parseInt(base_time_seconds)) : null;
 
     const existing = await getItemByName(sanitizedName);
     if (existing && existing.id !== itemId) {
@@ -113,9 +115,11 @@ export async function PUT(
     const success = await updateItem(
       itemId,
       sanitizedName,
-      sanitizedCategory,
-      is_base_material || false,
-      sanitizedDescription
+      sanitizedSlug,
+      sanitizedSkill,
+      sanitizedDifficulty,
+      sanitizedBaseTime,
+      is_base_material || false
     );
 
     return NextResponse.json({ success });

@@ -4,16 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Item } from "@/lib/types";
 import AdminGuard from "@/components/AdminGuard";
-import { ItemsTab, RecipesTab, MembersTab, SubmissionsTab, ImportDataTab, Recipe } from "@/components/admin";
+import { ItemsTab, MembersTab } from "@/components/admin";
 
-type TabType = "items" | "recipes" | "members" | "import" | "submissions";
+type TabType = "items" | "members";
 
 function AdminContent() {
   const [items, setItems] = useState<Item[]>([]);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("items");
-  const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
 
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -22,28 +20,15 @@ function AdminContent() {
 
   useEffect(() => {
     loadData();
-    loadPendingSubmissionsCount();
   }, []);
 
   const loadData = async () => {
-    const [itemsRes, recipesRes, categoriesRes] = await Promise.all([
-      fetch("/api/items"),
-      fetch("/api/admin/recipes"),
-      fetch("/api/items?categories=1"),
+    const [itemsRes, categoriesRes] = await Promise.all([
+      fetch("/api/items?source=wurmpedia"),
+      fetch("/api/items?categories=1&source=wurmpedia"),
     ]);
     setItems(await itemsRes.json());
-    setRecipes(await recipesRes.json());
     setCategories(await categoriesRes.json());
-  };
-
-  const loadPendingSubmissionsCount = async () => {
-    try {
-      const res = await fetch("/api/recipe-submissions?count=true");
-      const data = await res.json();
-      setPendingSubmissionsCount(data.count || 0);
-    } catch (err) {
-      console.error("Failed to load pending count:", err);
-    }
   };
 
   const showMessage = (type: "success" | "error", text: string) => {
@@ -51,20 +36,12 @@ function AdminContent() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  // Group recipes by result item for count
-  const groupedRecipesCount = Object.keys(
-    recipes.reduce((acc, recipe) => {
-      acc[recipe.result_item_id] = true;
-      return acc;
-    }, {} as Record<number, boolean>)
-  ).length;
-
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-text-primary mb-2">Admin Panel</h1>
-        <p className="text-text-secondary">Manage your items and recipe blueprints</p>
+        <p className="text-text-secondary">Manage items and members</p>
       </div>
 
       {/* Message */}
@@ -89,12 +66,6 @@ function AdminContent() {
           Items ({items.length})
         </TabButton>
         <TabButton
-          active={activeTab === "recipes"}
-          onClick={() => setActiveTab("recipes")}
-        >
-          Recipes ({groupedRecipesCount})
-        </TabButton>
-        <TabButton
           active={activeTab === "members"}
           onClick={() => setActiveTab("members")}
         >
@@ -106,19 +77,6 @@ function AdminContent() {
         >
           Roles & Permissions
         </Link>
-        <TabButton
-          active={activeTab === "import"}
-          onClick={() => setActiveTab("import")}
-        >
-          Import Data
-        </TabButton>
-        <TabButton
-          active={activeTab === "submissions"}
-          onClick={() => setActiveTab("submissions")}
-          badge={pendingSubmissionsCount > 0 ? pendingSubmissionsCount : undefined}
-        >
-          Submissions
-        </TabButton>
       </div>
 
       {/* Tab Content */}
@@ -131,28 +89,7 @@ function AdminContent() {
         />
       )}
 
-      {activeTab === "recipes" && (
-        <RecipesTab
-          items={items}
-          recipes={recipes}
-          onDataChange={loadData}
-          showMessage={showMessage}
-        />
-      )}
-
       {activeTab === "members" && <MembersTab showMessage={showMessage} />}
-
-      {activeTab === "import" && (
-        <ImportDataTab onDataChange={loadData} showMessage={showMessage} />
-      )}
-
-      {activeTab === "submissions" && (
-        <SubmissionsTab
-          onDataChange={loadData}
-          showMessage={showMessage}
-          onPendingCountChange={setPendingSubmissionsCount}
-        />
-      )}
     </div>
   );
 }
@@ -161,16 +98,14 @@ function TabButton({
   active,
   onClick,
   children,
-  badge,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  badge?: number;
 }) {
   return (
     <button
-      className={`px-5 py-2.5 rounded-lg border-2 transition-all relative ${
+      className={`px-5 py-2.5 rounded-lg border-2 transition-all ${
         active
           ? "border-accent text-white"
           : "border-transparent bg-bg-tertiary border border-border text-text-secondary hover:text-white"
@@ -178,11 +113,6 @@ function TabButton({
       onClick={onClick}
     >
       {children}
-      {badge !== undefined && (
-        <span className="absolute -top-1 -right-1 bg-amber-500 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-          {badge}
-        </span>
-      )}
     </button>
   );
 }
