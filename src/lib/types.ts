@@ -34,14 +34,12 @@ export type ToolType =
 export interface Item {
   id: number;
   name: string;
-  category: string;
-  is_base_material: number;
-  description: string | null;
-  // Advanced crafting fields (now stored in database)
-  difficulty: number | null;     // Base difficulty (0-100), null = unknown
-  skill_type: SkillType;         // Required skill (e.g., "blacksmithing")
-  base_time: number | null;      // Base crafting time in seconds
-  tool_type: ToolType;           // Required tool type
+  slug?: string;
+  skill?: string | null;
+  difficulty?: number | null;
+  base_time_seconds?: number | null;
+  image_url?: string | null;
+  is_base_material: boolean | number;
 }
 
 export interface Recipe {
@@ -59,7 +57,7 @@ export interface RecipeWithNames extends Recipe {
 export interface CraftingNode {
   id: number;
   name: string;
-  category: string;
+  skill?: string | null;
   quantity: number;
   is_base: boolean;
   depth: number;
@@ -69,7 +67,7 @@ export interface CraftingNode {
 export interface MaterialResult {
   id: number;
   name: string;
-  category: string;
+  skill?: string | null;
   quantity: number;
   formatted: string;
   is_base?: boolean;
@@ -442,7 +440,7 @@ export interface ProjectItem {
 export interface ProjectMaterial {
   item_id: number;
   item_name: string;
-  category: string;
+  skill?: string | null;
   required_quantity: number;
   completed_quantity: number;
   remaining_quantity: number;

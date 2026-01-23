@@ -213,9 +213,16 @@ export async function searchItems(searchQuery: string): Promise<Item[]> {
 
 export async function getCategories(): Promise<string[]> {
   const result = await query<{ category: string }>(
-    "SELECT DISTINCT category FROM items ORDER BY category"
+    "SELECT DISTINCT category FROM item_categories ORDER BY category"
   );
   return result.rows.map((r) => r.category);
+}
+
+export async function getSkills(): Promise<string[]> {
+  const result = await query<{ skill: string }>(
+    "SELECT DISTINCT skill FROM items WHERE skill IS NOT NULL ORDER BY skill"
+  );
+  return result.rows.map((r) => r.skill);
 }
 
 export async function getRecipe(itemId: number): Promise<Recipe[]> {
@@ -300,7 +307,7 @@ export async function buildCraftingTree(
   const node: CraftingNode = {
     id: itemId,
     name: item.name,
-    category: item.category,
+    skill: item.skill,
     quantity,
     is_base: Boolean(item.is_base_material),
     depth,
@@ -339,7 +346,7 @@ export async function getMaterialsList(
       results.push({
         id: item.id,
         name: item.name,
-        category: item.category,
+        skill: item.skill,
         quantity: qty,
         formatted: formatQuantity(qty),
         is_base: Boolean(item.is_base_material),
@@ -364,7 +371,7 @@ export async function getDirectIngredients(
       results.push({
         id: item.id,
         name: item.name,
-        category: item.category,
+        skill: item.skill,
         quantity: qty,
         formatted: formatQuantity(qty),
         is_base: Boolean(item.is_base_material),
@@ -385,7 +392,7 @@ export async function buildShallowCraftingTree(
   const node: CraftingNode = {
     id: itemId,
     name: item.name,
-    category: item.category,
+    skill: item.skill,
     quantity,
     is_base: Boolean(item.is_base_material),
     depth: 0,
@@ -399,7 +406,7 @@ export async function buildShallowCraftingTree(
       node.children.push({
         id: ingredientItem.id,
         name: ingredientItem.name,
-        category: ingredientItem.category,
+        skill: ingredientItem.skill,
         quantity: ingredient.quantity * quantity,
         is_base: Boolean(ingredientItem.is_base_material),
         depth: 1,
@@ -415,13 +422,15 @@ export async function buildShallowCraftingTree(
 
 export async function addItem(
   name: string,
-  category: string = "misc",
-  isBaseMaterial: boolean = false,
-  description: string = ""
+  slug: string,
+  skill: string | null = null,
+  difficulty: number | null = null,
+  baseTimeSeconds: number | null = null,
+  isBaseMaterial: boolean = false
 ): Promise<number> {
   await query(
-    "INSERT INTO items (name, category, is_base_material, description) VALUES (?, ?, ?, ?)",
-    [name, category, isBaseMaterial ? 1 : 0, description]
+    "INSERT INTO items (name, slug, skill, difficulty, base_time_seconds, is_base_material) VALUES (?, ?, ?, ?, ?, ?)",
+    [name, slug, skill, difficulty, baseTimeSeconds, isBaseMaterial ? 1 : 0]
   );
 
   const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
@@ -431,13 +440,15 @@ export async function addItem(
 export async function updateItem(
   id: number,
   name: string,
-  category: string,
-  isBaseMaterial: boolean,
-  description: string
+  slug: string,
+  skill: string | null,
+  difficulty: number | null,
+  baseTimeSeconds: number | null,
+  isBaseMaterial: boolean
 ): Promise<boolean> {
   const result = await query(
-    "UPDATE items SET name = ?, category = ?, is_base_material = ?, description = ? WHERE id = ?",
-    [name, category, isBaseMaterial ? 1 : 0, description, id]
+    "UPDATE items SET name = ?, slug = ?, skill = ?, difficulty = ?, base_time_seconds = ?, is_base_material = ? WHERE id = ?",
+    [name, slug, skill, difficulty, baseTimeSeconds, isBaseMaterial ? 1 : 0, id]
   );
   return result.rowCount > 0;
 }
