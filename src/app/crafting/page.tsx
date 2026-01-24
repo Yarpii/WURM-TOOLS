@@ -111,7 +111,7 @@ export default function CraftingPage() {
   useEffect(() => {
     const loadItems = async () => {
       try {
-        const res = await fetch("/api/items?source=wurmpedia");
+        const res = await fetch("/api/items?source=wurmpedia&visibleOnly=true");
         if (res.ok) {
           const data = await res.json();
           setItems(data);
@@ -326,7 +326,7 @@ function BasicCalculator() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/items?source=wurmpedia").then((r) => r.json()).then(setItems);
+    fetch("/api/items?source=wurmpedia&visibleOnly=true").then((r) => r.json()).then(setItems);
   }, []);
 
   useEffect(() => {
@@ -848,7 +848,7 @@ function AdvancedCalculator() {
   const [viewMode, setViewMode] = useState<ViewMode>("expected");
 
   useEffect(() => {
-    fetch("/api/items?source=wurmpedia")
+    fetch("/api/items?source=wurmpedia&visibleOnly=true")
       .then((r) => r.json())
       .then((data) => {
         const craftable = data.filter((i: Item & { is_base_material: number }) => !i.is_base_material);

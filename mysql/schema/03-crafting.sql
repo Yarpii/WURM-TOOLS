@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS items (
   base_time_seconds INT,                     -- Crafting time in seconds
   image_url VARCHAR(500),
   is_base_material BOOLEAN DEFAULT FALSE,    -- Raw materials like planks, nails
+  visible BOOLEAN DEFAULT FALSE,             -- Show in crafting calculator (admin controlled)
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS items (
   INDEX idx_items_skill (skill),
   INDEX idx_items_difficulty (difficulty),
   INDEX idx_items_base (is_base_material),
+  INDEX idx_items_visible (visible),
   INDEX idx_items_page (page_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

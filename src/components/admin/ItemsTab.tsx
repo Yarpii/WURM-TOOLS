@@ -139,6 +139,51 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     }
   };
 
+  const toggleItemVisibility = async (itemId: number, visible: boolean) => {
+    try {
+      const res = await fetch(`/api/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visible }),
+      });
+
+      if (res.ok) {
+        showMessage("success", `Item ${visible ? "enabled" : "disabled"} in crafting calculator`);
+        onDataChange();
+      } else {
+        const data = await res.json();
+        showMessage("error", data.error || "Failed to update visibility");
+      }
+    } catch (error) {
+      showMessage("error", "Failed to update visibility");
+    }
+  };
+
+  const bulkToggleVisibility = async (visible: boolean) => {
+    if (selectedItems.size === 0) {
+      showMessage("error", "No items selected");
+      return;
+    }
+
+    try {
+      // Update each item
+      const promises = Array.from(selectedItems).map(itemId =>
+        fetch(`/api/items/${itemId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visible }),
+        })
+      );
+
+      await Promise.all(promises);
+      showMessage("success", `${selectedItems.size} items ${visible ? "enabled" : "disabled"} in crafting calculator`);
+      setSelectedItems(new Set());
+      onDataChange();
+    } catch (error) {
+      showMessage("error", "Failed to update visibility");
+    }
+  };
+
   const toggleSelectItem = (itemId: number) => {
     setSelectedItems(prev => {
       const next = new Set(prev);
@@ -294,10 +339,14 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
   return (
     <div className="space-y-6">
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
           <div className="text-2xl font-bold text-accent">{items.length}</div>
           <div className="text-sm text-text-secondary">Total Items</div>
+        </div>
+        <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
+          <div className="text-2xl font-bold text-green-400">{items.filter(i => i.visible).length}</div>
+          <div className="text-sm text-text-secondary">Visible in Crafting</div>
         </div>
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
           <div className="text-2xl font-bold text-success">{items.filter(i => i.is_base_material).length}</div>
@@ -358,6 +407,21 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               className="px-3 py-2 bg-accent hover:bg-accent-hover rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add
+            </button>
+          </div>
+          <div className="flex items-center gap-2 border-l border-border/50 pl-4">
+            <span className="text-text-secondary text-sm">Visibility:</span>
+            <button
+              onClick={() => bulkToggleVisibility(true)}
+              className="px-3 py-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm"
+            >
+              Enable
+            </button>
+            <button
+              onClick={() => bulkToggleVisibility(false)}
+              className="px-3 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm"
+            >
+              Disable
             </button>
           </div>
           <button
@@ -560,6 +624,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                   <th className="pb-2">Skill</th>
                   <th className="pb-2 text-center">Diff</th>
                   <th className="pb-2 text-center">Type</th>
+                  <th className="pb-2 text-center">Visible</th>
                   <th className="pb-2 text-right">Actions</th>
                 </tr>
               </thead>
@@ -613,6 +678,21 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                       >
                         {item.is_base_material ? "Base" : "Crafted"}
                       </span>
+                    </td>
+                    <td className="py-2 text-center">
+                      <button
+                        onClick={() => toggleItemVisibility(item.id, !item.visible)}
+                        className={`w-10 h-5 rounded-full transition-colors relative ${
+                          item.visible ? "bg-green-500" : "bg-gray-600"
+                        }`}
+                        title={item.visible ? "Visible in crafting calculator" : "Hidden from crafting calculator"}
+                      >
+                        <span
+                          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                            item.visible ? "left-5" : "left-0.5"
+                          }`}
+                        />
+                      </button>
                     </td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-1">
