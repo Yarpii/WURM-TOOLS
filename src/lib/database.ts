@@ -6308,6 +6308,7 @@ export interface RecipeItem {
   base_time_seconds: number | null;
   image_url: string | null;
   is_base_material: boolean;
+  visible?: boolean;
   material_count?: number;
   tool_count?: number;
 }
@@ -6354,17 +6355,24 @@ export async function getAllRecipeItems(options?: {
   limit?: number;
   offset?: number;
   skill?: string;
+  visibleOnly?: boolean;
 }): Promise<{ items: RecipeItem[]; total: number }> {
   const limit = options?.limit || 100;
   const offset = options?.offset || 0;
 
-  let whereClause = "";
+  const conditions: string[] = [];
   const params: (string | number)[] = [];
 
   if (options?.skill) {
-    whereClause = "WHERE i.skill = ?";
+    conditions.push("i.skill = ?");
     params.push(options.skill);
   }
+
+  if (options?.visibleOnly) {
+    conditions.push("i.visible = TRUE");
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const countResult = await query<{ count: number }>(
     `SELECT COUNT(*) as count FROM items i ${whereClause}`,
@@ -6382,6 +6390,7 @@ export async function getAllRecipeItems(options?: {
       i.base_time_seconds,
       i.image_url,
       i.is_base_material,
+      i.visible,
       (SELECT COUNT(*) FROM recipe_materials rm WHERE rm.item_id = i.id) as material_count,
       (SELECT COUNT(*) FROM recipe_tools rt WHERE rt.item_id = i.id) as tool_count
     FROM items i
@@ -6559,6 +6568,30 @@ export async function getRecipeSkills(): Promise<string[]> {
     `SELECT DISTINCT skill FROM items WHERE skill IS NOT NULL AND skill != '' ORDER BY skill ASC`
   );
   return result.rows.map(r => r.skill);
+}
+
+/**
+ * Update item visibility (admin only)
+ */
+export async function updateItemVisibility(itemId: number, visible: boolean): Promise<boolean> {
+  const result = await query(
+    `UPDATE items SET visible = ? WHERE id = ?`,
+    [visible, itemId]
+  );
+  return (result.affectedRows ?? 0) > 0;
+}
+
+/**
+ * Bulk update item visibility (admin only)
+ */
+export async function bulkUpdateItemVisibility(itemIds: number[], visible: boolean): Promise<number> {
+  if (itemIds.length === 0) return 0;
+  const placeholders = itemIds.map(() => "?").join(",");
+  const result = await query(
+    `UPDATE items SET visible = ? WHERE id IN (${placeholders})`,
+    [visible, ...itemIds]
+  );
+  return result.affectedRows ?? 0;
 }
 
 /**

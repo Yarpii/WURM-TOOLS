@@ -111,7 +111,7 @@ export default function CraftingPage() {
   useEffect(() => {
     const loadItems = async () => {
       try {
-        const res = await fetch("/api/items?source=wurmpedia");
+        const res = await fetch("/api/items?source=wurmpedia&visibleOnly=true");
         if (res.ok) {
           const data = await res.json();
           setItems(data);
@@ -321,11 +321,12 @@ function BasicCalculator() {
   const [tree, setTree] = useState<CraftingNode | null>(null);
   const [craftable, setCraftable] = useState<{ id: number; name: string; category: string; formatted: string }[]>([]);
   const [includeIndirect, setIncludeIndirect] = useState(false);
+  const [selectedTreeNodes, setSelectedTreeNodes] = useState<Map<string, { id: number; name: string; quantity: number; category: string; is_base: boolean }>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/items?source=wurmpedia").then((r) => r.json()).then(setItems);
+    fetch("/api/items?source=wurmpedia&visibleOnly=true").then((r) => r.json()).then(setItems);
   }, []);
 
   useEffect(() => {
@@ -354,6 +355,7 @@ function BasicCalculator() {
   const doAction = async (item: Item = selectedItem!, matMode: MaterialMode = materialMode) => {
     if (!item) return;
     setIsLoading(true);
+    setSelectedTreeNodes(new Map());
     try {
       if (mode === "calculate") {
         const res = await fetch(`/api/calculate?item=${item.id}&qty=${quantity}&mode=${matMode}&source=wurmpedia`);
@@ -398,22 +400,63 @@ function BasicCalculator() {
     }
   };
 
-  const renderTree = (node: CraftingNode): React.ReactNode => (
-    <div key={`${node.id}-${node.depth}`} className="relative">
-      <div className={`flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-bg-hover transition-colors ${node.is_base ? "text-success" : "text-text-primary"}`}>
-        <span className={`category-dot category-${node.category}`} />
-        <span className="font-medium">{node.name}</span>
-        <span className="text-text-muted text-sm ml-auto">
-          x{node.quantity % 1 === 0 ? node.quantity : node.quantity.toFixed(2)}
-        </span>
-      </div>
-      {node.children.length > 0 && (
-        <div className="pl-6 border-l border-border ml-3">
-          {node.children.map(renderTree)}
+  const toggleTreeNodeSelection = (node: CraftingNode, multiSelect: boolean) => {
+    const nodeKey = `${node.id}-${node.depth}`;
+    setSelectedTreeNodes(prev => {
+      const newMap = multiSelect ? new Map(prev) : new Map();
+      if (prev.has(nodeKey)) {
+        newMap.delete(nodeKey);
+      } else {
+        newMap.set(nodeKey, {
+          id: node.id,
+          name: node.name,
+          quantity: node.quantity,
+          category: node.category,
+          is_base: node.is_base
+        });
+      }
+      return newMap;
+    });
+  };
+
+  const clearTreeSelection = () => setSelectedTreeNodes(new Map());
+
+  const renderTree = (node: CraftingNode): React.ReactNode => {
+    const nodeKey = `${node.id}-${node.depth}`;
+    const isSelected = selectedTreeNodes.has(nodeKey);
+
+    return (
+      <div key={nodeKey} className="relative">
+        <div
+          onClick={(e) => toggleTreeNodeSelection(node, e.ctrlKey || e.metaKey)}
+          className={`flex items-center gap-2 py-2 px-3 rounded-lg cursor-pointer transition-all
+            ${isSelected
+              ? "bg-accent/20 border border-accent ring-1 ring-accent/50"
+              : "hover:bg-bg-hover border border-transparent"
+            }
+            ${node.is_base ? "text-success" : "text-text-primary"}`}
+        >
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => {}}
+            className="w-4 h-4 rounded border-border text-accent focus:ring-accent/50 cursor-pointer"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <span className={`category-dot category-${node.category}`} />
+          <span className="font-medium">{node.name}</span>
+          <span className="text-text-muted text-sm ml-auto">
+            x{node.quantity % 1 === 0 ? node.quantity : node.quantity.toFixed(2)}
+          </span>
         </div>
-      )}
-    </div>
-  );
+        {node.children.length > 0 && (
+          <div className="pl-6 border-l border-border ml-3">
+            {node.children.map(renderTree)}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const materialsByCategory = materials.reduce((acc, mat) => {
     if (!acc[mat.category]) acc[mat.category] = [];
@@ -441,6 +484,7 @@ function BasicCalculator() {
                   setMaterials([]);
                   setTree(null);
                   setCraftable([]);
+                  setSelectedTreeNodes(new Map());
                 }}
                 className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
                   mode === m.value ? "bg-accent text-white" : "text-text-secondary hover:text-text-primary"
@@ -679,8 +723,71 @@ function BasicCalculator() {
 
             {tree && (
               <div className="bg-bg-secondary rounded-xl border border-border p-4">
-                <h3 className="text-lg font-semibold text-text-primary mb-4">Crafting Tree</h3>
-                <div className="max-h-96 overflow-y-auto">{renderTree(tree)}</div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-text-primary">Crafting Tree</h3>
+                  {selectedTreeNodes.size > 0 && (
+                    <button
+                      onClick={clearTreeSelection}
+                      className="text-sm text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      Clear selection ({selectedTreeNodes.size})
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-text-muted mb-3">Click to select items. Hold Ctrl/Cmd for multi-select.</p>
+                <div className="max-h-72 overflow-y-auto">{renderTree(tree)}</div>
+
+                {/* Selection Summary */}
+                {selectedTreeNodes.size > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <h4 className="text-sm font-semibold text-text-primary mb-3">
+                      Selected Items ({selectedTreeNodes.size})
+                    </h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {Array.from(selectedTreeNodes.values()).map((node, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                            node.is_base
+                              ? "bg-success/10 border-success/30"
+                              : "bg-bg-tertiary border-border"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`category-dot category-${node.category}`} />
+                            <span className={node.is_base ? "text-success" : "text-text-primary"}>
+                              {node.name}
+                            </span>
+                          </div>
+                          <span className="text-accent font-mono font-semibold">
+                            x{node.quantity % 1 === 0 ? node.quantity : node.quantity.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Totals for base materials */}
+                    {Array.from(selectedTreeNodes.values()).some(n => n.is_base) && (
+                      <div className="mt-3 p-3 bg-success/10 rounded-lg border border-success/30">
+                        <h5 className="text-xs font-semibold text-success mb-2">Base Materials Total</h5>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {Object.entries(
+                            Array.from(selectedTreeNodes.values())
+                              .filter(n => n.is_base)
+                              .reduce((acc, n) => {
+                                acc[n.name] = (acc[n.name] || 0) + n.quantity;
+                                return acc;
+                              }, {} as Record<string, number>)
+                          ).map(([name, qty]) => (
+                            <div key={name} className="flex justify-between">
+                              <span className="text-text-secondary">{name}</span>
+                              <span className="text-success font-mono">{qty % 1 === 0 ? qty : qty.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -741,7 +848,7 @@ function AdvancedCalculator() {
   const [viewMode, setViewMode] = useState<ViewMode>("expected");
 
   useEffect(() => {
-    fetch("/api/items?source=wurmpedia")
+    fetch("/api/items?source=wurmpedia&visibleOnly=true")
       .then((r) => r.json())
       .then((data) => {
         const craftable = data.filter((i: Item & { is_base_material: number }) => !i.is_base_material);
@@ -986,7 +1093,7 @@ function AdvancedCalculator() {
               </div>
 
               <div className="space-y-2">
-                {result.expectedMaterials.map((mat) => (
+                {(result.expectedMaterials || []).map((mat) => (
                   <div key={mat.id} className="flex items-center justify-between bg-bg-tertiary rounded-lg px-4 py-2.5 border border-border">
                     <div className="flex items-center gap-3">
                       <span className={`category-dot category-${mat.category}`} />
@@ -1205,7 +1312,7 @@ function SkillOptimizer() {
             <div className="bg-bg-secondary rounded-xl border border-border p-4">
               <h3 className="text-lg font-semibold text-text-primary mb-4">Progression Path</h3>
               <div className="space-y-3">
-                {result.skillPath.map((step, index) => (
+                {(result.skillPath || []).map((step, index) => (
                   <div key={index} className="relative">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-border rounded">
                       <div

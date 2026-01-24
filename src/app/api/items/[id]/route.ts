@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getItem, updateItem, deleteItem, getItemByName } from "@/lib/database";
+import { getItem, updateItem, deleteItem, getItemByName, updateItemVisibility } from "@/lib/database";
 import { itemsTransformService, getSlugById } from "@/lib/items-transform";
 import { getSession } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
@@ -91,7 +91,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, slug, skill, difficulty, base_time_seconds, is_base_material } = body;
+    const { name, slug, skill, difficulty, base_time_seconds, is_base_material, visible } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -122,9 +122,64 @@ export async function PUT(
       is_base_material || false
     );
 
+    // Update visibility if provided
+    if (typeof visible === "boolean") {
+      await updateItemVisibility(itemId, visible);
+    }
+
     return NextResponse.json({ success });
   } catch (error) {
     return NextResponse.json({ error: sanitizeError(error, "Update item") }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // SECURITY: Require admin authentication for toggling visibility
+    const sessionId = request.cookies.get("session")?.value;
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const sessionResult = await getSession(sessionId);
+    if (!sessionResult) {
+      return NextResponse.json(
+        { error: "Invalid session" },
+        { status: 401 }
+      );
+    }
+
+    if (sessionResult.user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin privileges required" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    const itemId = parseInt(id);
+
+    if (isNaN(itemId) || itemId < 1) {
+      return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const { visible } = body;
+
+    if (typeof visible !== "boolean") {
+      return NextResponse.json({ error: "visible must be a boolean" }, { status: 400 });
+    }
+
+    const success = await updateItemVisibility(itemId, visible);
+    return NextResponse.json({ success, visible });
+  } catch (error) {
+    return NextResponse.json({ error: sanitizeError(error, "Update item visibility") }, { status: 500 });
   }
 }
 

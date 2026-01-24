@@ -26,6 +26,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     difficulty: 20,
     base_time_seconds: 10,
     is_base_material: false,
+    visible: false,
   });
   const [editingItem, setEditingItem] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -139,6 +140,51 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     }
   };
 
+  const toggleItemVisibility = async (itemId: number, visible: boolean) => {
+    try {
+      const res = await fetch(`/api/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visible }),
+      });
+
+      if (res.ok) {
+        showMessage("success", `Item ${visible ? "enabled" : "disabled"} in crafting calculator`);
+        onDataChange();
+      } else {
+        const data = await res.json();
+        showMessage("error", data.error || "Failed to update visibility");
+      }
+    } catch (error) {
+      showMessage("error", "Failed to update visibility");
+    }
+  };
+
+  const bulkToggleVisibility = async (visible: boolean) => {
+    if (selectedItems.size === 0) {
+      showMessage("error", "No items selected");
+      return;
+    }
+
+    try {
+      // Update each item
+      const promises = Array.from(selectedItems).map(itemId =>
+        fetch(`/api/items/${itemId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visible }),
+        })
+      );
+
+      await Promise.all(promises);
+      showMessage("success", `${selectedItems.size} items ${visible ? "enabled" : "disabled"} in crafting calculator`);
+      setSelectedItems(new Set());
+      onDataChange();
+    } catch (error) {
+      showMessage("error", "Failed to update visibility");
+    }
+  };
+
   const toggleSelectItem = (itemId: number) => {
     setSelectedItems(prev => {
       const next = new Set(prev);
@@ -235,6 +281,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
         difficulty: itemForm.difficulty || null,
         base_time_seconds: itemForm.base_time_seconds || null,
         is_base_material: itemForm.is_base_material,
+        visible: itemForm.visible,
       }),
     });
 
@@ -258,6 +305,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
       difficulty: item.difficulty || 20,
       base_time_seconds: item.base_time_seconds || 10,
       is_base_material: Boolean(item.is_base_material),
+      visible: Boolean(item.visible),
     });
     setEditingItem(true);
   };
@@ -287,6 +335,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
       difficulty: 20,
       base_time_seconds: 10,
       is_base_material: false,
+      visible: false,
     });
     setEditingItem(false);
   };
@@ -294,10 +343,14 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
   return (
     <div className="space-y-6">
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
           <div className="text-2xl font-bold text-accent">{items.length}</div>
           <div className="text-sm text-text-secondary">Total Items</div>
+        </div>
+        <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
+          <div className="text-2xl font-bold text-green-400">{items.filter(i => i.visible).length}</div>
+          <div className="text-sm text-text-secondary">Visible in Crafting</div>
         </div>
         <div className="bg-bg-secondary border border-border p-4 rounded-xl text-center">
           <div className="text-2xl font-bold text-success">{items.filter(i => i.is_base_material).length}</div>
@@ -358,6 +411,21 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               className="px-3 py-2 bg-accent hover:bg-accent-hover rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add
+            </button>
+          </div>
+          <div className="flex items-center gap-2 border-l border-border/50 pl-4">
+            <span className="text-text-secondary text-sm">Visibility:</span>
+            <button
+              onClick={() => bulkToggleVisibility(true)}
+              className="px-3 py-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm"
+            >
+              Enable
+            </button>
+            <button
+              onClick={() => bulkToggleVisibility(false)}
+              className="px-3 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm"
+            >
+              Disable
             </button>
           </div>
           <button
@@ -448,6 +516,29 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               />
               <span className="text-text-secondary">Base material (raw resource, not crafted)</span>
             </label>
+
+            {/* Visibility toggle */}
+            <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border rounded-lg">
+              <div>
+                <span className="text-white font-medium">Visible in Crafting Calculator</span>
+                <p className="text-text-muted text-xs mt-1">
+                  {itemForm.visible ? "This item will appear in the crafting calculator" : "This item is hidden from the crafting calculator"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemForm({ ...itemForm, visible: !itemForm.visible })}
+                className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${
+                  itemForm.visible ? "bg-green-500" : "bg-gray-600"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                    itemForm.visible ? "left-7" : "left-1"
+                  }`}
+                />
+              </button>
+            </div>
 
             <div className="flex gap-2">
               <button
@@ -575,10 +666,13 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                       />
                     </td>
                     <td className="py-2">
-                      <span className="font-medium">{item.name}</span>
-                      {item.slug && (
-                        <span className="text-text-muted text-xs ml-2">/{item.slug}</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.visible ? "bg-green-500" : "bg-gray-500"}`} title={item.visible ? "Visible" : "Hidden"} />
+                        <span className="font-medium">{item.name}</span>
+                        {item.slug && (
+                          <span className="text-text-muted text-xs">/{item.slug}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2">
                       <CategoryEditor

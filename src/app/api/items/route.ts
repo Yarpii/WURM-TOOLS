@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     const query = searchParams.get("q");
     const categoriesOnly = searchParams.get("categories");
     const source = searchParams.get("source"); // "wurmpedia" for items.wurm.tools
+    const visibleOnly = searchParams.get("visibleOnly") === "true"; // Only show admin-enabled items
 
     // Pagination parameters with validation
     const { page, limit } = validatePagination(
@@ -34,11 +35,17 @@ export async function GET(request: Request) {
 
       if (query) {
         const items = await itemsTransformService.searchItems(query);
+        // Filter by visibility if requested
+        if (visibleOnly) {
+          const allVisible = await itemsTransformService.getAllItemsFromDB({ visibleOnly: true });
+          const visibleIds = new Set(allVisible.map(i => i.id));
+          return NextResponse.json(items.filter(i => visibleIds.has(i.id)));
+        }
         return NextResponse.json(items);
       }
 
       // Use recipe database as primary source (has better structured data)
-      const items = await itemsTransformService.getAllItemsFromDB();
+      const items = await itemsTransformService.getAllItemsFromDB({ visibleOnly });
       return NextResponse.json(items);
     }
 
