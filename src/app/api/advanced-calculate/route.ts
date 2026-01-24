@@ -172,7 +172,13 @@ export async function GET(request: NextRequest) {
     quantity,
     settings,
     prediction,
-    ...result
+    // Map result fields to expected frontend names
+    baseMaterials: result.materials,
+    expectedMaterials: result.materials,
+    totalCraftingSteps: result.totalCraftingSteps,
+    predictions: result.predictions,
+    summary: result.summary,
+    skillPath: result.skillPath || []
   });
 }
 
