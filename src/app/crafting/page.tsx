@@ -986,7 +986,7 @@ function AdvancedCalculator() {
               </div>
 
               <div className="space-y-2">
-                {result.expectedMaterials.map((mat) => (
+                {(result.expectedMaterials || []).map((mat) => (
                   <div key={mat.id} className="flex items-center justify-between bg-bg-tertiary rounded-lg px-4 py-2.5 border border-border">
                     <div className="flex items-center gap-3">
                       <span className={`category-dot category-${mat.category}`} />
@@ -1205,7 +1205,7 @@ function SkillOptimizer() {
             <div className="bg-bg-secondary rounded-xl border border-border p-4">
               <h3 className="text-lg font-semibold text-text-primary mb-4">Progression Path</h3>
               <div className="space-y-3">
-                {result.skillPath.map((step, index) => (
+                {(result.skillPath || []).map((step, index) => (
                   <div key={index} className="relative">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-border rounded">
                       <div
