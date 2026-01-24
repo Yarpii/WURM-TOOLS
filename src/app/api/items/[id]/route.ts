@@ -91,7 +91,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, slug, skill, difficulty, base_time_seconds, is_base_material } = body;
+    const { name, slug, skill, difficulty, base_time_seconds, is_base_material, visible } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -121,6 +121,11 @@ export async function PUT(
       sanitizedBaseTime,
       is_base_material || false
     );
+
+    // Update visibility if provided
+    if (typeof visible === "boolean") {
+      await updateItemVisibility(itemId, visible);
+    }
 
     return NextResponse.json({ success });
   } catch (error) {

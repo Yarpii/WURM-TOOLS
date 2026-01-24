@@ -26,6 +26,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     difficulty: 20,
     base_time_seconds: 10,
     is_base_material: false,
+    visible: false,
   });
   const [editingItem, setEditingItem] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -280,6 +281,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
         difficulty: itemForm.difficulty || null,
         base_time_seconds: itemForm.base_time_seconds || null,
         is_base_material: itemForm.is_base_material,
+        visible: itemForm.visible,
       }),
     });
 
@@ -303,6 +305,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
       difficulty: item.difficulty || 20,
       base_time_seconds: item.base_time_seconds || 10,
       is_base_material: Boolean(item.is_base_material),
+      visible: Boolean(item.visible),
     });
     setEditingItem(true);
   };
@@ -332,6 +335,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
       difficulty: 20,
       base_time_seconds: 10,
       is_base_material: false,
+      visible: false,
     });
     setEditingItem(false);
   };
@@ -513,6 +517,29 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               <span className="text-text-secondary">Base material (raw resource, not crafted)</span>
             </label>
 
+            {/* Visibility toggle */}
+            <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border rounded-lg">
+              <div>
+                <span className="text-white font-medium">Visible in Crafting Calculator</span>
+                <p className="text-text-muted text-xs mt-1">
+                  {itemForm.visible ? "This item will appear in the crafting calculator" : "This item is hidden from the crafting calculator"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemForm({ ...itemForm, visible: !itemForm.visible })}
+                className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${
+                  itemForm.visible ? "bg-green-500" : "bg-gray-600"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                    itemForm.visible ? "left-7" : "left-1"
+                  }`}
+                />
+              </button>
+            </div>
+
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -624,7 +651,6 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                   <th className="pb-2">Skill</th>
                   <th className="pb-2 text-center">Diff</th>
                   <th className="pb-2 text-center">Type</th>
-                  <th className="pb-2 text-center">Visible</th>
                   <th className="pb-2 text-right">Actions</th>
                 </tr>
               </thead>
@@ -640,10 +666,13 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                       />
                     </td>
                     <td className="py-2">
-                      <span className="font-medium">{item.name}</span>
-                      {item.slug && (
-                        <span className="text-text-muted text-xs ml-2">/{item.slug}</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.visible ? "bg-green-500" : "bg-gray-500"}`} title={item.visible ? "Visible" : "Hidden"} />
+                        <span className="font-medium">{item.name}</span>
+                        {item.slug && (
+                          <span className="text-text-muted text-xs">/{item.slug}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2">
                       <CategoryEditor
@@ -678,21 +707,6 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                       >
                         {item.is_base_material ? "Base" : "Crafted"}
                       </span>
-                    </td>
-                    <td className="py-2 text-center">
-                      <button
-                        onClick={() => toggleItemVisibility(item.id, !item.visible)}
-                        className={`w-10 h-5 rounded-full transition-colors relative ${
-                          item.visible ? "bg-green-500" : "bg-gray-600"
-                        }`}
-                        title={item.visible ? "Visible in crafting calculator" : "Hidden from crafting calculator"}
-                      >
-                        <span
-                          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                            item.visible ? "left-5" : "left-0.5"
-                          }`}
-                        />
-                      </button>
                     </td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-1">
