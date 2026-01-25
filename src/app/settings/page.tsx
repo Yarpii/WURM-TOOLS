@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
-import {
-  ProfileTab,
-  PrivacyTab,
-  SecurityTab,
-  useSettings,
-  TabType,
-} from "@/components/settings";
+import { useSettings, TabType } from "@/components/settings";
+
+// Lazy load tabs for better initial page load
+const ProfileTab = lazy(() => import("@/components/settings/ProfileTab"));
+const PrivacyTab = lazy(() => import("@/components/settings/PrivacyTab"));
+const SecurityTab = lazy(() => import("@/components/settings/SecurityTab"));
+
+function TabSkeleton() {
+  return (
+    <div className="bg-bg-secondary rounded-xl border border-border p-6 animate-pulse">
+      <div className="h-6 bg-bg-tertiary rounded w-1/4 mb-6"></div>
+      <div className="space-y-4">
+        <div className="h-4 bg-bg-tertiary rounded w-1/3"></div>
+        <div className="h-12 bg-bg-tertiary rounded"></div>
+        <div className="h-4 bg-bg-tertiary rounded w-1/3"></div>
+        <div className="h-12 bg-bg-tertiary rounded"></div>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { logout } = useAuth();
@@ -122,41 +135,44 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Profile Tab */}
-      {activeTab === "profile" && (
-        <ProfileTab
-          profile={profile}
-          profileForm={profileForm}
-          setProfileForm={setProfileForm}
-          saving={saving}
-          onSave={handleSaveProfile}
-          setError={setError}
-          setSuccess={setSuccess}
-        />
-      )}
+      {/* Lazy loaded tabs with suspense */}
+      <Suspense fallback={<TabSkeleton />}>
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <ProfileTab
+            profile={profile}
+            profileForm={profileForm}
+            setProfileForm={setProfileForm}
+            saving={saving}
+            onSave={handleSaveProfile}
+            setError={setError}
+            setSuccess={setSuccess}
+          />
+        )}
 
-      {/* Privacy Tab */}
-      {activeTab === "privacy" && (
-        <PrivacyTab
-          privacyForm={privacyForm}
-          setPrivacyForm={setPrivacyForm}
-          saving={saving}
-          onSave={handleSavePrivacy}
-        />
-      )}
+        {/* Privacy Tab */}
+        {activeTab === "privacy" && (
+          <PrivacyTab
+            privacyForm={privacyForm}
+            setPrivacyForm={setPrivacyForm}
+            saving={saving}
+            onSave={handleSavePrivacy}
+          />
+        )}
 
-      {/* Security Tab */}
-      {activeTab === "security" && (
-        <SecurityTab
-          emailStatus={emailStatus}
-          setEmailStatus={setEmailStatus}
-          saving={saving}
-          setSaving={setSaving}
-          setError={setError}
-          setSuccess={setSuccess}
-          logout={logout}
-        />
-      )}
+        {/* Security Tab */}
+        {activeTab === "security" && (
+          <SecurityTab
+            emailStatus={emailStatus}
+            setEmailStatus={setEmailStatus}
+            saving={saving}
+            setSaving={setSaving}
+            setError={setError}
+            setSuccess={setSuccess}
+            logout={logout}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
