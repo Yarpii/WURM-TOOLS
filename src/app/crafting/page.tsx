@@ -4,6 +4,21 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
+import { SliderInput, StatBox } from "@/components/crafting";
+import type {
+  Tab,
+  CalcMode,
+  MaterialMode,
+  ViewMode,
+  AdvancedMaterialResult,
+  CraftingPrediction,
+  AdvancedResult,
+  SkillGrindStep,
+  SkillMetrics,
+  OptimalItem,
+  SkillPathStep,
+  OptimizerResult,
+} from "@/components/crafting/types";
 
 // Lazy load heavy components to reduce initial bundle size
 const CraftingTree = dynamic(
@@ -15,93 +30,6 @@ const SessionPlanner = dynamic(
   () => import("@/components/crafting/SessionPlanner"),
   { loading: () => <div className="p-12 text-center"><div className="animate-spin text-4xl">&#9881;</div></div> }
 );
-
-type Tab = "calculator" | "advanced" | "optimizer" | "tree" | "session";
-type CalcMode = "calculate" | "reverse";
-type MaterialMode = "easy" | "full"; // easy = recipe ingredients, full = all base materials
-type ViewMode = "expected" | "base" | "worstCase";
-
-interface AdvancedMaterialResult extends MaterialResult {
-  expectedQuantity: number;
-  expectedFormatted: string;
-  worstCaseQuantity: number;
-  worstCaseFormatted: string;
-}
-
-interface CraftingPrediction {
-  successChance: number;
-  successLabel: string;
-  averageQL: number;
-  minQL: number;
-  maxQL: number;
-  totalTimeFormatted: string;
-  timePerItem: number;
-  failureRate: number;
-  wasteMultiplier: number;
-  repairsNeeded: number;
-  totalSkillGain: number;
-  newSkillLevel: number;
-  actionsToNextLevel: number;
-  isOptimalDifficulty: boolean;
-}
-
-interface AdvancedResult {
-  item: Item;
-  quantity: number;
-  baseMaterials: AdvancedMaterialResult[];
-  expectedMaterials: AdvancedMaterialResult[];
-  prediction: CraftingPrediction;
-  skillPath?: SkillGrindStep[];
-}
-
-interface SkillGrindStep {
-  skillFrom: number;
-  skillTo: number;
-  targetQL: number;
-  actionsNeeded: number;
-  successRate: number;
-  description: string;
-  materialsNeeded: number;
-  timeEstimate: string;
-}
-
-interface SkillMetrics {
-  effectiveSkill: number;
-  maxCreationQL: number;
-  sweetSpotQL: number;
-  sweetSpotRange: { min: number; max: number };
-}
-
-interface OptimalItem {
-  id: number;
-  name: string;
-  category: string;
-  difficulty: number;
-  successChance: number;
-  isInSweetSpot: boolean;
-}
-
-interface SkillPathStep {
-  from: number;
-  to: number;
-  targetQL: number;
-  actionsNeeded: number;
-  successRate: number;
-  description: string;
-}
-
-interface OptimizerResult {
-  currentSkill: number;
-  targetSkill: number;
-  metrics: SkillMetrics;
-  optimalItems: OptimalItem[];
-  skillPath: SkillPathStep[];
-  summary: {
-    totalActions: number;
-    totalTime: string;
-    skillGain: number;
-  };
-}
 
 export default function CraftingPage() {
   const [activeTab, setActiveTab] = useState<Tab>("calculator");
@@ -1343,39 +1271,6 @@ function SkillOptimizer() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ============================================
-// HELPER COMPONENTS
-// ============================================
-function SliderInput({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number }) {
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm text-text-secondary">{label}</span>
-        <span className="text-accent font-semibold">{value}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full h-2 bg-bg-tertiary rounded-lg appearance-none cursor-pointer accent-accent"
-      />
-    </div>
-  );
-}
-
-function StatBox({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: "success" | "warning" | "danger" }) {
-  const colorClass = color === "success" ? "text-success" : color === "warning" ? "text-warning" : color === "danger" ? "text-danger" : "text-accent";
-  return (
-    <div className="bg-bg-tertiary rounded-lg p-3 text-center">
-      <div className={`text-xl font-bold ${colorClass}`}>{value}</div>
-      <div className="text-xs text-text-muted">{label}</div>
-      {sub && <div className="text-xs text-text-muted mt-1">{sub}</div>}
     </div>
   );
 }
