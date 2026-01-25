@@ -459,8 +459,9 @@ function BasicCalculator() {
   };
 
   const materialsByCategory = materials.reduce((acc, mat) => {
-    if (!acc[mat.category]) acc[mat.category] = [];
-    acc[mat.category].push(mat);
+    const category = mat.category ?? "misc";
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(mat);
     return acc;
   }, {} as Record<string, MaterialResult[]>);
 

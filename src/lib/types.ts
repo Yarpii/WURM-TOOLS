@@ -38,9 +38,14 @@ export interface Item {
   skill?: string | null;
   difficulty?: number | null;
   base_time_seconds?: number | null;
+  base_time?: number | null;
   image_url?: string | null;
   is_base_material: boolean | number;
   visible?: boolean;
+  category?: Category | string | null;
+  skill_type?: SkillType | string | null;
+  tool_type?: ToolType | string | null;
+  description?: string | null;
 }
 
 export interface Recipe {
@@ -63,6 +68,7 @@ export interface CraftingNode {
   is_base: boolean;
   depth: number;
   children: CraftingNode[];
+  category?: Category | string | null;
 }
 
 export interface MaterialResult {
@@ -72,6 +78,7 @@ export interface MaterialResult {
   quantity: number;
   formatted: string;
   is_base?: boolean;
+  category?: Category | string | null;
 }
 
 export interface CraftableResult {
@@ -445,6 +452,7 @@ export interface ProjectMaterial {
   required_quantity: number;
   completed_quantity: number;
   remaining_quantity: number;
+  category?: Category | string | null;
 }
 
 export interface CreateProjectInput {

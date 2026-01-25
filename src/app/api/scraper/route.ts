@@ -664,7 +664,8 @@ async function importScrapedItems(
       }
 
       try {
-        await updateItem(existingId, item.name, item.category, item.isBaseMaterial, item.description);
+        const slug = item.name.toLowerCase().replace(/\s+/g, '-');
+        await updateItem(existingId, item.name, slug, null, null, null, item.isBaseMaterial);
         result.items_updated++;
 
         if (mode === "force") {
@@ -678,7 +679,8 @@ async function importScrapedItems(
       }
     } else {
       try {
-        await addItem(item.name, item.category, item.isBaseMaterial, item.description);
+        const slug = item.name.toLowerCase().replace(/\s+/g, '-');
+        await addItem(item.name, slug, null, null, null, item.isBaseMaterial);
         result.items_added++;
         existingItemsCache.set(item.name.toLowerCase(), -1);
       } catch (e) {
@@ -694,7 +696,8 @@ async function importScrapedItems(
     for (const ing of item.ingredients) {
       if (!itemExistsInCache(ing.name)) {
         try {
-          await addItem(ing.name, "material", true, "");
+          const slug = ing.name.toLowerCase().replace(/\s+/g, '-');
+          await addItem(ing.name, slug, null, null, null, true);
           result.items_added++;
           existingItemsCache.set(ing.name.toLowerCase(), -1);
         } catch {
