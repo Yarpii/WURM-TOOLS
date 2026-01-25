@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
     result.skillPath = await getSkillGrindingPath(
       targetSkill,
       settings.playerSkill || 50,
-      item.category
+      item.category ?? undefined
     );
   }
 

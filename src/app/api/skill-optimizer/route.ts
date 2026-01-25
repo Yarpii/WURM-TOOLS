@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
   if (itemId) {
     const item = await getItem(itemId);
     if (item) {
-      itemSpecificPath = await getSkillGrindingPath(targetSkill, clampedSkill, item.category);
+      itemSpecificPath = await getSkillGrindingPath(targetSkill, clampedSkill, item.category ?? undefined);
     }
   }
 
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
           ranges.push({
             from: skill,
             to: endSkill,
-            item: optimal ? { id: optimal.id, name: optimal.name, category: optimal.category } : null
+            item: optimal ? { id: optimal.id, name: optimal.name, category: optimal.category ?? "misc" } : null
           });
         }
 

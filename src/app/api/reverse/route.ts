@@ -81,7 +81,7 @@ export async function GET(request: Request) {
     );
 
     // Transform to expected format
-    const results: ReverseLookupItem[] = directResults.map((item) => ({
+    const results: ReverseLookupItem[] = directResults.rows.map((item) => ({
       id: item.id,
       name: item.name,
       category: getCategory(item.skill),
@@ -115,7 +115,7 @@ export async function GET(request: Request) {
       );
 
       // Add indirect results (mark them somehow if needed)
-      indirectResults.forEach((item) => {
+      indirectResults.rows.forEach((item) => {
         results.push({
           id: item.id,
           name: item.name,

@@ -615,21 +615,26 @@ export async function importFromJson(data: {
 
     try {
       const existing = await getItemByName(item.name);
+      const slug = item.name.toLowerCase().replace(/\s+/g, '-');
       if (existing) {
         await updateItem(
           existing.id,
           item.name,
-          item.category || existing.category,
-          Boolean(item.is_base_material ?? existing.is_base_material),
-          item.description || existing.description || ""
+          slug,
+          item.skill ?? existing.skill ?? null,
+          item.difficulty ?? existing.difficulty ?? null,
+          item.base_time_seconds ?? existing.base_time_seconds ?? null,
+          Boolean(item.is_base_material ?? existing.is_base_material)
         );
         stats.items_updated++;
       } else {
         await addItem(
           item.name,
-          item.category || "misc",
-          Boolean(item.is_base_material),
-          item.description || ""
+          slug,
+          item.skill ?? null,
+          item.difficulty ?? null,
+          item.base_time_seconds ?? null,
+          Boolean(item.is_base_material)
         );
         stats.items_added++;
       }
@@ -714,6 +719,9 @@ interface CsvItemRow {
   category?: string;
   is_base_material?: boolean | string;
   description?: string;
+  skill?: string | null;
+  difficulty?: number | null;
+  base_time_seconds?: number | null;
 }
 
 interface CsvRecipeRow {
@@ -850,21 +858,26 @@ export async function importItemsFromCsv(items: CsvItemRow[]): Promise<{
   for (const item of items) {
     try {
       const existing = await getItemByName(item.name);
+      const slug = item.name.toLowerCase().replace(/\s+/g, '-');
       if (existing) {
         await updateItem(
           existing.id,
           item.name,
-          item.category || existing.category,
-          Boolean(item.is_base_material ?? existing.is_base_material),
-          item.description || existing.description || ""
+          slug,
+          item.skill ?? existing.skill ?? null,
+          item.difficulty ?? existing.difficulty ?? null,
+          item.base_time_seconds ?? existing.base_time_seconds ?? null,
+          Boolean(item.is_base_material ?? existing.is_base_material)
         );
         stats.updated++;
       } else {
         await addItem(
           item.name,
-          item.category || "misc",
-          Boolean(item.is_base_material),
-          item.description || ""
+          slug,
+          item.skill ?? null,
+          item.difficulty ?? null,
+          item.base_time_seconds ?? null,
+          Boolean(item.is_base_material)
         );
         stats.added++;
       }
@@ -3287,7 +3300,8 @@ export async function approveAndAddRecipe(submissionId: number, reviewerId: numb
     // Check or create result item
     let resultItem = await getItemByName(submission.item_name);
     if (!resultItem) {
-      const resultId = await addItem(submission.item_name, "misc", false, `Added from recipe submission #${submissionId}`);
+      const slug = submission.item_name.toLowerCase().replace(/\s+/g, '-');
+      const resultId = await addItem(submission.item_name, slug, null, null, null, false);
       resultItem = await getItem(resultId);
       if (!resultItem) return false;
     }
@@ -3297,7 +3311,8 @@ export async function approveAndAddRecipe(submissionId: number, reviewerId: numb
       let ingredientItem = await getItemByName(ing.name);
       if (!ingredientItem) {
         // Create missing ingredient as base material
-        const ingId = await addItem(ing.name, "material", true, `Added from recipe submission #${submissionId}`);
+        const slug = ing.name.toLowerCase().replace(/\s+/g, '-');
+        const ingId = await addItem(ing.name, slug, null, null, null, true);
         ingredientItem = await getItem(ingId);
         if (!ingredientItem) continue;
       }

@@ -208,7 +208,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
 
   // Get unique skills from items
   const skills = useMemo(() => {
-    const skillSet = new Set(items.map(i => i.skill).filter(Boolean));
+    const skillSet = new Set(items.map(i => i.skill).filter((s): s is string => Boolean(s)));
     return Array.from(skillSet).sort();
   }, [items]);
 
@@ -470,7 +470,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
               <label className="block text-text-secondary text-sm mb-2">Skill</label>
               <input
                 type="text"
-                value={itemForm.skill}
+                value={itemForm.skill ?? ""}
                 onChange={(e) => setItemForm({ ...itemForm, skill: e.target.value })}
                 list="skills"
                 placeholder="e.g., blacksmithing"
