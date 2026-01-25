@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getSkillGrindingPath,
   findOptimalTrainingItem,
+  findOptimalTrainingItems,
   getItem,
   getAllItems,
   getMaterialsList,
@@ -53,8 +54,9 @@ export async function GET(request: NextRequest) {
   const maxCreationQL = calculateMaxCreationQL(clampedSkill);
   const sweetSpotQL = calculateSweetSpotQL(clampedSkill);
 
-  // Find optimal training item
+  // Find optimal training items
   const optimalItem = await findOptimalTrainingItem(clampedSkill, category);
+  const optimalItems = await findOptimalTrainingItems(clampedSkill, category, 10);
 
   // Generate skill path
   const skillPath = generateSkillPath(clampedSkill, targetSkill, toolQL);
@@ -107,12 +109,15 @@ export async function GET(request: NextRequest) {
       }
     },
 
-    // Optimal item for training
+    // Optimal item for training (single best)
     optimalItem: optimalItem ? {
       id: optimalItem.id,
       name: optimalItem.name,
       category: optimalItem.category
     } : null,
+
+    // Multiple optimal items for training
+    optimalItems,
 
     // General skill path
     skillPath: skillPath.map(step => ({

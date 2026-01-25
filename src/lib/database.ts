@@ -140,6 +140,7 @@ import {
   predictSkillGain,
   generateSkillPath,
   getItemDifficulty,
+  calculateSweetSpotQL,
 } from "./wurm-formulas";
 import type { User } from "./auth";
 
@@ -1094,6 +1095,49 @@ export async function findOptimalTrainingItem(
   }
 
   return bestItem;
+}
+
+export async function findOptimalTrainingItems(
+  currentSkill: number,
+  preferredCategory?: string,
+  limit: number = 10
+): Promise<{ id: number; name: string; category: string; difficulty: number; successChance: number; isInSweetSpot: boolean }[]> {
+  const items = await getAllItems();
+  const sweetSpotQL = calculateSweetSpotQL(currentSkill);
+  const optimalDifficulty = currentSkill + 15;
+
+  const scoredItems: { item: Item; score: number; difficulty: number; successChance: number; isInSweetSpot: boolean }[] = [];
+
+  for (const item of items) {
+    if (preferredCategory && item.category !== preferredCategory) continue;
+
+    const difficulty = item.difficulty || getItemDifficulty(item.name);
+    const difficultyDelta = Math.abs(difficulty - optimalDifficulty);
+    const score = 100 - difficultyDelta;
+
+    const successChance = calculateSuccessChance({
+      skill: currentSkill,
+      difficulty,
+      toolQL: 50,
+      materialQL: 50
+    });
+
+    const isInSweetSpot = difficulty >= sweetSpotQL && difficulty <= sweetSpotQL + 10;
+
+    scoredItems.push({ item, score, difficulty, successChance: Math.round(successChance), isInSweetSpot });
+  }
+
+  // Sort by score (highest first) and take top items
+  scoredItems.sort((a, b) => b.score - a.score);
+
+  return scoredItems.slice(0, limit).map(({ item, difficulty, successChance, isInSweetSpot }) => ({
+    id: item.id,
+    name: item.name,
+    category: item.category ?? "misc",
+    difficulty,
+    successChance,
+    isInSweetSpot
+  }));
 }
 
 export async function calculateBatchEfficiency(
