@@ -12,6 +12,8 @@ interface ChatMessage {
   message: string;
   lineNumber: number;
   timeSeconds: number; // Seconds since midnight for temporal analysis
+  dayIndex: number; // Which day (0, 1, 2, ...) for multi-day analysis
+  absoluteTime: number; // Absolute time for handoff detection (dayIndex * 86400 + timeSeconds)
 }
 
 interface AdvancedPlayerStats {
@@ -22,6 +24,7 @@ interface AdvancedPlayerStats {
 
   // Temporal patterns
   activeMinutes: Set<number>; // Minutes in the day they were active
+  activeDayMinutes: Map<number, Set<number>>; // Per day: minutes active
   sessionGaps: number[]; // Gaps between messages in seconds
   avgResponseTime: number;
 
@@ -35,6 +38,8 @@ interface AdvancedPlayerStats {
     commaSpacing: boolean;
   };
   letterSubstitutions: Map<string, number>; // u->you, r->are, etc.
+  microPatterns: MicroPatterns; // Fase 2: detailed micro-patterns
+  emoticonStyle: EmoticonStyle; // Fase 2: emoticon fingerprint
 
   // Statistical stylometry
   vocabularyRichness: number; // Unique words / total words (TTR)
@@ -51,10 +56,12 @@ interface AdvancedPlayerStats {
   responsePartners: Map<string, number>; // Who they respond to most
   mentionedPlayers: Set<string>; // Players they mention
   topicFingerprint: Map<string, number>; // Topic word frequencies
+  wurmTopics: Map<string, number>; // Wurm-specific topic usage
 
   // Raw data for comparison
   allMessages: string[];
   messageTimes: number[];
+  absoluteTimes: number[]; // For handoff detection
 }
 
 interface AltSuspicion {
@@ -65,6 +72,10 @@ interface AltSuspicion {
   reasons: AltReason[];
   neverOnlineTogether: boolean;
   similarityScore: number;
+  scoreBreakdown: ScoreBreakdown; // Fase 4: detailed breakdown for UI
+  humanExplanation: string; // Fase 5: readable explanation
+  sharedRareWords: string[]; // Fase 2: rare words both use
+  handoffScore: number; // Fase 1: handoff pattern score
 }
 
 interface AltReason {
@@ -77,6 +88,36 @@ interface AltReason {
 interface SimilarityMatrix {
   players: string[];
   scores: number[][];
+}
+
+// Micro-patterns for forensic fingerprinting (Fase 2)
+interface MicroPatterns {
+  lowercaseI: boolean;        // schrijft "i" ipv "I"
+  noCapitalStart: boolean;    // begint zinnen zonder hoofdletter
+  allLowercase: boolean;      // alles lowercase
+  excessiveCaps: boolean;     // VEEL CAPS GEBRUIKEN
+  numberSubstitution: boolean; // "2" voor "to", "4" voor "for"
+  doubleSpaces: boolean;      // twee spaties  tussen woorden
+  noSpaceAfterPunct: boolean; // geen spatie na.punt
+}
+
+// Emoticon style fingerprint (Fase 2)
+interface EmoticonStyle {
+  usesNose: boolean;      // :-) vs :)
+  usesEmoji: boolean;     // 😊
+  commonEmotes: string[]; // ["xD", "lol", ":P"]
+  emoteFrequency: number; // per 100 berichten
+}
+
+// Score breakdown per category for UI
+interface ScoreBreakdown {
+  temporal: number;
+  linguistic: number;
+  behavioral: number;
+  network: number;
+  rareWords: number;
+  handoff: number;
+  bonus: number;
 }
 
 // ============================================================================
@@ -97,17 +138,68 @@ function parseTimeToSeconds(timestamp: string): number {
   return h * 3600 + m * 60 + s;
 }
 
-function parseChatLine(line: string, lineNumber: number): ChatMessage | null {
-  const match = line.match(/^\[(\d{2}:\d{2}:\d{2})\]\s*<([^>]+)>\s*(.*)$/);
-  if (!match) return null;
+// Parse date from various formats
+function parseDateFromLine(line: string): string | null {
+  // Format 1: [2024-01-15 21:25:05] <Player> message
+  const fullMatch = line.match(/^\[(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}\]/);
+  if (fullMatch) return fullMatch[1];
 
-  return {
-    timestamp: match[1],
-    player: match[2],
-    message: match[3],
-    lineNumber,
-    timeSeconds: parseTimeToSeconds(match[1]),
-  };
+  // Format 2: --- Day changed to 2024-01-15 ---
+  const dayChangeMatch = line.match(/---\s*Day changed to (\d{4}-\d{2}-\d{2})\s*---/i);
+  if (dayChangeMatch) return dayChangeMatch[1];
+
+  return null;
+}
+
+interface ParsedLine {
+  message: ChatMessage | null;
+  dateChange: string | null;
+}
+
+function parseChatLine(line: string, lineNumber: number, currentDayIndex: number): ParsedLine {
+  // Check for date change marker
+  const dateChange = parseDateFromLine(line);
+  if (dateChange && line.includes("Day changed")) {
+    return { message: null, dateChange };
+  }
+
+  // Format 1: [2024-01-15 21:25:05] <Player> message (with date)
+  const fullMatch = line.match(/^\[(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\]\s*<([^>]+)>\s*(.*)$/);
+  if (fullMatch) {
+    const timeSeconds = parseTimeToSeconds(fullMatch[2]);
+    return {
+      message: {
+        timestamp: fullMatch[2],
+        player: fullMatch[3],
+        message: fullMatch[4],
+        lineNumber,
+        timeSeconds,
+        dayIndex: currentDayIndex,
+        absoluteTime: currentDayIndex * 86400 + timeSeconds,
+      },
+      dateChange: fullMatch[1],
+    };
+  }
+
+  // Format 2: [21:25:05] <Player> message (time only)
+  const timeMatch = line.match(/^\[(\d{2}:\d{2}:\d{2})\]\s*<([^>]+)>\s*(.*)$/);
+  if (timeMatch) {
+    const timeSeconds = parseTimeToSeconds(timeMatch[1]);
+    return {
+      message: {
+        timestamp: timeMatch[1],
+        player: timeMatch[2],
+        message: timeMatch[3],
+        lineNumber,
+        timeSeconds,
+        dayIndex: currentDayIndex,
+        absoluteTime: currentDayIndex * 86400 + timeSeconds,
+      },
+      dateChange: null,
+    };
+  }
+
+  return { message: null, dateChange: null };
 }
 
 // ============================================================================
@@ -331,6 +423,446 @@ function findMentionedPlayers(messages: string[], allPlayers: string[]): Set<str
   return mentioned;
 }
 
+// ============================================================================
+// FASE 2: MICRO-PATTERNS DETECTION
+// ============================================================================
+
+function detectMicroPatterns(messages: string[]): MicroPatterns {
+  let lowercaseICount = 0;
+  let noCapitalStartCount = 0;
+  let allLowercaseCount = 0;
+  let excessiveCapsCount = 0;
+  let numberSubCount = 0;
+  let doubleSpaceCount = 0;
+  let noSpaceAfterPunctCount = 0;
+
+  for (const msg of messages) {
+    // Lowercase "i" instead of "I"
+    if (/\bi\b/.test(msg) && !/\bI\b/.test(msg)) {
+      lowercaseICount++;
+    }
+
+    // No capital at start
+    if (msg.length > 0 && msg[0] === msg[0].toLowerCase() && /^[a-z]/.test(msg)) {
+      noCapitalStartCount++;
+    }
+
+    // All lowercase message
+    if (msg === msg.toLowerCase() && /[a-z]/.test(msg)) {
+      allLowercaseCount++;
+    }
+
+    // Excessive caps (>50% uppercase letters)
+    const letters = msg.replace(/[^a-zA-Z]/g, "");
+    const upperCount = (msg.match(/[A-Z]/g) || []).length;
+    if (letters.length > 5 && upperCount / letters.length > 0.5) {
+      excessiveCapsCount++;
+    }
+
+    // Number substitutions (2 for to, 4 for for)
+    if (/\b2\b|\b4\b|\b2day\b|\b4ever\b|\bb4\b|\bl8r\b|\bgr8\b/.test(msg.toLowerCase())) {
+      numberSubCount++;
+    }
+
+    // Double spaces
+    if (/  /.test(msg)) {
+      doubleSpaceCount++;
+    }
+
+    // No space after punctuation
+    if (/[.!?,][a-zA-Z]/.test(msg)) {
+      noSpaceAfterPunctCount++;
+    }
+  }
+
+  const threshold = Math.max(3, messages.length * 0.1);
+
+  return {
+    lowercaseI: lowercaseICount >= threshold,
+    noCapitalStart: noCapitalStartCount >= messages.length * 0.5,
+    allLowercase: allLowercaseCount >= messages.length * 0.7,
+    excessiveCaps: excessiveCapsCount >= threshold,
+    numberSubstitution: numberSubCount >= threshold,
+    doubleSpaces: doubleSpaceCount >= threshold,
+    noSpaceAfterPunct: noSpaceAfterPunctCount >= threshold,
+  };
+}
+
+// ============================================================================
+// FASE 2: EMOTICON/EMOJI FINGERPRINT
+// ============================================================================
+
+function detectEmoticonStyle(messages: string[]): EmoticonStyle {
+  const allText = messages.join(" ");
+
+  // Check for nose in emoticons
+  const noseEmotes = (allText.match(/:-[)(/\\|DPp]/g) || []).length;
+  const noNoseEmotes = (allText.match(/(?<!:):[)(/\\|DPp]/g) || []).length;
+
+  // Check for unicode emoji
+  const emojiCount = (allText.match(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || []).length;
+
+  // Common emotes tracking
+  const emotePatterns = [
+    { pattern: /\bxD+\b/gi, name: "xD" },
+    { pattern: /\blol\b/gi, name: "lol" },
+    { pattern: /\blmao\b/gi, name: "lmao" },
+    { pattern: /\brofl\b/gi, name: "rofl" },
+    { pattern: /\bhaha+\b/gi, name: "haha" },
+    { pattern: /\bhehe+\b/gi, name: "hehe" },
+    { pattern: /:[)]/g, name: ":)" },
+    { pattern: /:\(/g, name: ":(" },
+    { pattern: /:D/g, name: ":D" },
+    { pattern: /:P/gi, name: ":P" },
+    { pattern: /;\)/g, name: ";)" },
+    { pattern: /\bo\.O\b|\bO\.o\b/g, name: "o.O" },
+    { pattern: /\^\^/g, name: "^^" },
+    { pattern: /<3/g, name: "<3" },
+  ];
+
+  const foundEmotes: string[] = [];
+  let totalEmoteCount = 0;
+
+  for (const ep of emotePatterns) {
+    const matches = allText.match(ep.pattern);
+    if (matches && matches.length > 0) {
+      foundEmotes.push(ep.name);
+      totalEmoteCount += matches.length;
+    }
+  }
+
+  return {
+    usesNose: noseEmotes > noNoseEmotes && noseEmotes >= 2,
+    usesEmoji: emojiCount >= 3,
+    commonEmotes: foundEmotes.slice(0, 5),
+    emoteFrequency: messages.length > 0 ? Math.round((totalEmoteCount / messages.length) * 100) : 0,
+  };
+}
+
+// ============================================================================
+// FASE 2: RARE WORD FINGERPRINT
+// ============================================================================
+
+function buildRareWordIndex(allStats: AdvancedPlayerStats[]): Map<string, Set<string>> {
+  const wordToPlayers = new Map<string, Set<string>>();
+
+  for (const stats of allStats) {
+    const allText = stats.allMessages.join(" ").toLowerCase();
+    const words = allText.split(/\s+/)
+      .map(w => w.replace(/[^a-z]/g, ""))
+      .filter(w => w.length > 3);
+
+    const uniqueWords = new Set(words);
+    for (const word of uniqueWords) {
+      if (!wordToPlayers.has(word)) {
+        wordToPlayers.set(word, new Set());
+      }
+      wordToPlayers.get(word)!.add(stats.name);
+    }
+  }
+
+  return wordToPlayers;
+}
+
+function detectSharedRareWords(
+  p1: AdvancedPlayerStats,
+  p2: AdvancedPlayerStats,
+  rareIndex: Map<string, Set<string>>,
+  totalPlayers: number
+): string[] {
+  const p1Text = p1.allMessages.join(" ").toLowerCase();
+  const p2Text = p2.allMessages.join(" ").toLowerCase();
+
+  const p1Words = new Set(
+    p1Text.split(/\s+/)
+      .map(w => w.replace(/[^a-z]/g, ""))
+      .filter(w => w.length > 3)
+  );
+
+  const p2Words = new Set(
+    p2Text.split(/\s+/)
+      .map(w => w.replace(/[^a-z]/g, ""))
+      .filter(w => w.length > 3)
+  );
+
+  const sharedRare: string[] = [];
+  const rareThreshold = Math.max(2, Math.floor(totalPlayers * 0.1)); // <10% of players
+
+  for (const word of p1Words) {
+    if (p2Words.has(word)) {
+      const usageCount = rareIndex.get(word)?.size || 0;
+      if (usageCount > 0 && usageCount <= rareThreshold) {
+        sharedRare.push(word);
+      }
+    }
+  }
+
+  // Sort by rarity (fewer users = more rare)
+  return sharedRare.sort((a, b) => {
+    const aCount = rareIndex.get(a)?.size || 0;
+    const bCount = rareIndex.get(b)?.size || 0;
+    return aCount - bCount;
+  }).slice(0, 10);
+}
+
+// ============================================================================
+// FASE 1: HANDOFF/SEQUENCE ANALYSIS
+// ============================================================================
+
+function detectHandoffPattern(
+  p1: AdvancedPlayerStats,
+  p2: AdvancedPlayerStats,
+  messages: ChatMessage[]
+): { score: number; handoffCount: number; totalTransitions: number } {
+  // Need enough messages for meaningful analysis
+  if (p1.messageCount < 10 || p2.messageCount < 10) {
+    return { score: 0, handoffCount: 0, totalTransitions: 0 };
+  }
+
+  const SESSION_GAP = 600; // 10 minutes = considered "stopped talking"
+  const HANDOFF_WINDOW = 300; // 5 minutes = handoff window
+
+  let handoffCount = 0;
+  let totalTransitions = 0;
+
+  // Get all messages from both players sorted by absolute time
+  const p1Messages = messages.filter(m => m.player === p1.name);
+  const p2Messages = messages.filter(m => m.player === p2.name);
+
+  // Find sessions for each player (gaps > 10 min = new session)
+  function findSessionEnds(playerMsgs: ChatMessage[]): number[] {
+    const ends: number[] = [];
+    for (let i = 0; i < playerMsgs.length - 1; i++) {
+      const gap = playerMsgs[i + 1].absoluteTime - playerMsgs[i].absoluteTime;
+      if (gap > SESSION_GAP) {
+        ends.push(playerMsgs[i].absoluteTime);
+      }
+    }
+    // Last message is also a session end
+    if (playerMsgs.length > 0) {
+      ends.push(playerMsgs[playerMsgs.length - 1].absoluteTime);
+    }
+    return ends;
+  }
+
+  function findSessionStarts(playerMsgs: ChatMessage[]): number[] {
+    const starts: number[] = [];
+    if (playerMsgs.length > 0) {
+      starts.push(playerMsgs[0].absoluteTime);
+    }
+    for (let i = 1; i < playerMsgs.length; i++) {
+      const gap = playerMsgs[i].absoluteTime - playerMsgs[i - 1].absoluteTime;
+      if (gap > SESSION_GAP) {
+        starts.push(playerMsgs[i].absoluteTime);
+      }
+    }
+    return starts;
+  }
+
+  const p1Ends = findSessionEnds(p1Messages);
+  const p2Starts = findSessionStarts(p2Messages);
+  const p2Ends = findSessionEnds(p2Messages);
+  const p1Starts = findSessionStarts(p1Messages);
+
+  // Check P1 ends -> P2 starts handoffs
+  for (const end of p1Ends) {
+    for (const start of p2Starts) {
+      const diff = start - end;
+      if (diff > 0 && diff <= HANDOFF_WINDOW) {
+        handoffCount++;
+        break;
+      }
+    }
+    totalTransitions++;
+  }
+
+  // Check P2 ends -> P1 starts handoffs
+  for (const end of p2Ends) {
+    for (const start of p1Starts) {
+      const diff = start - end;
+      if (diff > 0 && diff <= HANDOFF_WINDOW) {
+        handoffCount++;
+        break;
+      }
+    }
+    totalTransitions++;
+  }
+
+  // Calculate score based on handoff percentage
+  if (totalTransitions < 4) {
+    return { score: 0, handoffCount, totalTransitions };
+  }
+
+  const handoffPercentage = handoffCount / totalTransitions;
+  let score = 0;
+
+  if (handoffPercentage >= 0.5) {
+    score = 40; // Very strong indicator
+  } else if (handoffPercentage >= 0.3) {
+    score = 35;
+  } else if (handoffPercentage >= 0.2) {
+    score = 20;
+  } else if (handoffPercentage >= 0.1) {
+    score = 10;
+  }
+
+  return { score, handoffCount, totalTransitions };
+}
+
+// ============================================================================
+// FASE 3: WURM-SPECIFIC CONTEXT
+// ============================================================================
+
+const WURM_TERMS = [
+  "deed", "village", "alliance", "kingdom",
+  "kos", "templars", "highway", "rift", "unique",
+  "priest", "vyn", "mag", "fo", "lib", "nahjo",
+  "drake", "scale", "rare", "supreme", "fantastic",
+  "terraform", "mine", "forge", "imp", "improving",
+  "channeling", "prayer", "benediction", "sermon",
+  "pvp", "pve", "defiance", "chaos", "elevation",
+  "independence", "deliverance", "exodus", "celebration",
+  "xanadu", "pristine", "release", "harmony", "melody", "cadence",
+  "troll", "dragon", "goblin", "spider", "hell", "valrei",
+  "wurm", "karma", "sleep", "bonus", "affinity",
+  "bulk", "bsb", "fsb", "crate", "wagon", "knarr",
+  "corbita", "caravel", "sailboat", "rowboat",
+  "longsword", "shortsword", "maul", "axe", "pickaxe",
+  "shovel", "rake", "scythe", "sickle", "hammer",
+];
+
+// Common short responses that should be ignored in similarity analysis
+const WURM_COMMON_RESPONSES = new Set([
+  "ok", "ty", "thx", "thanks", "np", "yw", "yes", "no", "yeah", "yep",
+  "nope", "sure", "done", "nice", "cool", "lol", "haha", "xd",
+  "gl", "gj", "gz", "gratz", "wb", "brb", "afk", "back",
+]);
+
+function extractWurmTopics(messages: string[]): Map<string, number> {
+  const topics = new Map<string, number>();
+  const allText = messages.join(" ").toLowerCase();
+
+  for (const term of WURM_TERMS) {
+    const regex = new RegExp(`\\b${term}\\b`, "gi");
+    const matches = allText.match(regex);
+    if (matches) {
+      topics.set(term, matches.length);
+    }
+  }
+
+  return topics;
+}
+
+function detectWurmTopicOverlap(p1: AdvancedPlayerStats, p2: AdvancedPlayerStats): { score: number; sharedTopics: string[] } {
+  const sharedTopics: string[] = [];
+
+  for (const [topic, count1] of p1.wurmTopics) {
+    const count2 = p2.wurmTopics.get(topic);
+    if (count2 && count2 > 0) {
+      // Both use this Wurm term
+      sharedTopics.push(topic);
+    }
+  }
+
+  // Score based on shared unique topics (excluding very common ones)
+  const commonTopics = new Set(["deed", "village", "priest", "skill", "mine"]);
+  const uniqueShared = sharedTopics.filter(t => !commonTopics.has(t));
+
+  let score = 0;
+  if (uniqueShared.length >= 5) score = 15;
+  else if (uniqueShared.length >= 3) score = 10;
+  else if (uniqueShared.length >= 1) score = 5;
+
+  return { score, sharedTopics };
+}
+
+// ============================================================================
+// FASE 5: HUMAN-READABLE EXPLANATION GENERATOR
+// ============================================================================
+
+function generateHumanExplanation(
+  p1: AdvancedPlayerStats,
+  p2: AdvancedPlayerStats,
+  reasons: AltReason[],
+  neverOnlineTogether: boolean,
+  sharedRareWords: string[],
+  handoffData: { handoffCount: number; totalTransitions: number },
+  totalDays: number
+): string {
+  const parts: string[] = [];
+
+  parts.push(`${p1.name} en ${p2.name} zijn waarschijnlijk dezelfde persoon omdat:`);
+
+  // Temporal evidence
+  if (neverOnlineTogether) {
+    if (totalDays > 1) {
+      parts.push(`- Ze zijn in ${totalDays} dagen chat NOOIT tegelijk online geweest`);
+    } else {
+      parts.push("- Ze zijn NOOIT tegelijk online geweest");
+    }
+  }
+
+  // Handoff pattern
+  if (handoffData.handoffCount >= 3) {
+    parts.push(`- Er is een duidelijk "handoff" patroon: als ${p1.name} stopt, begint ${p2.name} vaak binnen 5 minuten (${handoffData.handoffCount}x gedetecteerd)`);
+  }
+
+  // Rare words
+  if (sharedRareWords.length >= 2) {
+    const wordExamples = sharedRareWords.slice(0, 3).map(w => `'${w}'`).join(", ");
+    const rarePercentage = Math.round((sharedRareWords.length / 50) * 100);
+    parts.push(`- Ze gebruiken beide zeldzame woorden: ${wordExamples} (slechts ~${Math.max(5, rarePercentage)}% van spelers gebruikt deze)`);
+  }
+
+  // Typos
+  const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
+  if (sharedTypos.length >= 1) {
+    parts.push(`- Ze hebben identieke typfouten: ${sharedTypos.slice(0, 3).map(t => `'${t}'`).join(", ")}`);
+  }
+
+  // Common starters
+  const sharedStarters = p1.commonStarters.filter(s => p2.commonStarters.includes(s));
+  if (sharedStarters.length >= 2) {
+    const percentage = Math.round((sharedStarters.length / Math.max(p1.commonStarters.length, 1)) * 100);
+    parts.push(`- Ze beginnen ${percentage}% van hun zinnen met dezelfde woorden: ${sharedStarters.slice(0, 3).map(s => `'${s}'`).join(", ")}`);
+  }
+
+  // Network - no interaction
+  const p1MentionsP2 = p1.mentionedPlayers.has(p2.name);
+  const p2MentionsP1 = p2.mentionedPlayers.has(p1.name);
+  const p1RespondsToP2 = p1.responsePartners.has(p2.name);
+  const p2RespondsToP1 = p2.responsePartners.has(p1.name);
+
+  if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1) {
+    parts.push(`- Ze praten nooit MET elkaar ondanks ${p1.messageCount}+ en ${p2.messageCount}+ berichten elk`);
+  }
+
+  // Micro patterns match
+  const microMatches: string[] = [];
+  if (p1.microPatterns.lowercaseI && p2.microPatterns.lowercaseI) microMatches.push("kleine 'i' i.p.v. 'I'");
+  if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) microMatches.push("alles lowercase");
+  if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("veel CAPS");
+  if (p1.microPatterns.noSpaceAfterPunct && p2.microPatterns.noSpaceAfterPunct) microMatches.push("geen spatie na leestekens");
+
+  if (microMatches.length >= 2) {
+    parts.push(`- Identieke schrijfgewoontes: ${microMatches.join(", ")}`);
+  }
+
+  // Emoticon style
+  if (p1.emoticonStyle.commonEmotes.length > 0 && p2.emoticonStyle.commonEmotes.length > 0) {
+    const sharedEmotes = p1.emoticonStyle.commonEmotes.filter(e => p2.emoticonStyle.commonEmotes.includes(e));
+    if (sharedEmotes.length >= 2) {
+      parts.push(`- Zelfde emoticons: ${sharedEmotes.slice(0, 4).join(", ")}`);
+    }
+  }
+
+  if (parts.length <= 1) {
+    parts.push("- Diverse patronen in schrijfstijl en gedrag komen overeen");
+  }
+
+  return parts.join("\n");
+}
+
 // STOP WORDS for analysis
 const STOP_WORDS = new Set([
   "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
@@ -409,13 +941,23 @@ function analyzePlayerAdvanced(
   const words = allText.split(/\s+/).filter(w => w.length > 0);
   const cleanWords = words.map(w => w.toLowerCase().replace(/[^a-z]/g, "")).filter(w => w);
 
-  // Active minutes (for temporal analysis)
+  // Active minutes (for temporal analysis) - both global and per-day
   const activeMinutes = new Set<number>();
+  const activeDayMinutes = new Map<number, Set<number>>();
   const messageTimes: number[] = [];
+  const absoluteTimes: number[] = [];
+
   for (const msg of playerMessages) {
     const mins = Math.floor(msg.timeSeconds / 60);
     activeMinutes.add(mins);
     messageTimes.push(msg.timeSeconds);
+    absoluteTimes.push(msg.absoluteTime);
+
+    // Track per-day activity
+    if (!activeDayMinutes.has(msg.dayIndex)) {
+      activeDayMinutes.set(msg.dayIndex, new Set());
+    }
+    activeDayMinutes.get(msg.dayIndex)!.add(mins);
   }
 
   // Session gaps
@@ -465,6 +1007,7 @@ function analyzePlayerAdvanced(
     avgWordsPerMessage: playerMessages.length > 0 ? words.length / playerMessages.length : 0,
 
     activeMinutes,
+    activeDayMinutes,
     sessionGaps,
     avgResponseTime,
 
@@ -472,6 +1015,8 @@ function analyzePlayerAdvanced(
     typoPatterns: detectTypoPatterns(texts),
     punctuationStyle: analyzePunctuationStyle(texts),
     letterSubstitutions: detectLetterSubstitutions(texts),
+    microPatterns: detectMicroPatterns(texts),
+    emoticonStyle: detectEmoticonStyle(texts),
 
     vocabularyRichness: Math.round(vocabularyRichness * 1000) / 1000,
     hapaxRatio: Math.round(hapaxRatio * 1000) / 1000,
@@ -488,9 +1033,11 @@ function analyzePlayerAdvanced(
     responsePartners: findResponsePartners(name, messages),
     mentionedPlayers: findMentionedPlayers(texts, allPlayers),
     topicFingerprint: extractTopicFingerprint(texts),
+    wurmTopics: extractWurmTopics(texts),
 
     allMessages: texts,
     messageTimes,
+    absoluteTimes,
   };
 }
 
@@ -536,6 +1083,14 @@ function detectAltsAdvanced(
   const players = stats.map(s => s.name);
   const scores: number[][] = players.map(() => players.map(() => 0));
 
+  // Build rare word index for all players (Fase 2)
+  const rareWordIndex = buildRareWordIndex(stats);
+
+  // Calculate total days from messages
+  const totalDays = messages.length > 0
+    ? Math.max(...messages.map(m => m.dayIndex)) + 1
+    : 1;
+
   for (let i = 0; i < stats.length; i++) {
     for (let j = i + 1; j < stats.length; j++) {
       const p1 = stats[i];
@@ -545,7 +1100,15 @@ function detectAltsAdvanced(
       if (p1.messageCount < 15 || p2.messageCount < 15) continue;
 
       const reasons: AltReason[] = [];
-      let totalScore = 0;
+      const scoreBreakdown: ScoreBreakdown = {
+        temporal: 0,
+        linguistic: 0,
+        behavioral: 0,
+        network: 0,
+        rareWords: 0,
+        handoff: 0,
+        bonus: 0,
+      };
 
       // ========== TEMPORAL ANALYSIS ==========
 
@@ -558,7 +1121,7 @@ function detectAltsAdvanced(
         p2.activeMinutes.size >= 30;
 
       if (neverOnlineTogether) {
-        totalScore += 40;
+        scoreBreakdown.temporal += 40;
         reasons.push({
           type: "temporal",
           description: "Nooit tegelijk online",
@@ -566,8 +1129,7 @@ function detectAltsAdvanced(
           evidence: `${p1.name}: ${p1.activeMinutes.size} min actief, ${p2.name}: ${p2.activeMinutes.size} min actief, 0 overlap`,
         });
       } else if (overlap.size > 0 && minActivity >= 20 && overlap.size < minActivity * 0.05) {
-        // STRICTER: Less than 5% overlap with significant activity
-        totalScore += 20;
+        scoreBreakdown.temporal += 20;
         reasons.push({
           type: "temporal",
           description: "Zeer weinig tijd overlap",
@@ -576,13 +1138,54 @@ function detectAltsAdvanced(
         });
       }
 
+      // ========== FASE 1: HANDOFF PATTERN DETECTION ==========
+
+      const handoffData = detectHandoffPattern(p1, p2, messages);
+      if (handoffData.score > 0) {
+        scoreBreakdown.handoff = handoffData.score;
+        reasons.push({
+          type: "temporal",
+          description: "Handoff patroon gedetecteerd",
+          weight: handoffData.score,
+          evidence: `${handoffData.handoffCount} van ${handoffData.totalTransitions} sessie-overgangen zijn handoffs (${Math.round(handoffData.handoffCount/handoffData.totalTransitions*100)}%)`,
+        });
+      }
+
+      // ========== FASE 2: RARE WORD FINGERPRINT ==========
+
+      const sharedRareWords = detectSharedRareWords(p1, p2, rareWordIndex, stats.length);
+      if (sharedRareWords.length >= 3) {
+        scoreBreakdown.rareWords = 40;
+        reasons.push({
+          type: "linguistic",
+          description: "Veel gedeelde zeldzame woorden",
+          weight: 40,
+          evidence: `${sharedRareWords.length} zeldzame woorden: ${sharedRareWords.slice(0, 5).join(", ")}`,
+        });
+      } else if (sharedRareWords.length === 2) {
+        scoreBreakdown.rareWords = 25;
+        reasons.push({
+          type: "linguistic",
+          description: "Gedeelde zeldzame woorden",
+          weight: 25,
+          evidence: `"${sharedRareWords[0]}", "${sharedRareWords[1]}"`,
+        });
+      } else if (sharedRareWords.length === 1) {
+        scoreBreakdown.rareWords = 10;
+        reasons.push({
+          type: "linguistic",
+          description: "Gedeeld zeldzaam woord",
+          weight: 10,
+          evidence: `"${sharedRareWords[0]}"`,
+        });
+      }
+
       // ========== LINGUISTIC FINGERPRINT ==========
 
       // Character n-gram similarity (powerful forensic technique)
-      // STRICTER: Require very high similarity (0.92+) for this to be meaningful
       const ngramSim = cosineSimilarity(p1.charNgrams, p2.charNgrams);
       if (ngramSim > 0.92) {
-        totalScore += 30;
+        scoreBreakdown.linguistic += 30;
         reasons.push({
           type: "linguistic",
           description: "Sterke karakter-patroon match (forensisch)",
@@ -590,7 +1193,7 @@ function detectAltsAdvanced(
           evidence: `${Math.round(ngramSim * 100)}% n-gram overeenkomst`,
         });
       } else if (ngramSim > 0.85) {
-        totalScore += 15;
+        scoreBreakdown.linguistic += 15;
         reasons.push({
           type: "linguistic",
           description: "Vergelijkbare karakterpatronen",
@@ -599,22 +1202,30 @@ function detectAltsAdvanced(
         });
       }
 
-      // Same typo patterns (very distinctive) - KEEP, this is strong evidence
+      // Same typo patterns (very distinctive)
       const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
       if (sharedTypos.length >= 2) {
-        totalScore += 25;
+        scoreBreakdown.linguistic += 25;
         reasons.push({
           type: "linguistic",
           description: "Dezelfde typefouten",
           weight: 25,
           evidence: sharedTypos.join(", "),
         });
+      } else if (sharedTypos.length === 1) {
+        scoreBreakdown.linguistic += 12;
+        reasons.push({
+          type: "linguistic",
+          description: "Gedeelde typefout",
+          weight: 12,
+          evidence: sharedTypos[0],
+        });
       }
 
-      // Letter substitution patterns - STRICTER: need multiple matches
+      // Letter substitution patterns
       const sharedSubs = [...p1.letterSubstitutions.keys()].filter(k => p2.letterSubstitutions.has(k));
       if (sharedSubs.length >= 3) {
-        totalScore += 20;
+        scoreBreakdown.linguistic += 20;
         reasons.push({
           type: "linguistic",
           description: "Zelfde afkortingsstijl",
@@ -623,18 +1234,67 @@ function detectAltsAdvanced(
         });
       }
 
-      // ========== STATISTICAL STYLOMETRY ==========
-      // REMOVED: Yule's K, vocabulary richness, word length distribution
-      // These are too prone to false positives with chat data
+      // ========== FASE 2: MICRO-PATTERNS MATCHING ==========
+
+      const microMatches: string[] = [];
+      if (p1.microPatterns.lowercaseI && p2.microPatterns.lowercaseI) microMatches.push("lowercase i");
+      if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) microMatches.push("all lowercase");
+      if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("EXCESSIVE CAPS");
+      if (p1.microPatterns.noCapitalStart && p2.microPatterns.noCapitalStart) microMatches.push("no capital start");
+      if (p1.microPatterns.numberSubstitution && p2.microPatterns.numberSubstitution) microMatches.push("number subs");
+      if (p1.microPatterns.doubleSpaces && p2.microPatterns.doubleSpaces) microMatches.push("double spaces");
+      if (p1.microPatterns.noSpaceAfterPunct && p2.microPatterns.noSpaceAfterPunct) microMatches.push("no space after punct");
+
+      if (microMatches.length >= 3) {
+        scoreBreakdown.linguistic += 25;
+        reasons.push({
+          type: "linguistic",
+          description: "Sterke micro-patroon match",
+          weight: 25,
+          evidence: microMatches.join(", "),
+        });
+      } else if (microMatches.length >= 2) {
+        scoreBreakdown.linguistic += 15;
+        reasons.push({
+          type: "linguistic",
+          description: "Gedeelde micro-patronen",
+          weight: 15,
+          evidence: microMatches.join(", "),
+        });
+      }
+
+      // ========== FASE 2: EMOTICON STYLE MATCHING ==========
+
+      const sharedEmotes = p1.emoticonStyle.commonEmotes.filter(e =>
+        p2.emoticonStyle.commonEmotes.includes(e)
+      );
+      if (sharedEmotes.length >= 3) {
+        scoreBreakdown.behavioral += 15;
+        reasons.push({
+          type: "behavioral",
+          description: "Zelfde emoticons/emotes",
+          weight: 15,
+          evidence: sharedEmotes.slice(0, 4).join(", "),
+        });
+      }
+      // Nose style match (rare and distinctive)
+      if (p1.emoticonStyle.usesNose && p2.emoticonStyle.usesNose) {
+        scoreBreakdown.behavioral += 10;
+        reasons.push({
+          type: "behavioral",
+          description: "Beide gebruiken emoticons met neus (:-) stijl)",
+          weight: 10,
+        });
+      }
 
       // ========== BEHAVIORAL ANALYSIS ==========
 
-      // Phrase overlap (very distinctive) - STRICTER: need unique phrases
+      // Phrase overlap (very distinctive)
       const phraseOverlap = p1.commonPhrases.filter(p =>
         p2.commonPhrases.includes(p) && p.split(' ').length >= 3
       );
       if (phraseOverlap.length >= 2) {
-        totalScore += 25;
+        scoreBreakdown.behavioral += 25;
         reasons.push({
           type: "behavioral",
           description: "Dezelfde unieke uitdrukkingen",
@@ -642,7 +1302,7 @@ function detectAltsAdvanced(
           evidence: phraseOverlap.slice(0, 2).map(p => `"${p}"`).join(", "),
         });
       } else if (phraseOverlap.length === 1) {
-        totalScore += 12;
+        scoreBreakdown.behavioral += 12;
         reasons.push({
           type: "behavioral",
           description: "Gedeelde uitdrukking",
@@ -651,10 +1311,21 @@ function detectAltsAdvanced(
         });
       }
 
-      // ========== NETWORK ANALYSIS ==========
+      // Common starters match
+      const sharedStarters = p1.commonStarters.filter(s => p2.commonStarters.includes(s));
+      if (sharedStarters.length >= 3) {
+        scoreBreakdown.behavioral += 15;
+        reasons.push({
+          type: "behavioral",
+          description: "Zelfde start-woorden",
+          weight: 15,
+          evidence: sharedStarters.slice(0, 4).join(", "),
+        });
+      }
 
-      // Check if they NEVER interact with each other
-      // STRICTER: Need more messages and check more thoroughly
+      // ========== NETWORK ANALYSIS ==========
+      // Wurm context: "no interaction" is less suspicious, so lower weight
+
       const p1MentionsP2 = p1.mentionedPlayers.has(p2.name);
       const p2MentionsP1 = p2.mentionedPlayers.has(p1.name);
       const p1RespondsToP2 = p1.responsePartners.has(p2.name);
@@ -662,12 +1333,68 @@ function detectAltsAdvanced(
 
       if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
           p1.messageCount >= 25 && p2.messageCount >= 25) {
-        totalScore += 15;
+        // WURM CONTEXT: Reduced weight from 15 to 10
+        scoreBreakdown.network = 10;
         reasons.push({
           type: "network",
           description: "Nooit interactie met elkaar",
-          weight: 15,
+          weight: 10,
           evidence: "Geen mentions of reacties onderling ondanks veel berichten",
+        });
+      }
+
+      // ========== FASE 3: WURM-SPECIFIC CONTEXT ==========
+
+      const wurmOverlap = detectWurmTopicOverlap(p1, p2);
+      if (wurmOverlap.score > 0) {
+        scoreBreakdown.behavioral += wurmOverlap.score;
+        reasons.push({
+          type: "behavioral",
+          description: "Zelfde Wurm-topics besproken",
+          weight: wurmOverlap.score,
+          evidence: wurmOverlap.sharedTopics.slice(0, 5).join(", "),
+        });
+      }
+
+      // ========== CALCULATE TOTAL SCORE ==========
+
+      let totalScore = scoreBreakdown.temporal +
+                       scoreBreakdown.linguistic +
+                       scoreBreakdown.behavioral +
+                       scoreBreakdown.network +
+                       scoreBreakdown.rareWords +
+                       scoreBreakdown.handoff;
+
+      // ========== FASE 6: CATEGORY BONUSES ==========
+
+      const hasTemporalEvidence = scoreBreakdown.temporal >= 20 || scoreBreakdown.handoff >= 20;
+      const hasNetworkEvidence = scoreBreakdown.network >= 10;
+      const hasLinguisticEvidence = scoreBreakdown.linguistic >= 25 || scoreBreakdown.rareWords >= 25;
+      const hasBehavioralEvidence = scoreBreakdown.behavioral >= 20;
+
+      // Temporal + Network = very strong (nooit samen + nooit interactie)
+      if (hasTemporalEvidence && hasNetworkEvidence) {
+        const bonus = Math.round(totalScore * 0.3);
+        scoreBreakdown.bonus += bonus;
+        totalScore += bonus;
+        reasons.push({
+          type: "bonus",
+          description: "Temporal+Network combinatie bonus",
+          weight: bonus,
+          evidence: "Nooit samen online EN nooit interactie = sterke indicator",
+        });
+      }
+
+      // Linguistic + Behavioral = strong (same style + same expressions)
+      if (hasLinguisticEvidence && hasBehavioralEvidence) {
+        const bonus = Math.round(totalScore * 0.2);
+        scoreBreakdown.bonus += bonus;
+        totalScore += bonus;
+        reasons.push({
+          type: "bonus",
+          description: "Linguistic+Behavioral combinatie bonus",
+          weight: bonus,
+          evidence: "Zelfde schrijfstijl EN zelfde uitdrukkingen",
         });
       }
 
@@ -676,17 +1403,21 @@ function detectAltsAdvanced(
       scores[j][i] = totalScore;
 
       // STRICTER: Only add if significant evidence
-      // Need score >= 50 AND at least 2 strong reasons
-      const strongReasons = reasons.filter(r => r.weight >= 15);
+      const strongReasons = reasons.filter(r => r.weight >= 15 && r.type !== "bonus");
       if (totalScore >= 50 && strongReasons.length >= 2) {
-        const confidence = Math.min(Math.round(totalScore * 0.7), 99);
+        const confidence = Math.min(Math.round(totalScore * 0.65), 99);
 
         let category: AltSuspicion["category"];
-        // STRICTER: Critical only if temporal + other strong evidence
-        if (neverOnlineTogether && strongReasons.length >= 2) category = "critical";
+        if (neverOnlineTogether && strongReasons.length >= 2 && confidence >= 70) category = "critical";
         else if (confidence >= 70) category = "high";
         else if (confidence >= 50) category = "medium";
         else category = "low";
+
+        // Generate human explanation (Fase 5)
+        const humanExplanation = generateHumanExplanation(
+          p1, p2, reasons, neverOnlineTogether, sharedRareWords,
+          handoffData, totalDays
+        );
 
         suspicions.push({
           player1: p1.name,
@@ -696,6 +1427,10 @@ function detectAltsAdvanced(
           reasons: reasons.sort((a, b) => b.weight - a.weight),
           neverOnlineTogether,
           similarityScore: totalScore,
+          scoreBreakdown,
+          humanExplanation,
+          sharedRareWords,
+          handoffScore: handoffData.score,
         });
       }
     }
@@ -751,40 +1486,113 @@ export default function ChatAnalyzerPage() {
     return filtered;
   }, [messages, selectedPlayer, searchTerm]);
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setRawText(text);
-      parseChat(text);
-    };
-    reader.readAsText(file);
-  }, []);
-
-  const parseChat = useCallback((text: string) => {
+  // Parse chat with multi-day support
+  const parseChat = useCallback((text: string, dayOffset: number = 0) => {
     const lines = text.split("\n");
     const parsed: ChatMessage[] = [];
+    let currentDayIndex = dayOffset;
+    let lastTimeSeconds = -1;
+    let lastDate: string | null = null;
 
     for (let i = 0; i < lines.length; i++) {
-      const msg = parseChatLine(lines[i].trim(), i + 1);
-      if (msg) {
-        parsed.push(msg);
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const result = parseChatLine(line, i + 1, currentDayIndex);
+
+      // Handle date changes (explicit or from full timestamp)
+      if (result.dateChange && result.dateChange !== lastDate) {
+        if (lastDate !== null) {
+          currentDayIndex++;
+        }
+        lastDate = result.dateChange;
+      }
+
+      if (result.message) {
+        // Auto-detect day change: if time goes backwards significantly (>6 hours gap backwards)
+        // This handles cases where timestamps wrap from 23:59 to 00:00
+        if (lastTimeSeconds !== -1 && result.message.timeSeconds < lastTimeSeconds - 21600) {
+          currentDayIndex++;
+          result.message.dayIndex = currentDayIndex;
+          result.message.absoluteTime = currentDayIndex * 86400 + result.message.timeSeconds;
+        }
+
+        lastTimeSeconds = result.message.timeSeconds;
+        parsed.push(result.message);
       }
     }
 
+    return parsed;
+  }, []);
+
+  // Parse multiple files together
+  const parseMultipleChats = useCallback((texts: string[]) => {
+    let allMessages: ChatMessage[] = [];
+    let dayOffset = 0;
+
+    for (const text of texts) {
+      const parsed = parseChat(text, dayOffset);
+      if (parsed.length > 0) {
+        allMessages = [...allMessages, ...parsed];
+        // Increment day offset for next file
+        dayOffset = Math.max(...parsed.map(m => m.dayIndex)) + 1;
+      }
+    }
+
+    setMessages(allMessages);
+    setSelectedPlayer(null);
+    setCompareMode(null);
+  }, [parseChat]);
+
+  // Single file parse wrapper
+  const parseSingleChat = useCallback((text: string) => {
+    const parsed = parseChat(text, 0);
     setMessages(parsed);
     setSelectedPlayer(null);
     setCompareMode(null);
-  }, []);
+  }, [parseChat]);
+
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (files.length === 1) {
+      // Single file upload
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        setRawText(text);
+        parseSingleChat(text);
+      };
+      reader.readAsText(files[0]);
+    } else {
+      // Multi-file upload (each file = different day)
+      const readPromises: Promise<string>[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        readPromises.push(
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              resolve(event.target?.result as string);
+            };
+            reader.readAsText(files[i]);
+          })
+        );
+      }
+
+      Promise.all(readPromises).then((texts) => {
+        setRawText(texts.join("\n\n--- NEW FILE ---\n\n"));
+        parseMultipleChats(texts);
+      });
+    }
+  }, [parseSingleChat, parseMultipleChats]);
 
   const handlePaste = useCallback(() => {
     if (rawText) {
-      parseChat(rawText);
+      parseSingleChat(rawText);
     }
-  }, [rawText, parseChat]);
+  }, [rawText, parseSingleChat]);
 
   const getCompareStats = useMemo(() => {
     if (!compareMode) return null;
@@ -811,10 +1619,13 @@ export default function ChatAnalyzerPage() {
           <h2 className="text-lg font-semibold text-text-primary mb-4">Chat Log Importeren</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-text-secondary mb-2">Upload .txt bestand</label>
+              <label className="block text-sm text-text-secondary mb-2">
+                Upload .txt bestand(en) <span className="text-text-muted">(selecteer meerdere voor multi-dag)</span>
+              </label>
               <input
                 type="file"
                 accept=".txt,.log"
+                multiple
                 onChange={handleFileUpload}
                 className="w-full px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-accent file:text-white file:cursor-pointer"
               />
@@ -845,6 +1656,9 @@ export default function ChatAnalyzerPage() {
               </span>
               <span className="px-3 py-1 bg-bg-tertiary rounded-full text-text-secondary">
                 {players.length} spelers
+              </span>
+              <span className="px-3 py-1 bg-info/20 text-info rounded-full">
+                {Math.max(...messages.map(m => m.dayIndex)) + 1} dag(en)
               </span>
               {altSuspicions.filter(s => s.category === "critical").length > 0 && (
                 <span className="px-3 py-1 bg-error/20 text-error rounded-full font-semibold">
@@ -1046,6 +1860,57 @@ export default function ChatAnalyzerPage() {
                         </div>
                       )}
 
+                      {/* Micro-patterns */}
+                      {(stats.microPatterns.lowercaseI || stats.microPatterns.allLowercase ||
+                        stats.microPatterns.excessiveCaps || stats.microPatterns.numberSubstitution ||
+                        stats.microPatterns.noSpaceAfterPunct) && (
+                        <div>
+                          <div className="text-text-muted mb-1 text-xs">Micro-patronen</div>
+                          <div className="flex flex-wrap gap-1">
+                            {stats.microPatterns.lowercaseI && (
+                              <span className="px-2 py-0.5 bg-success/20 text-success rounded text-xs">lowercase i</span>
+                            )}
+                            {stats.microPatterns.allLowercase && (
+                              <span className="px-2 py-0.5 bg-success/20 text-success rounded text-xs">all lowercase</span>
+                            )}
+                            {stats.microPatterns.excessiveCaps && (
+                              <span className="px-2 py-0.5 bg-success/20 text-success rounded text-xs">CAPS</span>
+                            )}
+                            {stats.microPatterns.numberSubstitution && (
+                              <span className="px-2 py-0.5 bg-success/20 text-success rounded text-xs">2/4/l8r</span>
+                            )}
+                            {stats.microPatterns.noSpaceAfterPunct && (
+                              <span className="px-2 py-0.5 bg-success/20 text-success rounded text-xs">no space.after</span>
+                            )}
+                            {stats.microPatterns.doubleSpaces && (
+                              <span className="px-2 py-0.5 bg-success/20 text-success rounded text-xs">double  spaces</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Emoticons */}
+                      {stats.emoticonStyle.commonEmotes.length > 0 && (
+                        <div>
+                          <div className="text-text-muted mb-1 text-xs">
+                            Emotes ({stats.emoticonStyle.emoteFrequency}% van berichten)
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {stats.emoticonStyle.commonEmotes.slice(0, 5).map(emote => (
+                              <span key={emote} className="px-2 py-0.5 bg-info/20 text-info rounded text-xs">
+                                {emote}
+                              </span>
+                            ))}
+                            {stats.emoticonStyle.usesNose && (
+                              <span className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">:-) stijl</span>
+                            )}
+                            {stats.emoticonStyle.usesEmoji && (
+                              <span className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">emoji user</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
                         {stats.punctuationStyle.spaceBefore && (
                           <span className="px-2 py-0.5 bg-info/20 text-info rounded text-xs">spatie voor ?!</span>
@@ -1082,8 +1947,8 @@ export default function ChatAnalyzerPage() {
                   <>
                     <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
                       <p className="text-accent text-sm">
-                        <strong>Forensische Analyse:</strong> Deze tool gebruikt karakter n-gram analyse,
-                        Yule&apos;s K stylometrie, temporele patronen, en netwerk analyse om alt-accounts te detecteren.
+                        <strong>Forensische Analyse v2.0:</strong> Nu met handoff-detectie, zeldzame woorden fingerprint,
+                        micro-patronen, emoticon analyse, en Wurm-specifieke context.
                       </p>
                     </div>
 
@@ -1098,17 +1963,18 @@ export default function ChatAnalyzerPage() {
                             : "border-border"
                         }`}
                       >
+                        {/* Header */}
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <span
-                              className="font-semibold"
+                              className="font-semibold text-lg"
                               style={{ color: getPlayerColor(suspicion.player1) }}
                             >
                               {suspicion.player1}
                             </span>
                             <span className="text-text-muted">&#8596;</span>
                             <span
-                              className="font-semibold"
+                              className="font-semibold text-lg"
                               style={{ color: getPlayerColor(suspicion.player2) }}
                             >
                               {suspicion.player2}
@@ -1118,8 +1984,13 @@ export default function ChatAnalyzerPage() {
                                 NOOIT SAMEN ONLINE
                               </span>
                             )}
+                            {suspicion.handoffScore >= 20 && (
+                              <span className="px-2 py-1 bg-warning text-black text-xs rounded font-bold">
+                                HANDOFF PATROON
+                              </span>
+                            )}
                           </div>
-                          <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          <div className={`px-4 py-2 rounded-full text-lg font-bold ${
                             suspicion.category === "critical"
                               ? "bg-error text-white"
                               : suspicion.category === "high"
@@ -1132,39 +2003,145 @@ export default function ChatAnalyzerPage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {suspicion.reasons.map((reason, i) => (
-                            <div
-                              key={i}
-                              className={`flex items-start gap-2 text-sm p-2 rounded ${
-                                reason.type === "temporal" ? "bg-error/10" :
-                                reason.type === "linguistic" ? "bg-warning/10" :
-                                reason.type === "stylometry" ? "bg-info/10" :
-                                reason.type === "network" ? "bg-success/10" :
-                                "bg-bg-tertiary"
-                              }`}
-                            >
-                              <span className={`text-xs font-bold uppercase shrink-0 ${
-                                reason.type === "temporal" ? "text-error" :
-                                reason.type === "linguistic" ? "text-warning" :
-                                reason.type === "stylometry" ? "text-info" :
-                                reason.type === "network" ? "text-success" :
-                                "text-text-muted"
-                              }`}>
-                                {reason.type}
-                              </span>
-                              <div>
-                                <div className="text-text-primary">{reason.description}</div>
-                                {reason.evidence && (
-                                  <div className="text-text-muted text-xs mt-1">{reason.evidence}</div>
-                                )}
-                              </div>
-                              <span className="text-text-muted text-xs ml-auto">+{reason.weight}</span>
-                            </div>
-                          ))}
+                        {/* Human Readable Explanation */}
+                        <div className="bg-bg-tertiary rounded-lg p-4 mb-4">
+                          <h4 className="text-sm font-semibold text-text-secondary mb-2">Analyse Samenvatting:</h4>
+                          <div className="text-text-primary text-sm whitespace-pre-line">
+                            {suspicion.humanExplanation}
+                          </div>
                         </div>
 
-                        <div className="mt-4 pt-4 border-t border-border flex gap-2">
+                        {/* Score Breakdown Bars */}
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                          {/* Temporal */}
+                          <div className="bg-bg-tertiary rounded-lg p-3">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-error font-semibold">Temporal</span>
+                              <span className="text-text-muted">{suspicion.scoreBreakdown.temporal + suspicion.scoreBreakdown.handoff}/80</span>
+                            </div>
+                            <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-error rounded-full transition-all"
+                                style={{ width: `${Math.min(((suspicion.scoreBreakdown.temporal + suspicion.scoreBreakdown.handoff) / 80) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Linguistic */}
+                          <div className="bg-bg-tertiary rounded-lg p-3">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-warning font-semibold">Linguistic</span>
+                              <span className="text-text-muted">{suspicion.scoreBreakdown.linguistic + suspicion.scoreBreakdown.rareWords}/80</span>
+                            </div>
+                            <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-warning rounded-full transition-all"
+                                style={{ width: `${Math.min(((suspicion.scoreBreakdown.linguistic + suspicion.scoreBreakdown.rareWords) / 80) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Behavioral */}
+                          <div className="bg-bg-tertiary rounded-lg p-3">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-accent font-semibold">Behavioral</span>
+                              <span className="text-text-muted">{suspicion.scoreBreakdown.behavioral}/50</span>
+                            </div>
+                            <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-accent rounded-full transition-all"
+                                style={{ width: `${Math.min((suspicion.scoreBreakdown.behavioral / 50) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Network */}
+                          <div className="bg-bg-tertiary rounded-lg p-3">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-success font-semibold">Network</span>
+                              <span className="text-text-muted">{suspicion.scoreBreakdown.network}/20</span>
+                            </div>
+                            <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-success rounded-full transition-all"
+                                style={{ width: `${Math.min((suspicion.scoreBreakdown.network / 20) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Bonus */}
+                          {suspicion.scoreBreakdown.bonus > 0 && (
+                            <div className="bg-bg-tertiary rounded-lg p-3">
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="text-info font-semibold">Combo Bonus</span>
+                                <span className="text-text-muted">+{suspicion.scoreBreakdown.bonus}</span>
+                              </div>
+                              <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-info rounded-full transition-all"
+                                  style={{ width: `${Math.min((suspicion.scoreBreakdown.bonus / 50) * 100, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Rare Words */}
+                          {suspicion.sharedRareWords.length > 0 && (
+                            <div className="bg-bg-tertiary rounded-lg p-3 col-span-2 lg:col-span-1">
+                              <div className="text-xs text-text-muted mb-1">Zeldzame woorden</div>
+                              <div className="flex flex-wrap gap-1">
+                                {suspicion.sharedRareWords.slice(0, 5).map((word, i) => (
+                                  <span key={i} className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">
+                                    {word}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Detailed Reasons (collapsible) */}
+                        <details className="group">
+                          <summary className="cursor-pointer text-sm text-text-secondary hover:text-text-primary mb-2">
+                            Bekijk alle {suspicion.reasons.length} redenen...
+                          </summary>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                            {suspicion.reasons.map((reason, i) => (
+                              <div
+                                key={i}
+                                className={`flex items-start gap-2 text-sm p-2 rounded ${
+                                  reason.type === "temporal" ? "bg-error/10" :
+                                  reason.type === "linguistic" ? "bg-warning/10" :
+                                  reason.type === "behavioral" ? "bg-accent/10" :
+                                  reason.type === "network" ? "bg-success/10" :
+                                  reason.type === "bonus" ? "bg-info/10" :
+                                  "bg-bg-tertiary"
+                                }`}
+                              >
+                                <span className={`text-xs font-bold uppercase shrink-0 ${
+                                  reason.type === "temporal" ? "text-error" :
+                                  reason.type === "linguistic" ? "text-warning" :
+                                  reason.type === "behavioral" ? "text-accent" :
+                                  reason.type === "network" ? "text-success" :
+                                  reason.type === "bonus" ? "text-info" :
+                                  "text-text-muted"
+                                }`}>
+                                  {reason.type}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-text-primary">{reason.description}</div>
+                                  {reason.evidence && (
+                                    <div className="text-text-muted text-xs mt-1 truncate">{reason.evidence}</div>
+                                  )}
+                                </div>
+                                <span className="text-text-muted text-xs shrink-0">+{reason.weight}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+
+                        {/* Action Buttons */}
+                        <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-2">
                           <button
                             onClick={() => { setSelectedPlayer(suspicion.player1); setActiveTab("chat"); }}
                             className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
