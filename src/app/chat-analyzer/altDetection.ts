@@ -1,12 +1,13 @@
 // ============================================================================
-// CHAT ANALYZER - ALT DETECTION ENGINE
+// CHAT ANALYZER - ALT DETECTION ENGINE (v4.0 - Enhanced Accuracy)
 // ============================================================================
 
 import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, ScoreBreakdown, HandoffResult } from "./types";
-import { STOP_WORDS } from "./constants";
-import { cosineSimilarity } from "./utils";
+import { STOP_WORDS, ALGORITHM_CONFIGS, type AlgorithmMode, type AlgorithmConfig } from "./constants";
+import { cosineSimilarity, distributionSimilarity } from "./utils";
 import { buildRareWordIndex, detectSharedRareWords } from "./behavioral";
 import { generateHumanExplanation } from "./playerAnalysis";
+import { compareFunctionWordProfiles, compareActivityPatterns, compareWordBigrams } from "./linguistic";
 
 /**
  * Detect handoff pattern between two players
@@ -113,12 +114,18 @@ export function detectHandoffPattern(
 }
 
 /**
- * Main alt detection engine
+ * Main alt detection engine (v4.0 - Enhanced Accuracy)
+ * Uses advanced stylometry, function words, and statistical analysis
+ * @param stats - Player statistics array
+ * @param messages - All chat messages
+ * @param mode - Algorithm mode to use (default: "balanced")
  */
 export function detectAltsAdvanced(
   stats: AdvancedPlayerStats[],
-  messages: ChatMessage[]
-): { suspicions: AltSuspicion[]; matrix: SimilarityMatrix } {
+  messages: ChatMessage[],
+  mode: AlgorithmMode = "balanced"
+): { suspicions: AltSuspicion[]; matrix: SimilarityMatrix; config: AlgorithmConfig } {
+  const config = ALGORITHM_CONFIGS[mode];
   const suspicions: AltSuspicion[] = [];
   const players = stats.map(s => s.name);
   const scores: number[][] = players.map(() => players.map(() => 0));
@@ -136,8 +143,8 @@ export function detectAltsAdvanced(
       const p1 = stats[i];
       const p2 = stats[j];
 
-      // STRICTER: Require at least 15 messages each for reliable analysis
-      if (p1.messageCount < 15 || p2.messageCount < 15) continue;
+      // Require minimum messages for reliable analysis (configurable)
+      if (p1.messageCount < config.minMessages || p2.messageCount < config.minMessages) continue;
 
       const reasons: { type: string; description: string; weight: number; evidence?: string }[] = [];
       const scoreBreakdown: ScoreBreakdown = {
@@ -152,8 +159,6 @@ export function detectAltsAdvanced(
 
       // ========== TEMPORAL ANALYSIS ==========
 
-      // Check if never online together (CRITICAL indicator)
-      // STRICTER: Both need at least 30 minutes of activity for this to be meaningful
       const overlap = new Set([...p1.activeMinutes].filter(m => p2.activeMinutes.has(m)));
       const minActivity = Math.min(p1.activeMinutes.size, p2.activeMinutes.size);
       const neverOnlineTogether = overlap.size === 0 &&
@@ -161,20 +166,41 @@ export function detectAltsAdvanced(
         p2.activeMinutes.size >= 30;
 
       if (neverOnlineTogether) {
-        scoreBreakdown.temporal += 40;
+        const baseScore = 45;
+        const weightedScore = Math.round(baseScore * config.temporalWeight);
+        scoreBreakdown.temporal += weightedScore;
         reasons.push({
           type: "temporal",
           description: "Never online at the same time",
-          weight: 40,
+          weight: weightedScore,
           evidence: `${p1.name}: ${p1.activeMinutes.size} min active, ${p2.name}: ${p2.activeMinutes.size} min active, 0 overlap`,
         });
-      } else if (overlap.size > 0 && minActivity >= 20 && overlap.size < minActivity * 0.05) {
-        scoreBreakdown.temporal += 20;
+      } else if (overlap.size > 0 && minActivity >= 30 && overlap.size < minActivity * 0.03) {
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.temporalWeight);
+        scoreBreakdown.temporal += weightedScore;
         reasons.push({
           type: "temporal",
-          description: "Very little time overlap",
-          weight: 20,
+          description: "Minimal time overlap",
+          weight: weightedScore,
           evidence: `Only ${overlap.size} of ${minActivity} minutes overlap (${Math.round(overlap.size/minActivity*100)}%)`,
+        });
+      }
+
+      // ========== ACTIVITY PATTERN ANALYSIS (NEW) ==========
+      // Check if they have complementary schedules
+
+      const activitySimilarity = compareActivityPatterns(p1.activityPattern, p2.activityPattern);
+      // If activity patterns are DIFFERENT but both have 0 overlap, that's suspicious
+      if (neverOnlineTogether && activitySimilarity < 0.4) {
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.temporalWeight);
+        scoreBreakdown.temporal += weightedScore;
+        reasons.push({
+          type: "temporal",
+          description: "Complementary schedules",
+          weight: weightedScore,
+          evidence: `Different time-of-day patterns (${Math.round(activitySimilarity * 100)}% similar)`,
         });
       }
 
@@ -182,209 +208,318 @@ export function detectAltsAdvanced(
 
       const handoffData = detectHandoffPattern(p1, p2, messages);
       if (handoffData.score > 0) {
-        scoreBreakdown.handoff = handoffData.score;
+        const weightedScore = Math.round(handoffData.score * config.handoffWeight);
+        scoreBreakdown.handoff = weightedScore;
         reasons.push({
           type: "temporal",
           description: "Handoff pattern detected",
-          weight: handoffData.score,
+          weight: weightedScore,
           evidence: `${handoffData.handoffCount} of ${handoffData.totalTransitions} session transitions are handoffs (${Math.round(handoffData.handoffCount/handoffData.totalTransitions*100)}%)`,
         });
       }
 
-      // ========== RARE WORD FINGERPRINT (stricter) ==========
+      // ========== FUNCTION WORD ANALYSIS (NEW - MOST RELIABLE!) ==========
+      // Function words are unconsciously used and very hard to fake
+
+      const functionWordSim = compareFunctionWordProfiles(p1.functionWords, p2.functionWords);
+      if (functionWordSim > config.functionWordThresholdHigh) {
+        const baseScore = 35;
+        const weightedScore = Math.round(baseScore * config.functionWordWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Nearly identical function word usage",
+          weight: weightedScore,
+          evidence: `${Math.round(functionWordSim * 100)}% function word similarity (articles, pronouns, prepositions)`,
+        });
+      } else if (functionWordSim > config.functionWordThresholdMed) {
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.functionWordWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Very similar function word usage",
+          weight: weightedScore,
+          evidence: `${Math.round(functionWordSim * 100)}% function word similarity`,
+        });
+      } else if (functionWordSim > config.functionWordThresholdMed - 0.07) {
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.functionWordWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Similar function word patterns",
+          weight: weightedScore,
+          evidence: `${Math.round(functionWordSim * 100)}% function word similarity`,
+        });
+      }
+
+      // ========== VOCABULARY COMPLEXITY MATCHING (NEW) ==========
+      // Compare Simpson's D and Brunet's W
+
+      const simpsonsDiff = Math.abs(p1.simpsonsD - p2.simpsonsD);
+      const brunetsWDiff = Math.abs(p1.brunetsW - p2.brunetsW);
+      const yulesKDiff = Math.abs(p1.yulesK - p2.yulesK);
+
+      // All three metrics should be similar for same author
+      if (simpsonsDiff < 0.01 && brunetsWDiff < 1 && yulesKDiff < 20) {
+        const baseScore = 20;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Matching vocabulary complexity",
+          weight: weightedScore,
+          evidence: `Simpson's D: ${simpsonsDiff.toFixed(3)} diff, Brunet's W: ${brunetsWDiff.toFixed(1)} diff, Yule's K: ${yulesKDiff.toFixed(0)} diff`,
+        });
+      } else if (simpsonsDiff < 0.02 && brunetsWDiff < 2 && yulesKDiff < 40) {
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Similar vocabulary complexity",
+          weight: weightedScore,
+          evidence: `Simpson's D: ${simpsonsDiff.toFixed(3)} diff, Yule's K: ${yulesKDiff.toFixed(0)} diff`,
+        });
+      }
+
+      // ========== WORD BIGRAM ANALYSIS (NEW) ==========
+
+      const bigramSimilarity = compareWordBigrams(p1.wordBigrams, p2.wordBigrams);
+      if (bigramSimilarity > 0.25) {
+        const baseScore = 20;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Shared word pair patterns",
+          weight: weightedScore,
+          evidence: `${Math.round(bigramSimilarity * 100)}% bigram overlap`,
+        });
+      } else if (bigramSimilarity > 0.15) {
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Similar word pair usage",
+          weight: weightedScore,
+          evidence: `${Math.round(bigramSimilarity * 100)}% bigram overlap`,
+        });
+      }
+
+      // ========== MESSAGE LENGTH DISTRIBUTION (NEW) ==========
+
+      const msgLenSim = distributionSimilarity(p1.messageLengthDistribution, p2.messageLengthDistribution);
+      if (msgLenSim > 0.92) {
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
+        reasons.push({
+          type: "behavioral",
+          description: "Same message length patterns",
+          weight: weightedScore,
+          evidence: `${Math.round(msgLenSim * 100)}% message length distribution match`,
+        });
+      }
+
+      // ========== RARE WORD FINGERPRINT ==========
 
       const sharedRareWords = detectSharedRareWords(p1, p2, rareWordIndex, stats.length);
-      // STRICTER: Require 5+ truly rare words for significant score
       if (sharedRareWords.length >= 5) {
-        scoreBreakdown.rareWords = 25;
+        const baseScore = 30;
+        const weightedScore = Math.round(baseScore * config.rareWordWeight);
+        scoreBreakdown.rareWords = weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Multiple shared rare words",
-          weight: 25,
+          weight: weightedScore,
           evidence: `${sharedRareWords.length} rare words: ${sharedRareWords.slice(0, 5).join(", ")}`,
         });
       } else if (sharedRareWords.length >= 3) {
-        scoreBreakdown.rareWords = 15;
+        const baseScore = 18;
+        const weightedScore = Math.round(baseScore * config.rareWordWeight);
+        scoreBreakdown.rareWords = weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Some shared rare words",
-          weight: 15,
+          weight: weightedScore,
           evidence: `${sharedRareWords.length} rare words: ${sharedRareWords.join(", ")}`,
         });
       }
-      // 1-2 rare words is not significant enough to score
 
-      // ========== LINGUISTIC FINGERPRINT ==========
+      // ========== CHARACTER N-GRAM SIMILARITY ==========
 
-      // Character n-gram similarity - STRICTER thresholds
-      // Note: Same-language speakers naturally have 70-85% n-gram similarity
-      // Only 95%+ is truly suspicious for different people
       const ngramSim = cosineSimilarity(p1.charNgrams, p2.charNgrams);
-      if (ngramSim > 0.96) {
-        scoreBreakdown.linguistic += 20;
+      if (ngramSim > config.ngramThresholdHigh) {
+        const baseScore = 20;
+        const weightedScore = Math.round(baseScore * config.ngramWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
+        reasons.push({
+          type: "linguistic",
+          description: "Nearly identical character patterns",
+          weight: weightedScore,
+          evidence: `${Math.round(ngramSim * 100)}% n-gram similarity`,
+        });
+      } else if (ngramSim > config.ngramThresholdMed) {
+        const baseScore = 12;
+        const weightedScore = Math.round(baseScore * config.ngramWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Very high character pattern match",
-          weight: 20,
-          evidence: `${Math.round(ngramSim * 100)}% n-gram similarity`,
-        });
-      } else if (ngramSim > 0.93) {
-        scoreBreakdown.linguistic += 10;
-        reasons.push({
-          type: "linguistic",
-          description: "High character pattern similarity",
-          weight: 10,
+          weight: weightedScore,
           evidence: `${Math.round(ngramSim * 100)}% n-gram similarity`,
         });
       }
-      // Below 93% is normal for same-language speakers - no points
 
-      // Same typo patterns (distinctive but require multiple)
+      // ========== TYPO PATTERNS ==========
+
       const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
       if (sharedTypos.length >= 3) {
-        scoreBreakdown.linguistic += 20;
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.typoWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
-          description: "Same typo patterns",
-          weight: 20,
+          description: "Same distinctive typos",
+          weight: weightedScore,
           evidence: sharedTypos.join(", "),
         });
       } else if (sharedTypos.length === 2) {
-        scoreBreakdown.linguistic += 10;
+        const baseScore = 12;
+        const weightedScore = Math.round(baseScore * config.typoWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Shared typo patterns",
-          weight: 10,
+          weight: weightedScore,
           evidence: sharedTypos.join(", "),
         });
       }
-      // 1 shared typo is not significant
 
-      // Letter substitution patterns - common in gaming, lower weight
-      const sharedSubs = [...p1.letterSubstitutions.keys()].filter(k => p2.letterSubstitutions.has(k));
-      if (sharedSubs.length >= 5) {
-        scoreBreakdown.linguistic += 15;
+      // ========== GREETING/FAREWELL STYLE (NEW) ==========
+
+      const sharedGreetings = p1.greetingStyle.filter(g => p2.greetingStyle.includes(g));
+      const sharedFarewells = p1.farewellStyle.filter(f => p2.farewellStyle.includes(f));
+
+      if (sharedGreetings.length >= 2 && sharedFarewells.length >= 2) {
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
-          type: "linguistic",
-          description: "Same abbreviation style",
-          weight: 15,
-          evidence: sharedSubs.slice(0, 5).join(", "),
+          type: "behavioral",
+          description: "Same greeting and farewell style",
+          weight: weightedScore,
+          evidence: `Greets: ${sharedGreetings.join(", ")} | Farewells: ${sharedFarewells.join(", ")}`,
         });
-      } else if (sharedSubs.length >= 3) {
-        scoreBreakdown.linguistic += 8;
+      } else if (sharedGreetings.length + sharedFarewells.length >= 3) {
+        const baseScore = 8;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
-          type: "linguistic",
-          description: "Similar abbreviation style",
-          weight: 8,
-          evidence: sharedSubs.slice(0, 4).join(", "),
+          type: "behavioral",
+          description: "Similar greeting/farewell patterns",
+          weight: weightedScore,
+          evidence: `${sharedGreetings.length} greetings, ${sharedFarewells.length} farewells match`,
         });
       }
 
-      // ========== MICRO-PATTERNS MATCHING (stricter) ==========
-      // Note: Many of these are common internet typing habits, not unique fingerprints
-      // Only the rare/distinctive ones should score, and require multiple matches
+      // ========== MICRO-PATTERNS ==========
 
       const microMatches: string[] = [];
-      // These are RARE and distinctive:
       if (p1.microPatterns.doubleSpaces && p2.microPatterns.doubleSpaces) microMatches.push("double spaces");
       if (p1.microPatterns.noSpaceAfterPunct && p2.microPatterns.noSpaceAfterPunct) microMatches.push("no space after punct");
       if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("EXCESSIVE CAPS");
-      // These are COMMON - only count if combined with rare ones:
+
       const commonMicroMatches: string[] = [];
       if (p1.microPatterns.lowercaseI && p2.microPatterns.lowercaseI) commonMicroMatches.push("lowercase i");
       if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) commonMicroMatches.push("all lowercase");
       if (p1.microPatterns.noCapitalStart && p2.microPatterns.noCapitalStart) commonMicroMatches.push("no capital start");
       if (p1.microPatterns.numberSubstitution && p2.microPatterns.numberSubstitution) commonMicroMatches.push("number subs");
 
-      // Only score if we have rare micro-patterns, or many common ones
       if (microMatches.length >= 2) {
-        scoreBreakdown.linguistic += 15;
+        const baseScore = 18;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Distinctive micro-pattern match",
-          weight: 15,
+          weight: weightedScore,
           evidence: microMatches.join(", "),
         });
       } else if (microMatches.length >= 1 && commonMicroMatches.length >= 2) {
-        scoreBreakdown.linguistic += 10;
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Shared typing quirks",
-          weight: 10,
+          weight: weightedScore,
           evidence: [...microMatches, ...commonMicroMatches].join(", "),
         });
       }
-      // Common patterns alone (all lowercase, no caps) are not significant
 
-      // ========== EMOTICON STYLE MATCHING (reduced weight) ==========
-      // Common emotes like "lol", ":)" are used by everyone - low value
+      // ========== PHRASE OVERLAP ==========
 
-      const sharedEmotes = p1.emoticonStyle.commonEmotes.filter(e =>
-        p2.emoticonStyle.commonEmotes.includes(e)
-      );
-      // Only score if they share 4+ emotes (most people share 2-3)
-      if (sharedEmotes.length >= 4) {
-        scoreBreakdown.behavioral += 8;
-        reasons.push({
-          type: "behavioral",
-          description: "Same emoticon preferences",
-          weight: 8,
-          evidence: sharedEmotes.slice(0, 4).join(", "),
-        });
-      }
-      // Nose style match (actually rare and distinctive)
-      if (p1.emoticonStyle.usesNose && p2.emoticonStyle.usesNose) {
-        scoreBreakdown.behavioral += 8;
-        reasons.push({
-          type: "behavioral",
-          description: "Both use nose emoticons (:-) style)",
-          weight: 8,
-        });
-      }
-
-      // ========== BEHAVIORAL ANALYSIS ==========
-
-      // Phrase overlap - must be 3+ word phrases and multiple matches
       const phraseOverlap = p1.commonPhrases.filter(p =>
         p2.commonPhrases.includes(p) && p.split(' ').length >= 3
       );
       if (phraseOverlap.length >= 3) {
-        scoreBreakdown.behavioral += 20;
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Same unique phrases",
-          weight: 20,
+          weight: weightedScore,
           evidence: phraseOverlap.slice(0, 3).map(p => `"${p}"`).join(", "),
         });
       } else if (phraseOverlap.length === 2) {
-        scoreBreakdown.behavioral += 10;
+        const baseScore = 12;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Shared phrases",
-          weight: 10,
+          weight: weightedScore,
           evidence: phraseOverlap.map(p => `"${p}"`).join(", "),
         });
       }
-      // 1 shared phrase is not significant
 
-      // Common starters - many people start with "i", "yeah", "but" etc
-      // Only significant if 5+ unique starters match
+      // ========== COMMON STARTERS AND ENDERS (ENHANCED) ==========
+
       const sharedStarters = p1.commonStarters.filter(s =>
         p2.commonStarters.includes(s) && !STOP_WORDS.has(s.toLowerCase())
       );
-      if (sharedStarters.length >= 5) {
-        scoreBreakdown.behavioral += 10;
+      const sharedEnders = p1.commonEnders.filter(e =>
+        p2.commonEnders.includes(e) && !STOP_WORDS.has(e.toLowerCase())
+      );
+
+      if (sharedStarters.length >= 4 && sharedEnders.length >= 3) {
+        const baseScore = 18;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
+        reasons.push({
+          type: "behavioral",
+          description: "Same sentence starters and enders",
+          weight: weightedScore,
+          evidence: `Starters: ${sharedStarters.slice(0, 3).join(", ")} | Enders: ${sharedEnders.slice(0, 3).join(", ")}`,
+        });
+      } else if (sharedStarters.length >= 4) {
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Same sentence starters",
-          weight: 10,
+          weight: weightedScore,
           evidence: sharedStarters.slice(0, 5).join(", "),
         });
       }
 
       // ========== NETWORK ANALYSIS ==========
-      // In Wurm, "no interaction" is actually common - people chat in general without
-      // talking to specific people. Very low weight, only as supporting evidence.
 
       const p1MentionsP2 = p1.mentionedPlayers.has(p2.name);
       const p2MentionsP1 = p2.mentionedPlayers.has(p1.name);
@@ -393,12 +528,13 @@ export function detectAltsAdvanced(
 
       if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
           p1.messageCount >= 50 && p2.messageCount >= 50) {
-        // Very low weight - this is common in game chats
-        scoreBreakdown.network = 5;
+        const baseScore = 8;
+        const weightedScore = Math.round(baseScore * config.networkWeight);
+        scoreBreakdown.network = weightedScore;
         reasons.push({
           type: "network",
           description: "Never interacted with each other",
-          weight: 5,
+          weight: weightedScore,
           evidence: "No mentions or replies despite many messages",
         });
       }
@@ -412,37 +548,35 @@ export function detectAltsAdvanced(
                        scoreBreakdown.rareWords +
                        scoreBreakdown.handoff;
 
-      // ========== CATEGORY BONUSES (reduced) ==========
-      // Bonuses should be small - the base evidence should be strong enough
+      // ========== CATEGORY BONUSES ==========
 
-      const hasStrongTemporalEvidence = scoreBreakdown.temporal >= 40 || scoreBreakdown.handoff >= 35;
-      const hasLinguisticEvidence = scoreBreakdown.linguistic >= 30;
-      const hasBehavioralEvidence = scoreBreakdown.behavioral >= 25;
+      const hasStrongTemporalEvidence = scoreBreakdown.temporal >= 45 || scoreBreakdown.handoff >= 35;
+      const hasStrongLinguisticEvidence = scoreBreakdown.linguistic >= 50;
+      const hasBehavioralEvidence = scoreBreakdown.behavioral >= 30;
 
-      // Only give bonus for truly strong combined evidence
-      // Temporal (never online together) + Strong linguistic = suspicious
-      if (hasStrongTemporalEvidence && hasLinguisticEvidence) {
+      // Temporal + Linguistic is the strongest combination
+      if (hasStrongTemporalEvidence && hasStrongLinguisticEvidence) {
+        const bonus = Math.round(totalScore * 0.20);
+        scoreBreakdown.bonus += bonus;
+        totalScore += bonus;
+        reasons.push({
+          type: "bonus",
+          description: "Strong Temporal + Linguistic evidence",
+          weight: bonus,
+          evidence: "Never online together AND matching writing fingerprint",
+        });
+      }
+
+      // All three categories = very suspicious
+      if (hasStrongTemporalEvidence && hasStrongLinguisticEvidence && hasBehavioralEvidence) {
         const bonus = Math.round(totalScore * 0.15);
         scoreBreakdown.bonus += bonus;
         totalScore += bonus;
         reasons.push({
           type: "bonus",
-          description: "Temporal + Linguistic combination",
+          description: "Triple category match",
           weight: bonus,
-          evidence: "Never online together AND same writing style",
-        });
-      }
-
-      // Strong linguistic + behavioral = suspicious (but smaller bonus)
-      if (hasLinguisticEvidence && hasBehavioralEvidence && !hasStrongTemporalEvidence) {
-        const bonus = Math.round(totalScore * 0.10);
-        scoreBreakdown.bonus += bonus;
-        totalScore += bonus;
-        reasons.push({
-          type: "bonus",
-          description: "Linguistic + Behavioral combination",
-          weight: bonus,
-          evidence: "Same writing style AND same expressions",
+          evidence: "Temporal + Linguistic + Behavioral all indicate same person",
         });
       }
 
@@ -450,25 +584,23 @@ export function detectAltsAdvanced(
       scores[i][j] = totalScore;
       scores[j][i] = totalScore;
 
-      // MUCH STRICTER: Require significant evidence from multiple categories
-      const strongReasons = reasons.filter(r => r.weight >= 15 && r.type !== "bonus");
-      const veryStrongReasons = reasons.filter(r => r.weight >= 20 && r.type !== "bonus");
+      // ========== DETERMINE IF SUSPICIOUS ENOUGH TO REPORT ==========
 
-      // Need at least 60 points AND 2 strong reasons to even report
-      if (totalScore >= 60 && strongReasons.length >= 2) {
-        // CONSERVATIVE confidence formula:
-        // - Score of 60 = ~35% confidence (low)
-        // - Score of 100 = ~55% confidence (medium)
-        // - Score of 150 = ~75% confidence (high)
-        // - Need 180+ for critical (85%+)
-        // This makes high confidence much harder to achieve
-        const confidence = Math.min(Math.round(totalScore * 0.45 + 8), 95);
+      const strongReasons = reasons.filter(r => r.weight >= 15 && r.type !== "bonus");
+      const veryStrongReasons = reasons.filter(r => r.weight >= 25 && r.type !== "bonus");
+
+      // Use config thresholds for reporting
+      if (totalScore >= config.minScoreToReport && strongReasons.length >= config.minStrongReasons) {
+        // Configurable confidence formula
+        const confidence = Math.min(
+          Math.round(totalScore * config.confidenceMultiplier + config.confidenceBase),
+          95
+        );
 
         let category: AltSuspicion["category"];
-        // Critical: Must have temporal evidence + very strong supporting evidence
-        if (neverOnlineTogether && veryStrongReasons.length >= 3 && confidence >= 80) category = "critical";
-        else if (confidence >= 70 && veryStrongReasons.length >= 2) category = "high";
-        else if (confidence >= 50) category = "medium";
+        if (neverOnlineTogether && veryStrongReasons.length >= 3 && confidence >= 82) category = "critical";
+        else if (confidence >= 72 && veryStrongReasons.length >= 2) category = "high";
+        else if (confidence >= 55) category = "medium";
         else category = "low";
 
         // Generate human explanation
@@ -497,5 +629,6 @@ export function detectAltsAdvanced(
   return {
     suspicions: suspicions.sort((a, b) => b.confidence - a.confidence),
     matrix: { players, scores },
+    config, // Return the config used for UI display
   };
 }

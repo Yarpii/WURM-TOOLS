@@ -16,6 +16,9 @@ export type {
   ParsedLine,
   HandoffResult,
   WurmTopicOverlap,
+  // NEW types
+  FunctionWordProfile,
+  ActivityPattern,
 } from "./types";
 
 // Constants
@@ -28,6 +31,10 @@ export {
   TYPO_CHECKS,
   LETTER_SUBSTITUTION_PATTERNS,
   EMOTE_PATTERNS,
+  // Algorithm modes
+  ALGORITHM_CONFIGS,
+  type AlgorithmMode,
+  type AlgorithmConfig,
 } from "./constants";
 
 // Utilities
@@ -46,6 +53,20 @@ export {
   calculateWordLengthDistribution,
   detectMicroPatterns,
   detectEmoticonStyle,
+  // NEW exports
+  extractWordBigrams,
+  analyzeFunctionWords,
+  calculateSimpsonsD,
+  calculateBrunetsW,
+  analyzePunctuationFrequency,
+  calculateMessageLengthDistribution,
+  analyzeActivityPattern,
+  detectGreetingStyle,
+  detectFarewellStyle,
+  extractCommonEnders,
+  compareFunctionWordProfiles,
+  compareActivityPatterns,
+  compareWordBigrams,
 } from "./linguistic";
 
 // Behavioral analysis
