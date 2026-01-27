@@ -172,3 +172,6 @@ export interface WurmTopicOverlap {
   score: number;
   sharedTopics: string[];
 }
+
+// Re-export AlgorithmConfig from constants for convenience
+export type { AlgorithmConfig, AlgorithmMode } from "./constants";

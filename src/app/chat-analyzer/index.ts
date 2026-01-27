@@ -31,6 +31,10 @@ export {
   TYPO_CHECKS,
   LETTER_SUBSTITUTION_PATTERNS,
   EMOTE_PATTERNS,
+  // Algorithm modes
+  ALGORITHM_CONFIGS,
+  type AlgorithmMode,
+  type AlgorithmConfig,
 } from "./constants";
 
 // Utilities

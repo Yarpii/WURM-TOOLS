@@ -3,7 +3,7 @@
 // ============================================================================
 
 import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, ScoreBreakdown, HandoffResult } from "./types";
-import { STOP_WORDS } from "./constants";
+import { STOP_WORDS, ALGORITHM_CONFIGS, type AlgorithmMode, type AlgorithmConfig } from "./constants";
 import { cosineSimilarity, distributionSimilarity } from "./utils";
 import { buildRareWordIndex, detectSharedRareWords } from "./behavioral";
 import { generateHumanExplanation } from "./playerAnalysis";
@@ -116,11 +116,16 @@ export function detectHandoffPattern(
 /**
  * Main alt detection engine (v4.0 - Enhanced Accuracy)
  * Uses advanced stylometry, function words, and statistical analysis
+ * @param stats - Player statistics array
+ * @param messages - All chat messages
+ * @param mode - Algorithm mode to use (default: "balanced")
  */
 export function detectAltsAdvanced(
   stats: AdvancedPlayerStats[],
-  messages: ChatMessage[]
-): { suspicions: AltSuspicion[]; matrix: SimilarityMatrix } {
+  messages: ChatMessage[],
+  mode: AlgorithmMode = "balanced"
+): { suspicions: AltSuspicion[]; matrix: SimilarityMatrix; config: AlgorithmConfig } {
+  const config = ALGORITHM_CONFIGS[mode];
   const suspicions: AltSuspicion[] = [];
   const players = stats.map(s => s.name);
   const scores: number[][] = players.map(() => players.map(() => 0));
@@ -138,8 +143,8 @@ export function detectAltsAdvanced(
       const p1 = stats[i];
       const p2 = stats[j];
 
-      // Require at least 20 messages each for reliable analysis
-      if (p1.messageCount < 20 || p2.messageCount < 20) continue;
+      // Require minimum messages for reliable analysis (configurable)
+      if (p1.messageCount < config.minMessages || p2.messageCount < config.minMessages) continue;
 
       const reasons: { type: string; description: string; weight: number; evidence?: string }[] = [];
       const scoreBreakdown: ScoreBreakdown = {
@@ -161,19 +166,23 @@ export function detectAltsAdvanced(
         p2.activeMinutes.size >= 30;
 
       if (neverOnlineTogether) {
-        scoreBreakdown.temporal += 45; // Increased - this is a very strong signal
+        const baseScore = 45;
+        const weightedScore = Math.round(baseScore * config.temporalWeight);
+        scoreBreakdown.temporal += weightedScore;
         reasons.push({
           type: "temporal",
           description: "Never online at the same time",
-          weight: 45,
+          weight: weightedScore,
           evidence: `${p1.name}: ${p1.activeMinutes.size} min active, ${p2.name}: ${p2.activeMinutes.size} min active, 0 overlap`,
         });
       } else if (overlap.size > 0 && minActivity >= 30 && overlap.size < minActivity * 0.03) {
-        scoreBreakdown.temporal += 25;
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.temporalWeight);
+        scoreBreakdown.temporal += weightedScore;
         reasons.push({
           type: "temporal",
           description: "Minimal time overlap",
-          weight: 25,
+          weight: weightedScore,
           evidence: `Only ${overlap.size} of ${minActivity} minutes overlap (${Math.round(overlap.size/minActivity*100)}%)`,
         });
       }
@@ -184,11 +193,13 @@ export function detectAltsAdvanced(
       const activitySimilarity = compareActivityPatterns(p1.activityPattern, p2.activityPattern);
       // If activity patterns are DIFFERENT but both have 0 overlap, that's suspicious
       if (neverOnlineTogether && activitySimilarity < 0.4) {
-        scoreBreakdown.temporal += 15;
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.temporalWeight);
+        scoreBreakdown.temporal += weightedScore;
         reasons.push({
           type: "temporal",
           description: "Complementary schedules",
-          weight: 15,
+          weight: weightedScore,
           evidence: `Different time-of-day patterns (${Math.round(activitySimilarity * 100)}% similar)`,
         });
       }
@@ -197,11 +208,12 @@ export function detectAltsAdvanced(
 
       const handoffData = detectHandoffPattern(p1, p2, messages);
       if (handoffData.score > 0) {
-        scoreBreakdown.handoff = handoffData.score;
+        const weightedScore = Math.round(handoffData.score * config.handoffWeight);
+        scoreBreakdown.handoff = weightedScore;
         reasons.push({
           type: "temporal",
           description: "Handoff pattern detected",
-          weight: handoffData.score,
+          weight: weightedScore,
           evidence: `${handoffData.handoffCount} of ${handoffData.totalTransitions} session transitions are handoffs (${Math.round(handoffData.handoffCount/handoffData.totalTransitions*100)}%)`,
         });
       }
@@ -210,28 +222,34 @@ export function detectAltsAdvanced(
       // Function words are unconsciously used and very hard to fake
 
       const functionWordSim = compareFunctionWordProfiles(p1.functionWords, p2.functionWords);
-      if (functionWordSim > 0.92) {
-        scoreBreakdown.linguistic += 35; // Very high weight - this is extremely reliable
+      if (functionWordSim > config.functionWordThresholdHigh) {
+        const baseScore = 35;
+        const weightedScore = Math.round(baseScore * config.functionWordWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Nearly identical function word usage",
-          weight: 35,
+          weight: weightedScore,
           evidence: `${Math.round(functionWordSim * 100)}% function word similarity (articles, pronouns, prepositions)`,
         });
-      } else if (functionWordSim > 0.85) {
-        scoreBreakdown.linguistic += 25;
+      } else if (functionWordSim > config.functionWordThresholdMed) {
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.functionWordWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Very similar function word usage",
-          weight: 25,
+          weight: weightedScore,
           evidence: `${Math.round(functionWordSim * 100)}% function word similarity`,
         });
-      } else if (functionWordSim > 0.78) {
-        scoreBreakdown.linguistic += 15;
+      } else if (functionWordSim > config.functionWordThresholdMed - 0.07) {
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.functionWordWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Similar function word patterns",
-          weight: 15,
+          weight: weightedScore,
           evidence: `${Math.round(functionWordSim * 100)}% function word similarity`,
         });
       }
@@ -245,19 +263,23 @@ export function detectAltsAdvanced(
 
       // All three metrics should be similar for same author
       if (simpsonsDiff < 0.01 && brunetsWDiff < 1 && yulesKDiff < 20) {
-        scoreBreakdown.linguistic += 20;
+        const baseScore = 20;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Matching vocabulary complexity",
-          weight: 20,
+          weight: weightedScore,
           evidence: `Simpson's D: ${simpsonsDiff.toFixed(3)} diff, Brunet's W: ${brunetsWDiff.toFixed(1)} diff, Yule's K: ${yulesKDiff.toFixed(0)} diff`,
         });
       } else if (simpsonsDiff < 0.02 && brunetsWDiff < 2 && yulesKDiff < 40) {
-        scoreBreakdown.linguistic += 10;
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Similar vocabulary complexity",
-          weight: 10,
+          weight: weightedScore,
           evidence: `Simpson's D: ${simpsonsDiff.toFixed(3)} diff, Yule's K: ${yulesKDiff.toFixed(0)} diff`,
         });
       }
@@ -266,19 +288,23 @@ export function detectAltsAdvanced(
 
       const bigramSimilarity = compareWordBigrams(p1.wordBigrams, p2.wordBigrams);
       if (bigramSimilarity > 0.25) {
-        scoreBreakdown.linguistic += 20;
+        const baseScore = 20;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Shared word pair patterns",
-          weight: 20,
+          weight: weightedScore,
           evidence: `${Math.round(bigramSimilarity * 100)}% bigram overlap`,
         });
       } else if (bigramSimilarity > 0.15) {
-        scoreBreakdown.linguistic += 10;
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Similar word pair usage",
-          weight: 10,
+          weight: weightedScore,
           evidence: `${Math.round(bigramSimilarity * 100)}% bigram overlap`,
         });
       }
@@ -287,11 +313,13 @@ export function detectAltsAdvanced(
 
       const msgLenSim = distributionSimilarity(p1.messageLengthDistribution, p2.messageLengthDistribution);
       if (msgLenSim > 0.92) {
-        scoreBreakdown.behavioral += 15;
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Same message length patterns",
-          weight: 15,
+          weight: weightedScore,
           evidence: `${Math.round(msgLenSim * 100)}% message length distribution match`,
         });
       }
@@ -300,19 +328,23 @@ export function detectAltsAdvanced(
 
       const sharedRareWords = detectSharedRareWords(p1, p2, rareWordIndex, stats.length);
       if (sharedRareWords.length >= 5) {
-        scoreBreakdown.rareWords = 30; // Increased weight
+        const baseScore = 30;
+        const weightedScore = Math.round(baseScore * config.rareWordWeight);
+        scoreBreakdown.rareWords = weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Multiple shared rare words",
-          weight: 30,
+          weight: weightedScore,
           evidence: `${sharedRareWords.length} rare words: ${sharedRareWords.slice(0, 5).join(", ")}`,
         });
       } else if (sharedRareWords.length >= 3) {
-        scoreBreakdown.rareWords = 18;
+        const baseScore = 18;
+        const weightedScore = Math.round(baseScore * config.rareWordWeight);
+        scoreBreakdown.rareWords = weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Some shared rare words",
-          weight: 18,
+          weight: weightedScore,
           evidence: `${sharedRareWords.length} rare words: ${sharedRareWords.join(", ")}`,
         });
       }
@@ -320,20 +352,24 @@ export function detectAltsAdvanced(
       // ========== CHARACTER N-GRAM SIMILARITY ==========
 
       const ngramSim = cosineSimilarity(p1.charNgrams, p2.charNgrams);
-      if (ngramSim > 0.97) {
-        scoreBreakdown.linguistic += 20;
+      if (ngramSim > config.ngramThresholdHigh) {
+        const baseScore = 20;
+        const weightedScore = Math.round(baseScore * config.ngramWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Nearly identical character patterns",
-          weight: 20,
+          weight: weightedScore,
           evidence: `${Math.round(ngramSim * 100)}% n-gram similarity`,
         });
-      } else if (ngramSim > 0.94) {
-        scoreBreakdown.linguistic += 12;
+      } else if (ngramSim > config.ngramThresholdMed) {
+        const baseScore = 12;
+        const weightedScore = Math.round(baseScore * config.ngramWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Very high character pattern match",
-          weight: 12,
+          weight: weightedScore,
           evidence: `${Math.round(ngramSim * 100)}% n-gram similarity`,
         });
       }
@@ -342,19 +378,23 @@ export function detectAltsAdvanced(
 
       const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
       if (sharedTypos.length >= 3) {
-        scoreBreakdown.linguistic += 25;
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.typoWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Same distinctive typos",
-          weight: 25,
+          weight: weightedScore,
           evidence: sharedTypos.join(", "),
         });
       } else if (sharedTypos.length === 2) {
-        scoreBreakdown.linguistic += 12;
+        const baseScore = 12;
+        const weightedScore = Math.round(baseScore * config.typoWeight * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Shared typo patterns",
-          weight: 12,
+          weight: weightedScore,
           evidence: sharedTypos.join(", "),
         });
       }
@@ -365,19 +405,23 @@ export function detectAltsAdvanced(
       const sharedFarewells = p1.farewellStyle.filter(f => p2.farewellStyle.includes(f));
 
       if (sharedGreetings.length >= 2 && sharedFarewells.length >= 2) {
-        scoreBreakdown.behavioral += 15;
+        const baseScore = 15;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Same greeting and farewell style",
-          weight: 15,
+          weight: weightedScore,
           evidence: `Greets: ${sharedGreetings.join(", ")} | Farewells: ${sharedFarewells.join(", ")}`,
         });
       } else if (sharedGreetings.length + sharedFarewells.length >= 3) {
-        scoreBreakdown.behavioral += 8;
+        const baseScore = 8;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Similar greeting/farewell patterns",
-          weight: 8,
+          weight: weightedScore,
           evidence: `${sharedGreetings.length} greetings, ${sharedFarewells.length} farewells match`,
         });
       }
@@ -396,19 +440,23 @@ export function detectAltsAdvanced(
       if (p1.microPatterns.numberSubstitution && p2.microPatterns.numberSubstitution) commonMicroMatches.push("number subs");
 
       if (microMatches.length >= 2) {
-        scoreBreakdown.linguistic += 18;
+        const baseScore = 18;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Distinctive micro-pattern match",
-          weight: 18,
+          weight: weightedScore,
           evidence: microMatches.join(", "),
         });
       } else if (microMatches.length >= 1 && commonMicroMatches.length >= 2) {
-        scoreBreakdown.linguistic += 10;
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.linguisticWeight);
+        scoreBreakdown.linguistic += weightedScore;
         reasons.push({
           type: "linguistic",
           description: "Shared typing quirks",
-          weight: 10,
+          weight: weightedScore,
           evidence: [...microMatches, ...commonMicroMatches].join(", "),
         });
       }
@@ -419,19 +467,23 @@ export function detectAltsAdvanced(
         p2.commonPhrases.includes(p) && p.split(' ').length >= 3
       );
       if (phraseOverlap.length >= 3) {
-        scoreBreakdown.behavioral += 25;
+        const baseScore = 25;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Same unique phrases",
-          weight: 25,
+          weight: weightedScore,
           evidence: phraseOverlap.slice(0, 3).map(p => `"${p}"`).join(", "),
         });
       } else if (phraseOverlap.length === 2) {
-        scoreBreakdown.behavioral += 12;
+        const baseScore = 12;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Shared phrases",
-          weight: 12,
+          weight: weightedScore,
           evidence: phraseOverlap.map(p => `"${p}"`).join(", "),
         });
       }
@@ -446,19 +498,23 @@ export function detectAltsAdvanced(
       );
 
       if (sharedStarters.length >= 4 && sharedEnders.length >= 3) {
-        scoreBreakdown.behavioral += 18;
+        const baseScore = 18;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Same sentence starters and enders",
-          weight: 18,
+          weight: weightedScore,
           evidence: `Starters: ${sharedStarters.slice(0, 3).join(", ")} | Enders: ${sharedEnders.slice(0, 3).join(", ")}`,
         });
       } else if (sharedStarters.length >= 4) {
-        scoreBreakdown.behavioral += 10;
+        const baseScore = 10;
+        const weightedScore = Math.round(baseScore * config.behavioralWeight);
+        scoreBreakdown.behavioral += weightedScore;
         reasons.push({
           type: "behavioral",
           description: "Same sentence starters",
-          weight: 10,
+          weight: weightedScore,
           evidence: sharedStarters.slice(0, 5).join(", "),
         });
       }
@@ -472,11 +528,13 @@ export function detectAltsAdvanced(
 
       if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
           p1.messageCount >= 50 && p2.messageCount >= 50) {
-        scoreBreakdown.network = 8;
+        const baseScore = 8;
+        const weightedScore = Math.round(baseScore * config.networkWeight);
+        scoreBreakdown.network = weightedScore;
         reasons.push({
           type: "network",
           description: "Never interacted with each other",
-          weight: 8,
+          weight: weightedScore,
           evidence: "No mentions or replies despite many messages",
         });
       }
@@ -531,14 +589,13 @@ export function detectAltsAdvanced(
       const strongReasons = reasons.filter(r => r.weight >= 15 && r.type !== "bonus");
       const veryStrongReasons = reasons.filter(r => r.weight >= 25 && r.type !== "bonus");
 
-      // Need at least 70 points AND 2 strong reasons to report
-      if (totalScore >= 70 && strongReasons.length >= 2) {
-        // Improved confidence formula:
-        // - Score of 70 = ~40% confidence (low)
-        // - Score of 120 = ~60% confidence (medium)
-        // - Score of 180 = ~80% confidence (high)
-        // - Score of 220+ = ~90%+ confidence (critical)
-        const confidence = Math.min(Math.round(totalScore * 0.40 + 12), 95);
+      // Use config thresholds for reporting
+      if (totalScore >= config.minScoreToReport && strongReasons.length >= config.minStrongReasons) {
+        // Configurable confidence formula
+        const confidence = Math.min(
+          Math.round(totalScore * config.confidenceMultiplier + config.confidenceBase),
+          95
+        );
 
         let category: AltSuspicion["category"];
         if (neverOnlineTogether && veryStrongReasons.length >= 3 && confidence >= 82) category = "critical";
@@ -572,5 +629,6 @@ export function detectAltsAdvanced(
   return {
     suspicions: suspicions.sort((a, b) => b.confidence - a.confidence),
     matrix: { players, scores },
+    config, // Return the config used for UI display
   };
 }

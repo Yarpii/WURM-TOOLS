@@ -2,6 +2,231 @@
 // CHAT ANALYZER - CONSTANTS
 // ============================================================================
 
+// ============================================================================
+// ALGORITHM MODES - Selectable detection presets
+// ============================================================================
+
+export type AlgorithmMode =
+  | "balanced"      // Default - good balance of accuracy and false positive rate
+  | "strict"        // Conservative - fewer false positives, may miss some alts
+  | "sensitive"     // Aggressive - catches more alts, but more false positives
+  | "temporal"      // Focus on timing patterns (handoff, never online together)
+  | "linguistic"    // Focus on writing style (function words, n-grams, typos)
+  | "wurm";         // Wurm Online optimized - tuned for game-specific patterns
+
+export interface AlgorithmConfig {
+  name: string;
+  description: string;
+  // Minimum thresholds
+  minMessages: number;          // Minimum messages per player
+  minScoreToReport: number;     // Minimum total score to report
+  minStrongReasons: number;     // Minimum strong reasons required
+  // Weight multipliers for each category (1.0 = normal)
+  temporalWeight: number;
+  linguisticWeight: number;
+  behavioralWeight: number;
+  networkWeight: number;
+  // Specific feature weights
+  functionWordWeight: number;   // Function words are most reliable
+  ngramWeight: number;
+  typoWeight: number;
+  rareWordWeight: number;
+  handoffWeight: number;
+  // Thresholds for triggering features
+  ngramThresholdHigh: number;   // N-gram similarity for high score
+  ngramThresholdMed: number;    // N-gram similarity for medium score
+  functionWordThresholdHigh: number;
+  functionWordThresholdMed: number;
+  // Confidence calculation
+  confidenceMultiplier: number;
+  confidenceBase: number;
+}
+
+export const ALGORITHM_CONFIGS: Record<AlgorithmMode, AlgorithmConfig> = {
+  balanced: {
+    name: "Balanced (v4.0)",
+    description: "Default algorithm with good accuracy and low false positives",
+    minMessages: 20,
+    minScoreToReport: 70,
+    minStrongReasons: 2,
+    temporalWeight: 1.0,
+    linguisticWeight: 1.0,
+    behavioralWeight: 1.0,
+    networkWeight: 1.0,
+    functionWordWeight: 1.0,
+    ngramWeight: 1.0,
+    typoWeight: 1.0,
+    rareWordWeight: 1.0,
+    handoffWeight: 1.0,
+    ngramThresholdHigh: 0.97,
+    ngramThresholdMed: 0.94,
+    functionWordThresholdHigh: 0.92,
+    functionWordThresholdMed: 0.85,
+    confidenceMultiplier: 0.40,
+    confidenceBase: 12,
+  },
+  strict: {
+    name: "Strict (Low False Positives)",
+    description: "Conservative mode - only reports high-confidence matches",
+    minMessages: 30,
+    minScoreToReport: 100,
+    minStrongReasons: 3,
+    temporalWeight: 1.2,
+    linguisticWeight: 1.0,
+    behavioralWeight: 0.8,
+    networkWeight: 0.5,
+    functionWordWeight: 1.3,
+    ngramWeight: 0.8,
+    typoWeight: 1.2,
+    rareWordWeight: 1.0,
+    handoffWeight: 1.2,
+    ngramThresholdHigh: 0.98,
+    ngramThresholdMed: 0.96,
+    functionWordThresholdHigh: 0.94,
+    functionWordThresholdMed: 0.88,
+    confidenceMultiplier: 0.35,
+    confidenceBase: 15,
+  },
+  sensitive: {
+    name: "Sensitive (Catch More)",
+    description: "Aggressive mode - catches more potential alts, may have false positives",
+    minMessages: 15,
+    minScoreToReport: 50,
+    minStrongReasons: 1,
+    temporalWeight: 1.0,
+    linguisticWeight: 1.2,
+    behavioralWeight: 1.2,
+    networkWeight: 1.0,
+    functionWordWeight: 1.0,
+    ngramWeight: 1.2,
+    typoWeight: 1.0,
+    rareWordWeight: 1.2,
+    handoffWeight: 1.0,
+    ngramThresholdHigh: 0.95,
+    ngramThresholdMed: 0.90,
+    functionWordThresholdHigh: 0.88,
+    functionWordThresholdMed: 0.78,
+    confidenceMultiplier: 0.45,
+    confidenceBase: 10,
+  },
+  temporal: {
+    name: "Temporal Focus",
+    description: "Emphasizes timing patterns - handoffs, never online together",
+    minMessages: 20,
+    minScoreToReport: 60,
+    minStrongReasons: 2,
+    temporalWeight: 1.5,
+    linguisticWeight: 0.7,
+    behavioralWeight: 0.8,
+    networkWeight: 1.2,
+    functionWordWeight: 0.8,
+    ngramWeight: 0.7,
+    typoWeight: 0.8,
+    rareWordWeight: 0.8,
+    handoffWeight: 1.5,
+    ngramThresholdHigh: 0.97,
+    ngramThresholdMed: 0.94,
+    functionWordThresholdHigh: 0.92,
+    functionWordThresholdMed: 0.85,
+    confidenceMultiplier: 0.42,
+    confidenceBase: 10,
+  },
+  linguistic: {
+    name: "Linguistic Focus",
+    description: "Emphasizes writing style - function words, n-grams, typos",
+    minMessages: 25,
+    minScoreToReport: 70,
+    minStrongReasons: 2,
+    temporalWeight: 0.7,
+    linguisticWeight: 1.4,
+    behavioralWeight: 1.0,
+    networkWeight: 0.6,
+    functionWordWeight: 1.5,
+    ngramWeight: 1.3,
+    typoWeight: 1.3,
+    rareWordWeight: 1.2,
+    handoffWeight: 0.7,
+    ngramThresholdHigh: 0.96,
+    ngramThresholdMed: 0.92,
+    functionWordThresholdHigh: 0.90,
+    functionWordThresholdMed: 0.82,
+    confidenceMultiplier: 0.40,
+    confidenceBase: 12,
+  },
+  wurm: {
+    name: "Wurm Online Optimized",
+    description: "Tuned for Wurm Online chat patterns and terminology",
+    minMessages: 20,
+    minScoreToReport: 65,
+    minStrongReasons: 2,
+    temporalWeight: 1.2,  // Important - alts often don't overlap
+    linguisticWeight: 1.1,
+    behavioralWeight: 1.2, // Wurm has specific behavioral patterns
+    networkWeight: 0.8,   // Less weight - people often don't interact in general chat
+    functionWordWeight: 1.0,
+    ngramWeight: 1.0,
+    typoWeight: 1.1,
+    rareWordWeight: 1.3,  // Important - Wurm-specific vocabulary
+    handoffWeight: 1.3,   // Multiboxing/alt-switching is common
+    ngramThresholdHigh: 0.96,
+    ngramThresholdMed: 0.93,
+    functionWordThresholdHigh: 0.90,
+    functionWordThresholdMed: 0.83,
+    confidenceMultiplier: 0.42,
+    confidenceBase: 11,
+  },
+};
+
+// ============================================================================
+// WURM ONLINE SPECIFIC PATTERNS
+// ============================================================================
+
+// Wurm trade chat patterns - WTS/WTB/WTT/PC prefixes
+export const WURM_TRADE_PATTERNS = [
+  /^wts\b/i,   // Want to sell
+  /^wtb\b/i,   // Want to buy
+  /^wtt\b/i,   // Want to trade
+  /^pc\b/i,    // Price check
+];
+
+// Wurm-specific abbreviations that are fingerprinting
+export const WURM_ABBREVIATIONS = new Set([
+  "bsb",      // Bulk storage bin
+  "fsb",      // Food storage bin
+  "ql",       // Quality level
+  "coc",      // Circle of Cunning
+  "woa",      // Wind of Ages
+  "botd",     // Blessings of the Dark
+  "aosp",     // Aura of Shared Pain
+  "lt",       // Life Transfer
+  "nim",      // Nimbleness
+  "ms",       // Mindstealer
+  "fa",       // Flaming Aura
+  "fb",       // Frostbrand
+  "rt",       // Rotting Touch
+  "imp",      // Improve/improving
+  "ench",     // Enchant/enchantment
+  "sac",      // Sacrifice
+  "carp",     // Carpentry
+  "bc",       // Blacksmithing/body control
+  "ws",       // Weaponsmithing
+  "js",       // Jewelry smithing
+  "fc",       // Fine carpentry
+  "sc",       // Ship building / stone cutting
+  "nat",      // Natural substances
+  "hfc",      // Hot food cooking
+  "mb",       // Masonry/body strength
+]);
+
+// Wurm kingdom/server specific greetings
+export const WURM_KINGDOM_GREETINGS = [
+  "hots",     // Horde of the Summoned
+  "jk",       // Jenn-Kellon
+  "mr",       // Mol-Rehan
+  "bl",       // Blacklight
+  "wl",       // Whitelight
+];
+
 // STOP WORDS for analysis - common words to filter out
 export const STOP_WORDS = new Set([
   "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",

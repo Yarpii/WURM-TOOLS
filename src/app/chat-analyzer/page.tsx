@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix } from "./types";
+import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, AlgorithmConfig } from "./types";
 import { getPlayerColor } from "./utils";
 import { parseChat, parseMultipleChats } from "./parser";
 import { analyzePlayerAdvanced } from "./playerAnalysis";
 import { detectAltsAdvanced } from "./altDetection";
+import { ALGORITHM_CONFIGS, type AlgorithmMode } from "./constants";
 
 // ============================================================================
 // REACT COMPONENT
@@ -18,6 +19,7 @@ export default function ChatAnalyzerPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [compareMode, setCompareMode] = useState<[string, string] | null>(null);
+  const [algorithmMode, setAlgorithmMode] = useState<AlgorithmMode>("balanced");
 
   const players = useMemo(() => {
     const playerSet = new Set(messages.map(m => m.player));
@@ -28,13 +30,21 @@ export default function ChatAnalyzerPage() {
     return players.map(p => analyzePlayerAdvanced(p, messages, players));
   }, [players, messages]);
 
-  const { altSuspicions, similarityMatrix } = useMemo(() => {
+  const { altSuspicions, similarityMatrix, activeConfig } = useMemo(() => {
     if (playerStats.length < 2) {
-      return { altSuspicions: [] as AltSuspicion[], similarityMatrix: { players: [], scores: [] } as SimilarityMatrix };
+      return {
+        altSuspicions: [] as AltSuspicion[],
+        similarityMatrix: { players: [], scores: [] } as SimilarityMatrix,
+        activeConfig: ALGORITHM_CONFIGS[algorithmMode],
+      };
     }
-    const result = detectAltsAdvanced(playerStats, messages);
-    return { altSuspicions: result.suspicions, similarityMatrix: result.matrix };
-  }, [playerStats, messages]);
+    const result = detectAltsAdvanced(playerStats, messages, algorithmMode);
+    return {
+      altSuspicions: result.suspicions,
+      similarityMatrix: result.matrix,
+      activeConfig: result.config,
+    };
+  }, [playerStats, messages, algorithmMode]);
 
   const filteredMessages = useMemo(() => {
     let filtered = messages;
@@ -164,6 +174,31 @@ export default function ChatAnalyzerPage() {
             </div>
           </div>
 
+          {/* Algorithm Mode Selector */}
+          {messages.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-text-secondary">Algorithm:</label>
+                  <select
+                    value={algorithmMode}
+                    onChange={(e) => setAlgorithmMode(e.target.value as AlgorithmMode)}
+                    className="px-3 py-1.5 bg-bg-tertiary rounded-lg text-text-primary border border-border text-sm"
+                  >
+                    {(Object.keys(ALGORITHM_CONFIGS) as AlgorithmMode[]).map((mode) => (
+                      <option key={mode} value={mode}>
+                        {ALGORITHM_CONFIGS[mode].name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <span className="text-xs text-text-muted flex-1">
+                  {activeConfig.description}
+                </span>
+              </div>
+            </div>
+          )}
+
           {messages.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-4 text-sm">
               <span className="px-3 py-1 bg-bg-tertiary rounded-full text-text-secondary">
@@ -236,6 +271,7 @@ export default function ChatAnalyzerPage() {
                 setSelectedPlayer={setSelectedPlayer}
                 setActiveTab={setActiveTab}
                 setCompareMode={setCompareMode}
+                activeConfig={activeConfig}
               />
             )}
 
@@ -523,11 +559,13 @@ function AltsTab({
   setSelectedPlayer,
   setActiveTab,
   setCompareMode,
+  activeConfig,
 }: {
   altSuspicions: AltSuspicion[];
   setSelectedPlayer: (player: string | null) => void;
   setActiveTab: (tab: "chat" | "players" | "alts" | "matrix" | "forensics") => void;
   setCompareMode: (mode: [string, string] | null) => void;
+  activeConfig: AlgorithmConfig;
 }) {
   if (altSuspicions.length === 0) {
     return (
@@ -537,9 +575,9 @@ function AltsTab({
           No suspicious alt accounts found
         </h3>
         <p className="text-text-secondary">
-          The forensic analysis found no matches.
+          The forensic analysis found no matches using <strong>{activeConfig.name}</strong>.
           <br />
-          More chat messages improve detection accuracy.
+          Try the &quot;Sensitive&quot; algorithm for more results, or add more chat messages.
         </p>
       </div>
     );
@@ -548,10 +586,16 @@ function AltsTab({
   return (
     <div className="space-y-4">
       <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
-        <p className="text-accent text-sm">
-          <strong>Forensic Analysis v3.0:</strong> Improved accuracy with stricter thresholds.
-          Now requires stronger evidence for high confidence matches.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-accent text-sm">
+            <strong>{activeConfig.name}:</strong> {activeConfig.description}
+          </p>
+          <div className="flex gap-3 text-xs text-text-muted">
+            <span>Min score: {activeConfig.minScoreToReport}</span>
+            <span>Min reasons: {activeConfig.minStrongReasons}</span>
+            <span>Min messages: {activeConfig.minMessages}</span>
+          </div>
+        </div>
       </div>
 
       {altSuspicions.map((suspicion, idx) => (
