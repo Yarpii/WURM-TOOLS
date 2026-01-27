@@ -3,7 +3,27 @@
 // ============================================================================
 
 import type { ChatMessage, AdvancedPlayerStats, AltReason } from "./types";
-import { extractCharNgrams, calculateYulesK, detectTypoPatterns, detectLetterSubstitutions, analyzePunctuationStyle, calculateWordLengthDistribution, detectMicroPatterns, detectEmoticonStyle } from "./linguistic";
+import {
+  extractCharNgrams,
+  calculateYulesK,
+  detectTypoPatterns,
+  detectLetterSubstitutions,
+  analyzePunctuationStyle,
+  calculateWordLengthDistribution,
+  detectMicroPatterns,
+  detectEmoticonStyle,
+  // NEW imports
+  extractWordBigrams,
+  analyzeFunctionWords,
+  calculateSimpsonsD,
+  calculateBrunetsW,
+  analyzePunctuationFrequency,
+  calculateMessageLengthDistribution,
+  analyzeActivityPattern,
+  detectGreetingStyle,
+  detectFarewellStyle,
+  extractCommonEnders,
+} from "./linguistic";
 import { extractTopicFingerprint, findResponsePartners, findMentionedPlayers, extractCommonWords, extractCommonPhrases, extractWurmTopics } from "./behavioral";
 
 /**
@@ -89,26 +109,36 @@ export function analyzePlayerAdvanced(
     activeDayMinutes,
     sessionGaps,
     avgResponseTime,
+    activityPattern: analyzeActivityPattern(absoluteTimes, sessionGaps), // NEW
 
     charNgrams: extractCharNgrams(allText),
+    wordBigrams: extractWordBigrams(texts), // NEW
     typoPatterns: detectTypoPatterns(texts),
     punctuationStyle: analyzePunctuationStyle(texts),
+    punctuationFrequency: analyzePunctuationFrequency(texts), // NEW
     letterSubstitutions: detectLetterSubstitutions(texts),
     microPatterns: detectMicroPatterns(texts),
     emoticonStyle: detectEmoticonStyle(texts),
+    functionWords: analyzeFunctionWords(texts), // NEW - MOST IMPORTANT!
 
     vocabularyRichness: Math.round(vocabularyRichness * 1000) / 1000,
     hapaxRatio: Math.round(hapaxRatio * 1000) / 1000,
     yulesK: calculateYulesK(cleanWords),
+    simpsonsD: calculateSimpsonsD(cleanWords), // NEW
+    brunetsW: calculateBrunetsW(cleanWords), // NEW
     avgWordLength: cleanWords.length > 0
       ? Math.round(cleanWords.reduce((a, b) => a + b.length, 0) / cleanWords.length * 10) / 10
       : 0,
     wordLengthDistribution: calculateWordLengthDistribution(cleanWords),
+    messageLengthDistribution: calculateMessageLengthDistribution(texts), // NEW
     sentencePatterns: [], // Could expand later
 
     commonWords: extractCommonWords(texts),
     commonPhrases: extractCommonPhrases(texts),
     commonStarters,
+    commonEnders: extractCommonEnders(texts), // NEW
+    greetingStyle: detectGreetingStyle(texts), // NEW
+    farewellStyle: detectFarewellStyle(texts), // NEW
     responsePartners: findResponsePartners(name, messages),
     mentionedPlayers: findMentionedPlayers(texts, allPlayers),
     topicFingerprint: extractTopicFingerprint(texts),
@@ -150,6 +180,18 @@ export function generateHumanExplanation(
     parts.push(`- Clear "handoff" pattern: when ${p1.name} stops, ${p2.name} often starts within 5 minutes (detected ${handoffData.handoffCount}x)`);
   }
 
+  // Function word analysis (NEW - most reliable)
+  const functionWordReason = reasons.find(r => r.description.includes("function word"));
+  if (functionWordReason && functionWordReason.weight >= 25) {
+    parts.push(`- Nearly identical use of articles, pronouns, and prepositions (unconscious writing fingerprint)`);
+  }
+
+  // Vocabulary complexity (NEW)
+  const vocabReason = reasons.find(r => r.description.includes("vocabulary complexity"));
+  if (vocabReason) {
+    parts.push(`- Same vocabulary complexity profile (Simpson's D, Yule's K metrics match)`);
+  }
+
   // Rare words
   if (sharedRareWords.length >= 3) {
     const wordExamples = sharedRareWords.slice(0, 3).map(w => `'${w}'`).join(", ");
@@ -160,6 +202,15 @@ export function generateHumanExplanation(
   const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
   if (sharedTypos.length >= 2) {
     parts.push(`- Same typo patterns: ${sharedTypos.slice(0, 3).map(t => `'${t}'`).join(", ")}`);
+  }
+
+  // Greeting/farewell style (NEW)
+  const sharedGreetings = p1.greetingStyle.filter(g => p2.greetingStyle.includes(g));
+  const sharedFarewells = p1.farewellStyle.filter(f => p2.farewellStyle.includes(f));
+  if (sharedGreetings.length >= 2 || sharedFarewells.length >= 2) {
+    const greetPart = sharedGreetings.length >= 2 ? `greet with ${sharedGreetings.slice(0, 2).join("/")}` : "";
+    const byePart = sharedFarewells.length >= 2 ? `say bye with ${sharedFarewells.slice(0, 2).join("/")}` : "";
+    parts.push(`- Both ${[greetPart, byePart].filter(Boolean).join(" and ")}`);
   }
 
   // Common starters
@@ -186,6 +237,7 @@ export function generateHumanExplanation(
   if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) microMatches.push("all lowercase");
   if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("EXCESSIVE CAPS");
   if (p1.microPatterns.noSpaceAfterPunct && p2.microPatterns.noSpaceAfterPunct) microMatches.push("no space after punctuation");
+  if (p1.microPatterns.doubleSpaces && p2.microPatterns.doubleSpaces) microMatches.push("double spaces");
 
   if (microMatches.length >= 2) {
     parts.push(`- Identical writing habits: ${microMatches.join(", ")}`);
@@ -200,7 +252,7 @@ export function generateHumanExplanation(
   }
 
   if (parts.length <= 1) {
-    parts.push("- Various patterns in writing style and behavior match");
+    parts.push("- Multiple patterns in writing style and behavior match");
   }
 
   return parts.join("\n");

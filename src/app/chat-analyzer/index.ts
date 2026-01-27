@@ -16,6 +16,9 @@ export type {
   ParsedLine,
   HandoffResult,
   WurmTopicOverlap,
+  // NEW types
+  FunctionWordProfile,
+  ActivityPattern,
 } from "./types";
 
 // Constants
@@ -46,6 +49,20 @@ export {
   calculateWordLengthDistribution,
   detectMicroPatterns,
   detectEmoticonStyle,
+  // NEW exports
+  extractWordBigrams,
+  analyzeFunctionWords,
+  calculateSimpsonsD,
+  calculateBrunetsW,
+  analyzePunctuationFrequency,
+  calculateMessageLengthDistribution,
+  analyzeActivityPattern,
+  detectGreetingStyle,
+  detectFarewellStyle,
+  extractCommonEnders,
+  compareFunctionWordProfiles,
+  compareActivityPatterns,
+  compareWordBigrams,
 } from "./linguistic";
 
 // Behavioral analysis

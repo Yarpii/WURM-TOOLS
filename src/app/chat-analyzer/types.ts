@@ -23,27 +23,37 @@ export interface AdvancedPlayerStats {
   activeDayMinutes: Map<number, Set<number>>; // Per day: minutes active
   sessionGaps: number[]; // Gaps between messages in seconds
   avgResponseTime: number;
+  activityPattern: ActivityPattern; // NEW: Time-of-day activity fingerprint
 
   // Linguistic fingerprint
   charNgrams: Map<string, number>; // Character trigrams
+  wordBigrams: Map<string, number>; // NEW: Word pairs (bigrams)
   typoPatterns: string[]; // Common misspellings
   punctuationStyle: PunctuationStyle;
+  punctuationFrequency: Map<string, number>; // NEW: Punctuation usage frequency
   letterSubstitutions: Map<string, number>; // u->you, r->are, etc.
   microPatterns: MicroPatterns; // Detailed micro-patterns
   emoticonStyle: EmoticonStyle; // Emoticon fingerprint
+  functionWords: FunctionWordProfile; // NEW: Function word fingerprint (most reliable!)
 
   // Statistical stylometry
   vocabularyRichness: number; // Unique words / total words (TTR)
   hapaxRatio: number; // Words used only once / total unique
   yulesK: number; // Yule's characteristic K
+  simpsonsD: number; // NEW: Simpson's Diversity Index
+  brunetsW: number; // NEW: Brunet's W statistic
   avgWordLength: number;
   wordLengthDistribution: number[]; // Distribution of word lengths 1-15+
+  messageLengthDistribution: number[]; // NEW: Distribution of message lengths
   sentencePatterns: string[]; // Common sentence structures
 
   // Behavioral
   commonWords: string[];
   commonPhrases: string[];
   commonStarters: string[];
+  commonEnders: string[]; // NEW: Common ending words/phrases
+  greetingStyle: string[]; // NEW: How they greet (hi, hey, hello, yo)
+  farewellStyle: string[]; // NEW: How they say bye (cya, bye, later, bb)
   responsePartners: Map<string, number>; // Who they respond to most
   mentionedPlayers: Set<string>; // Players they mention
   topicFingerprint: Map<string, number>; // Topic word frequencies
@@ -53,6 +63,31 @@ export interface AdvancedPlayerStats {
   allMessages: string[];
   messageTimes: number[];
   absoluteTimes: number[]; // For handoff detection
+}
+
+// Function word profile - MOST RELIABLE stylometry feature
+export interface FunctionWordProfile {
+  // Relative frequencies of function word categories (0-1)
+  articles: number;       // the, a, an
+  pronouns: number;       // I, you, he, she, it, we, they, me, him, her, us, them
+  prepositions: number;   // in, on, at, to, for, with, by, from, about
+  conjunctions: number;   // and, but, or, so, because, if, when, while
+  auxiliaries: number;    // is, are, was, were, have, has, had, do, does, did, will, would, can, could
+  quantifiers: number;    // all, some, any, many, much, few, more, most, every
+  // Specific high-value markers
+  iVsWe: number;          // Ratio of "I" to "we" usage
+  butVsAnd: number;       // Ratio of "but" to "and" (indicates argumentative style)
+  questionMarks: number;  // Frequency of questions asked
+}
+
+// Activity pattern fingerprint
+export interface ActivityPattern {
+  morningActive: number;  // 6am-12pm activity percentage
+  afternoonActive: number; // 12pm-6pm
+  eveningActive: number;  // 6pm-12am
+  nightActive: number;    // 12am-6am
+  burstiness: number;     // How "bursty" vs steady the messaging is (0-1)
+  avgSessionLength: number; // Average session length in minutes
 }
 
 export interface AltSuspicion {
