@@ -1205,7 +1205,7 @@ function SkillOptimizer() {
             <div className="bg-bg-secondary rounded-xl border border-border p-4">
               <h3 className="text-lg font-semibold text-text-primary mb-4">Best Items to Craft</h3>
               <div className="space-y-2">
-                {result.optimalItems.slice(0, 5).map((item, index) => (
+                {(result.optimalItems || []).slice(0, 5).map((item, index) => (
                   <div
                     key={item.id}
                     className={`flex items-center justify-between rounded-lg p-4 transition-all ${
