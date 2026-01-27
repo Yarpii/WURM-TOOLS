@@ -541,7 +541,8 @@ function detectAltsAdvanced(
       const p1 = stats[i];
       const p2 = stats[j];
 
-      if (p1.messageCount < 3 || p2.messageCount < 3) continue;
+      // STRICTER: Require at least 15 messages each for reliable analysis
+      if (p1.messageCount < 15 || p2.messageCount < 15) continue;
 
       const reasons: AltReason[] = [];
       let totalScore = 0;
@@ -549,264 +550,124 @@ function detectAltsAdvanced(
       // ========== TEMPORAL ANALYSIS ==========
 
       // Check if never online together (CRITICAL indicator)
+      // STRICTER: Both need at least 30 minutes of activity for this to be meaningful
       const overlap = new Set([...p1.activeMinutes].filter(m => p2.activeMinutes.has(m)));
-      const neverOnlineTogether = overlap.size === 0 && p1.activeMinutes.size > 5 && p2.activeMinutes.size > 5;
+      const minActivity = Math.min(p1.activeMinutes.size, p2.activeMinutes.size);
+      const neverOnlineTogether = overlap.size === 0 &&
+        p1.activeMinutes.size >= 30 &&
+        p2.activeMinutes.size >= 30;
 
       if (neverOnlineTogether) {
-        totalScore += 35;
+        totalScore += 40;
         reasons.push({
           type: "temporal",
           description: "Nooit tegelijk online",
-          weight: 35,
+          weight: 40,
           evidence: `${p1.name}: ${p1.activeMinutes.size} min actief, ${p2.name}: ${p2.activeMinutes.size} min actief, 0 overlap`,
         });
-      } else if (overlap.size > 0 && overlap.size < Math.min(p1.activeMinutes.size, p2.activeMinutes.size) * 0.1) {
-        totalScore += 15;
+      } else if (overlap.size > 0 && minActivity >= 20 && overlap.size < minActivity * 0.05) {
+        // STRICTER: Less than 5% overlap with significant activity
+        totalScore += 20;
         reasons.push({
           type: "temporal",
           description: "Zeer weinig tijd overlap",
-          weight: 15,
-          evidence: `Slechts ${overlap.size} minuten tegelijk online`,
+          weight: 20,
+          evidence: `Slechts ${overlap.size} van ${minActivity} minuten overlap (${Math.round(overlap.size/minActivity*100)}%)`,
         });
-      }
-
-      // Similar response timing
-      if (p1.sessionGaps.length > 3 && p2.sessionGaps.length > 3) {
-        const avgDiff = Math.abs(p1.avgResponseTime - p2.avgResponseTime);
-        if (avgDiff < 5) {
-          totalScore += 10;
-          reasons.push({
-            type: "temporal",
-            description: "Identiek reactietempo",
-            weight: 10,
-            evidence: `${Math.round(p1.avgResponseTime)}s vs ${Math.round(p2.avgResponseTime)}s gemiddeld`,
-          });
-        }
       }
 
       // ========== LINGUISTIC FINGERPRINT ==========
 
       // Character n-gram similarity (powerful forensic technique)
+      // STRICTER: Require very high similarity (0.92+) for this to be meaningful
       const ngramSim = cosineSimilarity(p1.charNgrams, p2.charNgrams);
-      if (ngramSim > 0.85) {
-        totalScore += 25;
+      if (ngramSim > 0.92) {
+        totalScore += 30;
         reasons.push({
           type: "linguistic",
-          description: "Karakter-patroon match (forensisch)",
-          weight: 25,
+          description: "Sterke karakter-patroon match (forensisch)",
+          weight: 30,
           evidence: `${Math.round(ngramSim * 100)}% n-gram overeenkomst`,
         });
-      } else if (ngramSim > 0.7) {
-        totalScore += 12;
+      } else if (ngramSim > 0.85) {
+        totalScore += 15;
         reasons.push({
           type: "linguistic",
           description: "Vergelijkbare karakterpatronen",
-          weight: 12,
+          weight: 15,
           evidence: `${Math.round(ngramSim * 100)}% n-gram overeenkomst`,
         });
       }
 
-      // Same typo patterns (very distinctive)
+      // Same typo patterns (very distinctive) - KEEP, this is strong evidence
       const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
       if (sharedTypos.length >= 2) {
-        totalScore += 20;
+        totalScore += 25;
         reasons.push({
           type: "linguistic",
           description: "Dezelfde typefouten",
-          weight: 20,
+          weight: 25,
           evidence: sharedTypos.join(", "),
         });
-      } else if (sharedTypos.length === 1) {
-        totalScore += 8;
-        reasons.push({
-          type: "linguistic",
-          description: "Gedeelde typefout",
-          weight: 8,
-          evidence: sharedTypos[0],
-        });
       }
 
-      // Punctuation style match
-      const punctMatch =
-        (p1.punctuationStyle.spaceBefore === p2.punctuationStyle.spaceBefore ? 1 : 0) +
-        (p1.punctuationStyle.doublePunctuation === p2.punctuationStyle.doublePunctuation ? 1 : 0) +
-        (p1.punctuationStyle.ellipsisStyle === p2.punctuationStyle.ellipsisStyle ? 1 : 0) +
-        (p1.punctuationStyle.commaSpacing === p2.punctuationStyle.commaSpacing ? 1 : 0);
-
-      if (punctMatch === 4) {
-        totalScore += 10;
-        reasons.push({
-          type: "linguistic",
-          description: "Identieke leestekenstijl",
-          weight: 10,
-        });
-      }
-
-      // Letter substitution patterns
-      const subSim = cosineSimilarity(p1.letterSubstitutions, p2.letterSubstitutions);
-      if (p1.letterSubstitutions.size > 0 && p2.letterSubstitutions.size > 0 && subSim > 0.8) {
-        totalScore += 15;
-        const shared = [...p1.letterSubstitutions.keys()].filter(k => p2.letterSubstitutions.has(k));
+      // Letter substitution patterns - STRICTER: need multiple matches
+      const sharedSubs = [...p1.letterSubstitutions.keys()].filter(k => p2.letterSubstitutions.has(k));
+      if (sharedSubs.length >= 3) {
+        totalScore += 20;
         reasons.push({
           type: "linguistic",
           description: "Zelfde afkortingsstijl",
-          weight: 15,
-          evidence: shared.slice(0, 3).join(", "),
+          weight: 20,
+          evidence: sharedSubs.slice(0, 4).join(", "),
         });
       }
 
       // ========== STATISTICAL STYLOMETRY ==========
-
-      // Yule's K similarity (author fingerprint)
-      if (p1.yulesK > 0 && p2.yulesK > 0) {
-        const yuleDiff = Math.abs(p1.yulesK - p2.yulesK);
-        const yuleAvg = (p1.yulesK + p2.yulesK) / 2;
-        const yuleRelDiff = yuleDiff / yuleAvg;
-
-        if (yuleRelDiff < 0.15) {
-          totalScore += 15;
-          reasons.push({
-            type: "stylometry",
-            description: "Yule's K match (auteurs-vingerafdruk)",
-            weight: 15,
-            evidence: `K=${p1.yulesK} vs K=${p2.yulesK}`,
-          });
-        }
-      }
-
-      // Vocabulary richness similarity
-      const vocabDiff = Math.abs(p1.vocabularyRichness - p2.vocabularyRichness);
-      if (vocabDiff < 0.05) {
-        totalScore += 8;
-        reasons.push({
-          type: "stylometry",
-          description: "Zelfde vocabulaire-rijkdom",
-          weight: 8,
-          evidence: `TTR: ${p1.vocabularyRichness} vs ${p2.vocabularyRichness}`,
-        });
-      }
-
-      // Word length distribution
-      const wldSim = distributionSimilarity(p1.wordLengthDistribution, p2.wordLengthDistribution);
-      if (wldSim > 0.9) {
-        totalScore += 12;
-        reasons.push({
-          type: "stylometry",
-          description: "Identieke woordlengte-verdeling",
-          weight: 12,
-          evidence: `${Math.round(wldSim * 100)}% match`,
-        });
-      }
-
-      // Average word length
-      const awlDiff = Math.abs(p1.avgWordLength - p2.avgWordLength);
-      if (awlDiff < 0.3) {
-        totalScore += 5;
-        reasons.push({
-          type: "stylometry",
-          description: "Zelfde gemiddelde woordlengte",
-          weight: 5,
-          evidence: `${p1.avgWordLength} vs ${p2.avgWordLength} letters`,
-        });
-      }
+      // REMOVED: Yule's K, vocabulary richness, word length distribution
+      // These are too prone to false positives with chat data
 
       // ========== BEHAVIORAL ANALYSIS ==========
 
-      // Common words overlap
-      const wordOverlap = p1.commonWords.filter(w => p2.commonWords.includes(w));
-      if (wordOverlap.length >= 5) {
-        totalScore += 12;
-        reasons.push({
-          type: "behavioral",
-          description: "Veel gedeelde woorden",
-          weight: 12,
-          evidence: wordOverlap.slice(0, 5).join(", "),
-        });
-      } else if (wordOverlap.length >= 3) {
-        totalScore += 6;
-        reasons.push({
-          type: "behavioral",
-          description: "Gedeelde woorden",
-          weight: 6,
-          evidence: wordOverlap.join(", "),
-        });
-      }
-
-      // Phrase overlap (very distinctive)
-      const phraseOverlap = p1.commonPhrases.filter(p => p2.commonPhrases.includes(p));
+      // Phrase overlap (very distinctive) - STRICTER: need unique phrases
+      const phraseOverlap = p1.commonPhrases.filter(p =>
+        p2.commonPhrases.includes(p) && p.split(' ').length >= 3
+      );
       if (phraseOverlap.length >= 2) {
-        totalScore += 18;
+        totalScore += 25;
         reasons.push({
           type: "behavioral",
-          description: "Dezelfde uitdrukkingen",
-          weight: 18,
+          description: "Dezelfde unieke uitdrukkingen",
+          weight: 25,
           evidence: phraseOverlap.slice(0, 2).map(p => `"${p}"`).join(", "),
         });
       } else if (phraseOverlap.length === 1) {
-        totalScore += 10;
+        totalScore += 12;
         reasons.push({
           type: "behavioral",
           description: "Gedeelde uitdrukking",
-          weight: 10,
+          weight: 12,
           evidence: `"${phraseOverlap[0]}"`,
-        });
-      }
-
-      // Starter words
-      const starterOverlap = p1.commonStarters.filter(s => p2.commonStarters.includes(s));
-      if (starterOverlap.length >= 3) {
-        totalScore += 10;
-        reasons.push({
-          type: "behavioral",
-          description: "Zelfde begin-woorden",
-          weight: 10,
-          evidence: starterOverlap.join(", "),
-        });
-      }
-
-      // Topic fingerprint
-      const topicSim = cosineSimilarity(p1.topicFingerprint, p2.topicFingerprint);
-      if (topicSim > 0.8 && p1.topicFingerprint.size > 3) {
-        totalScore += 8;
-        reasons.push({
-          type: "behavioral",
-          description: "Zelfde gespreksonderwerpen",
-          weight: 8,
-          evidence: `${Math.round(topicSim * 100)}% topic overlap`,
         });
       }
 
       // ========== NETWORK ANALYSIS ==========
 
       // Check if they NEVER interact with each other
+      // STRICTER: Need more messages and check more thoroughly
       const p1MentionsP2 = p1.mentionedPlayers.has(p2.name);
       const p2MentionsP1 = p2.mentionedPlayers.has(p1.name);
       const p1RespondsToP2 = p1.responsePartners.has(p2.name);
       const p2RespondsToP1 = p2.responsePartners.has(p1.name);
 
       if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
-          p1.messageCount > 10 && p2.messageCount > 10) {
-        totalScore += 12;
+          p1.messageCount >= 25 && p2.messageCount >= 25) {
+        totalScore += 15;
         reasons.push({
           type: "network",
           description: "Nooit interactie met elkaar",
-          weight: 12,
-          evidence: "Geen mentions of reacties onderling",
-        });
-      }
-
-      // Same response partners (talk to same people)
-      const p1Partners = new Set(p1.responsePartners.keys());
-      const p2Partners = new Set(p2.responsePartners.keys());
-      const sharedPartners = [...p1Partners].filter(p => p2Partners.has(p) && p !== p1.name && p !== p2.name);
-
-      if (sharedPartners.length >= 3) {
-        totalScore += 8;
-        reasons.push({
-          type: "network",
-          description: "Zelfde gesprekspartners",
-          weight: 8,
-          evidence: sharedPartners.slice(0, 3).join(", "),
+          weight: 15,
+          evidence: "Geen mentions of reacties onderling ondanks veel berichten",
         });
       }
 
@@ -814,14 +675,17 @@ function detectAltsAdvanced(
       scores[i][j] = totalScore;
       scores[j][i] = totalScore;
 
-      // Only add if significant
-      if (totalScore >= 25 && reasons.length >= 2) {
-        const confidence = Math.min(Math.round(totalScore * 0.8), 99);
+      // STRICTER: Only add if significant evidence
+      // Need score >= 50 AND at least 2 strong reasons
+      const strongReasons = reasons.filter(r => r.weight >= 15);
+      if (totalScore >= 50 && strongReasons.length >= 2) {
+        const confidence = Math.min(Math.round(totalScore * 0.7), 99);
 
         let category: AltSuspicion["category"];
-        if (confidence >= 80 || neverOnlineTogether) category = "critical";
-        else if (confidence >= 60) category = "high";
-        else if (confidence >= 40) category = "medium";
+        // STRICTER: Critical only if temporal + other strong evidence
+        if (neverOnlineTogether && strongReasons.length >= 2) category = "critical";
+        else if (confidence >= 70) category = "high";
+        else if (confidence >= 50) category = "medium";
         else category = "low";
 
         suspicions.push({
