@@ -295,5 +295,242 @@ Na implementatie, test met:
 
 ---
 
+## BIJLAGE: Wurm Online Sociale Context (Volledig)
+
+> **Dit document beschrijft hoe Wurm Online werkt als sociale wereld.**
+> De analyzer MOET deze context begrijpen om accurate resultaten te geven.
+
+---
+
+### Hoe Wurm Online werkt als sociale wereld
+
+*(Menselijk gedrag, leefstijl en communicatiepatronen)*
+
+#### 1. Wat Wurm anders maakt dan "normale" games
+
+Wurm is geen snelle game en geen "match-based" omgeving.
+Het is een langzame, persistente wereld waarin spelers:
+
+- maanden tot jaren op dezelfde plek leven
+- echte eigendom ervaren (deeds, land, infrastructuur)
+- sociale reputatie opbouwen
+- langdurige conflicten en allianties kennen
+
+**Gevolg:**
+Chatgedrag is relationeel en historisch, niet vluchtig.
+
+#### 2. De Wurmian mindset
+
+##### 2.1 Tijdbeleving
+
+Wurm-spelers denken in dagen, weken en maanden, niet in minuten.
+
+- Projecten duren lang (wegen, bruggen, deeds, terraforming)
+- Spelers loggen vaak kort in voor specifieke taken
+
+**Impact op chat:**
+- Veel "context-loze" berichten ("fixed it", "done", "later")
+- Reacties kunnen uren later komen zonder sociale spanning
+- Stilte ≠ desinteresse of ontwijken
+
+##### 2.2 Eigendom = identiteit
+
+In Wurm:
+- Een deed is persoonlijk territorium
+- Wegen, bruggen en tunnels zijn sociale investeringen
+- Verlies of verandering voelt persoonlijk
+
+**Impact op gedrag:**
+- Discussies over land/wegen zijn emotioneel geladen
+- Mensen spreken in "wij", "ons", "mijn plek"
+- Conflicten escaleren vaak rond infrastructuur
+
+#### 3. Sociale structuren in Wurm
+
+##### 3.1 Kleine, stabiele gemeenschappen
+
+- Servers hebben relatief weinig actieve spelers
+- Iedereen kent elkaars naam (of reputatie)
+- Oude gebeurtenissen blijven "bekend"
+
+**Impact op chat:**
+- Subtiele toespelingen ("je weet wel", "die plek")
+- Inside jokes en vaste narratieven
+- Conflict kan indirect en passief-agressief zijn
+
+##### 3.2 Allianties als sociale bubbels
+
+Alliance chat is:
+- Intiem
+- Veilig
+- Strategisch
+- Minder gefilterd
+
+**Gedrag:**
+- Eerlijkere meningen
+- Meer context
+- Waarschuwingen ("ga daar niet heen")
+
+**Belangrijk:**
+Mensen spreken anders in alliance chat dan in public chat.
+
+#### 4. Conflict in Wurm is zelden direct
+
+##### 4.1 Vermijdingsconflict
+
+In plaats van open ruzie:
+- KoS instellen
+- Deeds strategisch plaatsen
+- Wegen aanpassen
+- Stilte + indirecte opmerkingen
+
+**Chat weerspiegeling:**
+- Feitelijke taal ("just informing you")
+- Herhaling van "regels" en "mechanics"
+- Weinig expliciete scheldwoorden
+
+##### 4.2 Langzame escalatie
+
+Conflicten bouwen zich op:
+1. Observatie
+2. Subtiele opmerkingen
+3. Mechanische acties
+4. Pas laat: expliciete woorden
+
+**Impact op analyse:**
+- Eén losse zin zegt weinig
+- Patronen over tijd zijn cruciaal
+- "Wie begon" is vaak vaag
+
+#### 5. Chatstijl van Wurmians
+
+##### 5.1 Functionele communicatie
+
+Veel chat is:
+- taakgericht ("need X", "fixed Y")
+- bevestigend ("ok", "ty", "np")
+- informatief ("there is", "you can")
+
+**Gevolg:**
+Korte berichten zijn normaal en betekenisarm zonder context.
+
+##### 5.2 Emotionele ontlading gebeurt zelden publiek
+
+- Spelers bewaren emotie voor alliance/PM
+- Public chat blijft vaak "netjes"
+- Emotie komt via herhaling en sarcasme
+
+#### 6. Alts zijn normaal gedrag
+
+##### 6.1 Waarom mensen alts gebruiken
+
+- Priests
+- Crafting-specialisaties
+- Opslag
+- Veiligheid
+- Efficiëntie
+
+**Belangrijk:**
+Alt-gebruik is normaal en sociaal geaccepteerd.
+
+##### 6.2 Gedrag rond alts
+
+- Alts praten minder
+- Alts loggen kort in
+- Alts worden functioneel gebruikt
+
+**Analyse-implicatie:**
+Niet elk "afwijkend patroon" is verdacht.
+
+#### 7. Taal in Wurm is context-gebonden
+
+##### 7.1 Game-jargon
+
+Woorden als:
+- deed
+- KoS
+- templars
+- highway
+- rift
+- unique
+
+zijn mechanisch, niet emotioneel.
+
+##### 7.2 Harde woorden ≠ harde intentie
+
+Zinnen kunnen hard klinken maar neutraal zijn:
+- "you can't do that"
+- "that's against rules"
+- "this blocks spawns"
+
+**Analyse vereist:**
+Interpretatie met spelkennis.
+
+#### 8. Stilte en afwezigheid
+
+##### 8.1 Stilte betekent vaak:
+
+- iemand is aan het bouwen
+- iemand is aan het reizen
+- iemand is AFK
+
+**Niet:**
+- ontwijken
+- schuld
+- instemming
+
+##### 8.2 "Nooit samen online"
+
+Kan betekenen:
+- verschillende speeltijden
+- verschillende taken
+- bewuste focus
+
+**Pas betekenisvol bij herhaling + patroon.**
+
+#### 9. Sociale reputatie is belangrijker dan chat
+
+In Wurm:
+- Mensen onthouden gedrag, niet woorden
+- Acties wegen zwaarder dan uitspraken
+- "Bekend staan als lastig" is zwaar
+
+**Chat is slechts één signaal, niet het geheel.**
+
+#### 10. Wat een goede analyse-tool moet begrijpen van Wurm
+
+Een goede Wurm-chat-analist:
+
+1. Weet dat stilte normaal is
+2. Weet dat korte zinnen normaal zijn
+3. Weet dat conflict indirect is
+4. Weet dat alts standaard zijn
+5. Weet dat taal vaak mechanisch is
+6. Weet dat context > losse quotes
+7. Weet dat tijd een kernrol speelt
+
+---
+
+### Samenvattende kernzin
+
+> **Wurm is een langzame, sociale wereld waarin communicatie functioneel,
+> context-afhankelijk en historisch geladen is; analyse zonder begrip
+> van die leefstijl leidt onvermijdelijk tot verkeerde conclusies.**
+
+---
+
+### Hoe dit de Analyzer moet beïnvloeden
+
+| Wurm Realiteit | Analyzer Aanpassing |
+|----------------|---------------------|
+| Stilte is normaal | Verlaag gewicht van "geen interactie" |
+| Korte berichten zijn normaal | Negeer "ok", "ty", "np" in analyse |
+| Alts zijn normaal | Hogere drempel voor verdacht |
+| Conflict is indirect | Kijk naar patronen, niet losse zinnen |
+| Game-jargon is neutraal | Filter Wurm-termen uit emotie-analyse |
+| Tijd werkt anders | Multi-dag analyse nodig |
+
+---
+
 *Document gemaakt: 2024 | Laatste update door Claude*
 *Voor vragen: lees dit document opnieuw en implementeer stap voor stap*
