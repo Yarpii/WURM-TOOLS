@@ -90,15 +90,15 @@ interface SimilarityMatrix {
   scores: number[][];
 }
 
-// Micro-patterns for forensic fingerprinting (Fase 2)
+// Micro-patterns for forensic fingerprinting
 interface MicroPatterns {
-  lowercaseI: boolean;        // schrijft "i" ipv "I"
-  noCapitalStart: boolean;    // begint zinnen zonder hoofdletter
-  allLowercase: boolean;      // alles lowercase
-  excessiveCaps: boolean;     // VEEL CAPS GEBRUIKEN
-  numberSubstitution: boolean; // "2" voor "to", "4" voor "for"
-  doubleSpaces: boolean;      // twee spaties  tussen woorden
-  noSpaceAfterPunct: boolean; // geen spatie na.punt
+  lowercaseI: boolean;        // writes "i" instead of "I"
+  noCapitalStart: boolean;    // starts sentences without capital
+  allLowercase: boolean;      // all lowercase
+  excessiveCaps: boolean;     // USES LOTS OF CAPS
+  numberSubstitution: boolean; // "2" for "to", "4" for "for"
+  doubleSpaces: boolean;      // two spaces  between words
+  noSpaceAfterPunct: boolean; // no space after.punctuation
 }
 
 // Emoticon style fingerprint (Fase 2)
@@ -106,7 +106,7 @@ interface EmoticonStyle {
   usesNose: boolean;      // :-) vs :)
   usesEmoji: boolean;     // 😊
   commonEmotes: string[]; // ["xD", "lol", ":P"]
-  emoteFrequency: number; // per 100 berichten
+  emoteFrequency: number; // per 100 messages
 }
 
 // Score breakdown per category for UI
@@ -564,6 +564,36 @@ function buildRareWordIndex(allStats: AdvancedPlayerStats[]): Map<string, Set<st
   return wordToPlayers;
 }
 
+// Common words that should NEVER be considered "rare" - they're just normal vocabulary
+const COMMON_GAMING_WORDS = new Set([
+  // Common English words that slip through
+  "just", "like", "really", "think", "know", "want", "need", "good", "nice",
+  "back", "going", "getting", "making", "doing", "trying", "looking", "coming",
+  "yeah", "yep", "nope", "maybe", "probably", "actually", "basically", "literally",
+  "pretty", "quite", "very", "much", "well", "also", "still", "even", "though",
+  "something", "anything", "nothing", "everything", "someone", "anyone", "everyone",
+  "stuff", "thing", "things", "place", "time", "people", "person", "guys", "dude",
+  "work", "working", "works", "worked", "play", "playing", "player", "players",
+  // Common gaming terms
+  "game", "server", "online", "offline", "login", "logout", "spawn", "respawn",
+  "kill", "killed", "death", "dead", "died", "alive", "health", "damage", "attack",
+  "level", "skill", "skills", "grind", "grinding", "farm", "farming", "loot",
+  "item", "items", "gear", "armor", "weapon", "weapons", "tool", "tools",
+  "quest", "mission", "event", "update", "patch", "buff", "nerf", "stats",
+  "guild", "clan", "alliance", "team", "group", "party", "friend", "friends",
+  "noob", "newbie", "veteran", "admin", "moderator", "owner",
+  // Common Wurm terms (everyone uses these)
+  "deed", "village", "kingdom", "priest", "horse", "cart", "boat", "ship",
+  "mine", "mining", "forge", "anvil", "skill", "improve", "improving", "quality",
+  "rare", "supreme", "fantastic", "drake", "scale", "troll", "unique",
+  "bulk", "crate", "wagon", "highway", "road", "bridge", "house", "building",
+  "wood", "iron", "steel", "silver", "gold", "copper", "stone", "rock",
+  "water", "food", "meat", "fish", "wheat", "cotton", "leather", "cloth",
+  // Server names and common places
+  "harmony", "melody", "cadence", "independence", "deliverance", "exodus",
+  "celebration", "xanadu", "pristine", "release", "defiance", "chaos", "elevation",
+]);
+
 function detectSharedRareWords(
   p1: AdvancedPlayerStats,
   p2: AdvancedPlayerStats,
@@ -573,24 +603,27 @@ function detectSharedRareWords(
   const p1Text = p1.allMessages.join(" ").toLowerCase();
   const p2Text = p2.allMessages.join(" ").toLowerCase();
 
+  // Require longer words (5+ chars) to filter out common short words
   const p1Words = new Set(
     p1Text.split(/\s+/)
       .map(w => w.replace(/[^a-z]/g, ""))
-      .filter(w => w.length > 3)
+      .filter(w => w.length >= 5 && !COMMON_GAMING_WORDS.has(w))
   );
 
   const p2Words = new Set(
     p2Text.split(/\s+/)
       .map(w => w.replace(/[^a-z]/g, ""))
-      .filter(w => w.length > 3)
+      .filter(w => w.length >= 5 && !COMMON_GAMING_WORDS.has(w))
   );
 
   const sharedRare: string[] = [];
-  const rareThreshold = Math.max(2, Math.floor(totalPlayers * 0.1)); // <10% of players
+  // STRICT: Only words used by exactly 1-2 people are truly rare
+  const rareThreshold = 2;
 
   for (const word of p1Words) {
     if (p2Words.has(word)) {
       const usageCount = rareIndex.get(word)?.size || 0;
+      // Must be used by only these 2 players (or just 1 in the index due to timing)
       if (usageCount > 0 && usageCount <= rareThreshold) {
         sharedRare.push(word);
       }
@@ -791,40 +824,39 @@ function generateHumanExplanation(
 ): string {
   const parts: string[] = [];
 
-  parts.push(`${p1.name} en ${p2.name} zijn waarschijnlijk dezelfde persoon omdat:`);
+  parts.push(`${p1.name} and ${p2.name} may be the same person because:`);
 
   // Temporal evidence
   if (neverOnlineTogether) {
     if (totalDays > 1) {
-      parts.push(`- Ze zijn in ${totalDays} dagen chat NOOIT tegelijk online geweest`);
+      parts.push(`- They were NEVER online at the same time across ${totalDays} days of chat`);
     } else {
-      parts.push("- Ze zijn NOOIT tegelijk online geweest");
+      parts.push("- They were NEVER online at the same time");
     }
   }
 
   // Handoff pattern
   if (handoffData.handoffCount >= 3) {
-    parts.push(`- Er is een duidelijk "handoff" patroon: als ${p1.name} stopt, begint ${p2.name} vaak binnen 5 minuten (${handoffData.handoffCount}x gedetecteerd)`);
+    parts.push(`- Clear "handoff" pattern: when ${p1.name} stops, ${p2.name} often starts within 5 minutes (detected ${handoffData.handoffCount}x)`);
   }
 
   // Rare words
-  if (sharedRareWords.length >= 2) {
+  if (sharedRareWords.length >= 3) {
     const wordExamples = sharedRareWords.slice(0, 3).map(w => `'${w}'`).join(", ");
-    const rarePercentage = Math.round((sharedRareWords.length / 50) * 100);
-    parts.push(`- Ze gebruiken beide zeldzame woorden: ${wordExamples} (slechts ~${Math.max(5, rarePercentage)}% van spelers gebruikt deze)`);
+    parts.push(`- Both use rare words: ${wordExamples} (used by very few players)`);
   }
 
   // Typos
   const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
-  if (sharedTypos.length >= 1) {
-    parts.push(`- Ze hebben identieke typfouten: ${sharedTypos.slice(0, 3).map(t => `'${t}'`).join(", ")}`);
+  if (sharedTypos.length >= 2) {
+    parts.push(`- Same typo patterns: ${sharedTypos.slice(0, 3).map(t => `'${t}'`).join(", ")}`);
   }
 
   // Common starters
   const sharedStarters = p1.commonStarters.filter(s => p2.commonStarters.includes(s));
-  if (sharedStarters.length >= 2) {
+  if (sharedStarters.length >= 3) {
     const percentage = Math.round((sharedStarters.length / Math.max(p1.commonStarters.length, 1)) * 100);
-    parts.push(`- Ze beginnen ${percentage}% van hun zinnen met dezelfde woorden: ${sharedStarters.slice(0, 3).map(s => `'${s}'`).join(", ")}`);
+    parts.push(`- Start ${percentage}% of sentences with the same words: ${sharedStarters.slice(0, 3).map(s => `'${s}'`).join(", ")}`);
   }
 
   // Network - no interaction
@@ -833,31 +865,32 @@ function generateHumanExplanation(
   const p1RespondsToP2 = p1.responsePartners.has(p2.name);
   const p2RespondsToP1 = p2.responsePartners.has(p1.name);
 
-  if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1) {
-    parts.push(`- Ze praten nooit MET elkaar ondanks ${p1.messageCount}+ en ${p2.messageCount}+ berichten elk`);
+  if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
+      p1.messageCount >= 50 && p2.messageCount >= 50) {
+    parts.push(`- Never talk TO each other despite ${p1.messageCount}+ and ${p2.messageCount}+ messages each`);
   }
 
   // Micro patterns match
   const microMatches: string[] = [];
-  if (p1.microPatterns.lowercaseI && p2.microPatterns.lowercaseI) microMatches.push("kleine 'i' i.p.v. 'I'");
-  if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) microMatches.push("alles lowercase");
-  if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("veel CAPS");
-  if (p1.microPatterns.noSpaceAfterPunct && p2.microPatterns.noSpaceAfterPunct) microMatches.push("geen spatie na leestekens");
+  if (p1.microPatterns.lowercaseI && p2.microPatterns.lowercaseI) microMatches.push("lowercase 'i'");
+  if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) microMatches.push("all lowercase");
+  if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("EXCESSIVE CAPS");
+  if (p1.microPatterns.noSpaceAfterPunct && p2.microPatterns.noSpaceAfterPunct) microMatches.push("no space after punctuation");
 
   if (microMatches.length >= 2) {
-    parts.push(`- Identieke schrijfgewoontes: ${microMatches.join(", ")}`);
+    parts.push(`- Identical writing habits: ${microMatches.join(", ")}`);
   }
 
   // Emoticon style
   if (p1.emoticonStyle.commonEmotes.length > 0 && p2.emoticonStyle.commonEmotes.length > 0) {
     const sharedEmotes = p1.emoticonStyle.commonEmotes.filter(e => p2.emoticonStyle.commonEmotes.includes(e));
-    if (sharedEmotes.length >= 2) {
-      parts.push(`- Zelfde emoticons: ${sharedEmotes.slice(0, 4).join(", ")}`);
+    if (sharedEmotes.length >= 3) {
+      parts.push(`- Same emoticons: ${sharedEmotes.slice(0, 4).join(", ")}`);
     }
   }
 
   if (parts.length <= 1) {
-    parts.push("- Diverse patronen in schrijfstijl en gedrag komen overeen");
+    parts.push("- Various patterns in writing style and behavior match");
   }
 
   return parts.join("\n");
@@ -1124,207 +1157,227 @@ function detectAltsAdvanced(
         scoreBreakdown.temporal += 40;
         reasons.push({
           type: "temporal",
-          description: "Nooit tegelijk online",
+          description: "Never online at the same time",
           weight: 40,
-          evidence: `${p1.name}: ${p1.activeMinutes.size} min actief, ${p2.name}: ${p2.activeMinutes.size} min actief, 0 overlap`,
+          evidence: `${p1.name}: ${p1.activeMinutes.size} min active, ${p2.name}: ${p2.activeMinutes.size} min active, 0 overlap`,
         });
       } else if (overlap.size > 0 && minActivity >= 20 && overlap.size < minActivity * 0.05) {
         scoreBreakdown.temporal += 20;
         reasons.push({
           type: "temporal",
-          description: "Zeer weinig tijd overlap",
+          description: "Very little time overlap",
           weight: 20,
-          evidence: `Slechts ${overlap.size} van ${minActivity} minuten overlap (${Math.round(overlap.size/minActivity*100)}%)`,
+          evidence: `Only ${overlap.size} of ${minActivity} minutes overlap (${Math.round(overlap.size/minActivity*100)}%)`,
         });
       }
 
-      // ========== FASE 1: HANDOFF PATTERN DETECTION ==========
+      // ========== HANDOFF PATTERN DETECTION ==========
 
       const handoffData = detectHandoffPattern(p1, p2, messages);
       if (handoffData.score > 0) {
         scoreBreakdown.handoff = handoffData.score;
         reasons.push({
           type: "temporal",
-          description: "Handoff patroon gedetecteerd",
+          description: "Handoff pattern detected",
           weight: handoffData.score,
-          evidence: `${handoffData.handoffCount} van ${handoffData.totalTransitions} sessie-overgangen zijn handoffs (${Math.round(handoffData.handoffCount/handoffData.totalTransitions*100)}%)`,
+          evidence: `${handoffData.handoffCount} of ${handoffData.totalTransitions} session transitions are handoffs (${Math.round(handoffData.handoffCount/handoffData.totalTransitions*100)}%)`,
         });
       }
 
-      // ========== FASE 2: RARE WORD FINGERPRINT ==========
+      // ========== RARE WORD FINGERPRINT (stricter) ==========
 
       const sharedRareWords = detectSharedRareWords(p1, p2, rareWordIndex, stats.length);
-      if (sharedRareWords.length >= 3) {
-        scoreBreakdown.rareWords = 40;
-        reasons.push({
-          type: "linguistic",
-          description: "Veel gedeelde zeldzame woorden",
-          weight: 40,
-          evidence: `${sharedRareWords.length} zeldzame woorden: ${sharedRareWords.slice(0, 5).join(", ")}`,
-        });
-      } else if (sharedRareWords.length === 2) {
+      // STRICTER: Require 5+ truly rare words for significant score
+      if (sharedRareWords.length >= 5) {
         scoreBreakdown.rareWords = 25;
         reasons.push({
           type: "linguistic",
-          description: "Gedeelde zeldzame woorden",
+          description: "Multiple shared rare words",
           weight: 25,
-          evidence: `"${sharedRareWords[0]}", "${sharedRareWords[1]}"`,
+          evidence: `${sharedRareWords.length} rare words: ${sharedRareWords.slice(0, 5).join(", ")}`,
         });
-      } else if (sharedRareWords.length === 1) {
-        scoreBreakdown.rareWords = 10;
+      } else if (sharedRareWords.length >= 3) {
+        scoreBreakdown.rareWords = 15;
         reasons.push({
           type: "linguistic",
-          description: "Gedeeld zeldzaam woord",
-          weight: 10,
-          evidence: `"${sharedRareWords[0]}"`,
+          description: "Some shared rare words",
+          weight: 15,
+          evidence: `${sharedRareWords.length} rare words: ${sharedRareWords.join(", ")}`,
         });
       }
+      // 1-2 rare words is not significant enough to score
 
       // ========== LINGUISTIC FINGERPRINT ==========
 
-      // Character n-gram similarity (powerful forensic technique)
+      // Character n-gram similarity - STRICTER thresholds
+      // Note: Same-language speakers naturally have 70-85% n-gram similarity
+      // Only 95%+ is truly suspicious for different people
       const ngramSim = cosineSimilarity(p1.charNgrams, p2.charNgrams);
-      if (ngramSim > 0.92) {
-        scoreBreakdown.linguistic += 30;
-        reasons.push({
-          type: "linguistic",
-          description: "Sterke karakter-patroon match (forensisch)",
-          weight: 30,
-          evidence: `${Math.round(ngramSim * 100)}% n-gram overeenkomst`,
-        });
-      } else if (ngramSim > 0.85) {
-        scoreBreakdown.linguistic += 15;
-        reasons.push({
-          type: "linguistic",
-          description: "Vergelijkbare karakterpatronen",
-          weight: 15,
-          evidence: `${Math.round(ngramSim * 100)}% n-gram overeenkomst`,
-        });
-      }
-
-      // Same typo patterns (very distinctive)
-      const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
-      if (sharedTypos.length >= 2) {
-        scoreBreakdown.linguistic += 25;
-        reasons.push({
-          type: "linguistic",
-          description: "Dezelfde typefouten",
-          weight: 25,
-          evidence: sharedTypos.join(", "),
-        });
-      } else if (sharedTypos.length === 1) {
-        scoreBreakdown.linguistic += 12;
-        reasons.push({
-          type: "linguistic",
-          description: "Gedeelde typefout",
-          weight: 12,
-          evidence: sharedTypos[0],
-        });
-      }
-
-      // Letter substitution patterns
-      const sharedSubs = [...p1.letterSubstitutions.keys()].filter(k => p2.letterSubstitutions.has(k));
-      if (sharedSubs.length >= 3) {
+      if (ngramSim > 0.96) {
         scoreBreakdown.linguistic += 20;
         reasons.push({
           type: "linguistic",
-          description: "Zelfde afkortingsstijl",
+          description: "Very high character pattern match",
           weight: 20,
+          evidence: `${Math.round(ngramSim * 100)}% n-gram similarity`,
+        });
+      } else if (ngramSim > 0.93) {
+        scoreBreakdown.linguistic += 10;
+        reasons.push({
+          type: "linguistic",
+          description: "High character pattern similarity",
+          weight: 10,
+          evidence: `${Math.round(ngramSim * 100)}% n-gram similarity`,
+        });
+      }
+      // Below 93% is normal for same-language speakers - no points
+
+      // Same typo patterns (distinctive but require multiple)
+      const sharedTypos = p1.typoPatterns.filter(t => p2.typoPatterns.includes(t));
+      if (sharedTypos.length >= 3) {
+        scoreBreakdown.linguistic += 20;
+        reasons.push({
+          type: "linguistic",
+          description: "Same typo patterns",
+          weight: 20,
+          evidence: sharedTypos.join(", "),
+        });
+      } else if (sharedTypos.length === 2) {
+        scoreBreakdown.linguistic += 10;
+        reasons.push({
+          type: "linguistic",
+          description: "Shared typo patterns",
+          weight: 10,
+          evidence: sharedTypos.join(", "),
+        });
+      }
+      // 1 shared typo is not significant
+
+      // Letter substitution patterns - common in gaming, lower weight
+      const sharedSubs = [...p1.letterSubstitutions.keys()].filter(k => p2.letterSubstitutions.has(k));
+      if (sharedSubs.length >= 5) {
+        scoreBreakdown.linguistic += 15;
+        reasons.push({
+          type: "linguistic",
+          description: "Same abbreviation style",
+          weight: 15,
+          evidence: sharedSubs.slice(0, 5).join(", "),
+        });
+      } else if (sharedSubs.length >= 3) {
+        scoreBreakdown.linguistic += 8;
+        reasons.push({
+          type: "linguistic",
+          description: "Similar abbreviation style",
+          weight: 8,
           evidence: sharedSubs.slice(0, 4).join(", "),
         });
       }
 
-      // ========== FASE 2: MICRO-PATTERNS MATCHING ==========
+      // ========== MICRO-PATTERNS MATCHING (stricter) ==========
+      // Note: Many of these are common internet typing habits, not unique fingerprints
+      // Only the rare/distinctive ones should score, and require multiple matches
 
       const microMatches: string[] = [];
-      if (p1.microPatterns.lowercaseI && p2.microPatterns.lowercaseI) microMatches.push("lowercase i");
-      if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) microMatches.push("all lowercase");
-      if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("EXCESSIVE CAPS");
-      if (p1.microPatterns.noCapitalStart && p2.microPatterns.noCapitalStart) microMatches.push("no capital start");
-      if (p1.microPatterns.numberSubstitution && p2.microPatterns.numberSubstitution) microMatches.push("number subs");
+      // These are RARE and distinctive:
       if (p1.microPatterns.doubleSpaces && p2.microPatterns.doubleSpaces) microMatches.push("double spaces");
       if (p1.microPatterns.noSpaceAfterPunct && p2.microPatterns.noSpaceAfterPunct) microMatches.push("no space after punct");
+      if (p1.microPatterns.excessiveCaps && p2.microPatterns.excessiveCaps) microMatches.push("EXCESSIVE CAPS");
+      // These are COMMON - only count if combined with rare ones:
+      const commonMicroMatches: string[] = [];
+      if (p1.microPatterns.lowercaseI && p2.microPatterns.lowercaseI) commonMicroMatches.push("lowercase i");
+      if (p1.microPatterns.allLowercase && p2.microPatterns.allLowercase) commonMicroMatches.push("all lowercase");
+      if (p1.microPatterns.noCapitalStart && p2.microPatterns.noCapitalStart) commonMicroMatches.push("no capital start");
+      if (p1.microPatterns.numberSubstitution && p2.microPatterns.numberSubstitution) commonMicroMatches.push("number subs");
 
-      if (microMatches.length >= 3) {
-        scoreBreakdown.linguistic += 25;
-        reasons.push({
-          type: "linguistic",
-          description: "Sterke micro-patroon match",
-          weight: 25,
-          evidence: microMatches.join(", "),
-        });
-      } else if (microMatches.length >= 2) {
+      // Only score if we have rare micro-patterns, or many common ones
+      if (microMatches.length >= 2) {
         scoreBreakdown.linguistic += 15;
         reasons.push({
           type: "linguistic",
-          description: "Gedeelde micro-patronen",
+          description: "Distinctive micro-pattern match",
           weight: 15,
           evidence: microMatches.join(", "),
         });
+      } else if (microMatches.length >= 1 && commonMicroMatches.length >= 2) {
+        scoreBreakdown.linguistic += 10;
+        reasons.push({
+          type: "linguistic",
+          description: "Shared typing quirks",
+          weight: 10,
+          evidence: [...microMatches, ...commonMicroMatches].join(", "),
+        });
       }
+      // Common patterns alone (all lowercase, no caps) are not significant
 
-      // ========== FASE 2: EMOTICON STYLE MATCHING ==========
+      // ========== EMOTICON STYLE MATCHING (reduced weight) ==========
+      // Common emotes like "lol", ":)" are used by everyone - low value
 
       const sharedEmotes = p1.emoticonStyle.commonEmotes.filter(e =>
         p2.emoticonStyle.commonEmotes.includes(e)
       );
-      if (sharedEmotes.length >= 3) {
-        scoreBreakdown.behavioral += 15;
+      // Only score if they share 4+ emotes (most people share 2-3)
+      if (sharedEmotes.length >= 4) {
+        scoreBreakdown.behavioral += 8;
         reasons.push({
           type: "behavioral",
-          description: "Zelfde emoticons/emotes",
-          weight: 15,
+          description: "Same emoticon preferences",
+          weight: 8,
           evidence: sharedEmotes.slice(0, 4).join(", "),
         });
       }
-      // Nose style match (rare and distinctive)
+      // Nose style match (actually rare and distinctive)
       if (p1.emoticonStyle.usesNose && p2.emoticonStyle.usesNose) {
-        scoreBreakdown.behavioral += 10;
+        scoreBreakdown.behavioral += 8;
         reasons.push({
           type: "behavioral",
-          description: "Beide gebruiken emoticons met neus (:-) stijl)",
-          weight: 10,
+          description: "Both use nose emoticons (:-) style)",
+          weight: 8,
         });
       }
 
       // ========== BEHAVIORAL ANALYSIS ==========
 
-      // Phrase overlap (very distinctive)
+      // Phrase overlap - must be 3+ word phrases and multiple matches
       const phraseOverlap = p1.commonPhrases.filter(p =>
         p2.commonPhrases.includes(p) && p.split(' ').length >= 3
       );
-      if (phraseOverlap.length >= 2) {
-        scoreBreakdown.behavioral += 25;
+      if (phraseOverlap.length >= 3) {
+        scoreBreakdown.behavioral += 20;
         reasons.push({
           type: "behavioral",
-          description: "Dezelfde unieke uitdrukkingen",
-          weight: 25,
-          evidence: phraseOverlap.slice(0, 2).map(p => `"${p}"`).join(", "),
+          description: "Same unique phrases",
+          weight: 20,
+          evidence: phraseOverlap.slice(0, 3).map(p => `"${p}"`).join(", "),
         });
-      } else if (phraseOverlap.length === 1) {
-        scoreBreakdown.behavioral += 12;
+      } else if (phraseOverlap.length === 2) {
+        scoreBreakdown.behavioral += 10;
         reasons.push({
           type: "behavioral",
-          description: "Gedeelde uitdrukking",
-          weight: 12,
-          evidence: `"${phraseOverlap[0]}"`,
+          description: "Shared phrases",
+          weight: 10,
+          evidence: phraseOverlap.map(p => `"${p}"`).join(", "),
         });
       }
+      // 1 shared phrase is not significant
 
-      // Common starters match
-      const sharedStarters = p1.commonStarters.filter(s => p2.commonStarters.includes(s));
-      if (sharedStarters.length >= 3) {
-        scoreBreakdown.behavioral += 15;
+      // Common starters - many people start with "i", "yeah", "but" etc
+      // Only significant if 5+ unique starters match
+      const sharedStarters = p1.commonStarters.filter(s =>
+        p2.commonStarters.includes(s) && !STOP_WORDS.has(s.toLowerCase())
+      );
+      if (sharedStarters.length >= 5) {
+        scoreBreakdown.behavioral += 10;
         reasons.push({
           type: "behavioral",
-          description: "Zelfde start-woorden",
-          weight: 15,
-          evidence: sharedStarters.slice(0, 4).join(", "),
+          description: "Same sentence starters",
+          weight: 10,
+          evidence: sharedStarters.slice(0, 5).join(", "),
         });
       }
 
       // ========== NETWORK ANALYSIS ==========
-      // Wurm context: "no interaction" is less suspicious, so lower weight
+      // In Wurm, "no interaction" is actually common - people chat in general without
+      // talking to specific people. Very low weight, only as supporting evidence.
 
       const p1MentionsP2 = p1.mentionedPlayers.has(p2.name);
       const p2MentionsP1 = p2.mentionedPlayers.has(p1.name);
@@ -1332,29 +1385,23 @@ function detectAltsAdvanced(
       const p2RespondsToP1 = p2.responsePartners.has(p1.name);
 
       if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
-          p1.messageCount >= 25 && p2.messageCount >= 25) {
-        // WURM CONTEXT: Reduced weight from 15 to 10
-        scoreBreakdown.network = 10;
+          p1.messageCount >= 50 && p2.messageCount >= 50) {
+        // Very low weight - this is common in game chats
+        scoreBreakdown.network = 5;
         reasons.push({
           type: "network",
-          description: "Nooit interactie met elkaar",
-          weight: 10,
-          evidence: "Geen mentions of reacties onderling ondanks veel berichten",
+          description: "Never interacted with each other",
+          weight: 5,
+          evidence: "No mentions or replies despite many messages",
         });
       }
 
-      // ========== FASE 3: WURM-SPECIFIC CONTEXT ==========
-
-      const wurmOverlap = detectWurmTopicOverlap(p1, p2);
-      if (wurmOverlap.score > 0) {
-        scoreBreakdown.behavioral += wurmOverlap.score;
-        reasons.push({
-          type: "behavioral",
-          description: "Zelfde Wurm-topics besproken",
-          weight: wurmOverlap.score,
-          evidence: wurmOverlap.sharedTopics.slice(0, 5).join(", "),
-        });
-      }
+      // ========== WURM-SPECIFIC CONTEXT ==========
+      // REMOVED: Everyone in Wurm talks about Wurm topics!
+      // This was causing false positives. Wurm topic overlap is EXPECTED.
+      // Only keep as informational, not scored.
+      // const wurmOverlap = detectWurmTopicOverlap(p1, p2);
+      // Wurm topics no longer contribute to score
 
       // ========== CALCULATE TOTAL SCORE ==========
 
@@ -1365,36 +1412,37 @@ function detectAltsAdvanced(
                        scoreBreakdown.rareWords +
                        scoreBreakdown.handoff;
 
-      // ========== FASE 6: CATEGORY BONUSES ==========
+      // ========== CATEGORY BONUSES (reduced) ==========
+      // Bonuses should be small - the base evidence should be strong enough
 
-      const hasTemporalEvidence = scoreBreakdown.temporal >= 20 || scoreBreakdown.handoff >= 20;
-      const hasNetworkEvidence = scoreBreakdown.network >= 10;
-      const hasLinguisticEvidence = scoreBreakdown.linguistic >= 25 || scoreBreakdown.rareWords >= 25;
-      const hasBehavioralEvidence = scoreBreakdown.behavioral >= 20;
+      const hasStrongTemporalEvidence = scoreBreakdown.temporal >= 40 || scoreBreakdown.handoff >= 35;
+      const hasLinguisticEvidence = scoreBreakdown.linguistic >= 30;
+      const hasBehavioralEvidence = scoreBreakdown.behavioral >= 25;
 
-      // Temporal + Network = very strong (nooit samen + nooit interactie)
-      if (hasTemporalEvidence && hasNetworkEvidence) {
-        const bonus = Math.round(totalScore * 0.3);
+      // Only give bonus for truly strong combined evidence
+      // Temporal (never online together) + Strong linguistic = suspicious
+      if (hasStrongTemporalEvidence && hasLinguisticEvidence) {
+        const bonus = Math.round(totalScore * 0.15);
         scoreBreakdown.bonus += bonus;
         totalScore += bonus;
         reasons.push({
           type: "bonus",
-          description: "Temporal+Network combinatie bonus",
+          description: "Temporal + Linguistic combination",
           weight: bonus,
-          evidence: "Nooit samen online EN nooit interactie = sterke indicator",
+          evidence: "Never online together AND same writing style",
         });
       }
 
-      // Linguistic + Behavioral = strong (same style + same expressions)
-      if (hasLinguisticEvidence && hasBehavioralEvidence) {
-        const bonus = Math.round(totalScore * 0.2);
+      // Strong linguistic + behavioral = suspicious (but smaller bonus)
+      if (hasLinguisticEvidence && hasBehavioralEvidence && !hasStrongTemporalEvidence) {
+        const bonus = Math.round(totalScore * 0.10);
         scoreBreakdown.bonus += bonus;
         totalScore += bonus;
         reasons.push({
           type: "bonus",
-          description: "Linguistic+Behavioral combinatie bonus",
+          description: "Linguistic + Behavioral combination",
           weight: bonus,
-          evidence: "Zelfde schrijfstijl EN zelfde uitdrukkingen",
+          evidence: "Same writing style AND same expressions",
         });
       }
 
@@ -1402,14 +1450,24 @@ function detectAltsAdvanced(
       scores[i][j] = totalScore;
       scores[j][i] = totalScore;
 
-      // STRICTER: Only add if significant evidence
+      // MUCH STRICTER: Require significant evidence from multiple categories
       const strongReasons = reasons.filter(r => r.weight >= 15 && r.type !== "bonus");
-      if (totalScore >= 50 && strongReasons.length >= 2) {
-        const confidence = Math.min(Math.round(totalScore * 0.65), 99);
+      const veryStrongReasons = reasons.filter(r => r.weight >= 20 && r.type !== "bonus");
+
+      // Need at least 60 points AND 2 strong reasons to even report
+      if (totalScore >= 60 && strongReasons.length >= 2) {
+        // CONSERVATIVE confidence formula:
+        // - Score of 60 = ~35% confidence (low)
+        // - Score of 100 = ~55% confidence (medium)
+        // - Score of 150 = ~75% confidence (high)
+        // - Need 180+ for critical (85%+)
+        // This makes high confidence much harder to achieve
+        const confidence = Math.min(Math.round(totalScore * 0.45 + 8), 95);
 
         let category: AltSuspicion["category"];
-        if (neverOnlineTogether && strongReasons.length >= 2 && confidence >= 70) category = "critical";
-        else if (confidence >= 70) category = "high";
+        // Critical: Must have temporal evidence + very strong supporting evidence
+        if (neverOnlineTogether && veryStrongReasons.length >= 3 && confidence >= 80) category = "critical";
+        else if (confidence >= 70 && veryStrongReasons.length >= 2) category = "high";
         else if (confidence >= 50) category = "medium";
         else category = "low";
 
@@ -1610,17 +1668,17 @@ export default function ChatAnalyzerPage() {
             Chat Forensics Analyzer
           </h1>
           <p className="text-text-secondary">
-            Geavanceerde analyse met stylometrie, temporele patronen & forensische linguistiek
+            Advanced analysis with stylometry, temporal patterns & forensic linguistics
           </p>
         </div>
 
         {/* Upload Section */}
         <div className="bg-bg-secondary rounded-xl border border-border p-6 mb-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Chat Log Importeren</h2>
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Import Chat Log</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-text-secondary mb-2">
-                Upload .txt bestand(en) <span className="text-text-muted">(selecteer meerdere voor multi-dag)</span>
+                Upload .txt file(s) <span className="text-text-muted">(select multiple for multi-day)</span>
               </label>
               <input
                 type="file"
@@ -1631,7 +1689,7 @@ export default function ChatAnalyzerPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-2">Of plak chat hier</label>
+              <label className="block text-sm text-text-secondary mb-2">Or paste chat here</label>
               <div className="flex gap-2">
                 <textarea
                   value={rawText}
@@ -1652,22 +1710,22 @@ export default function ChatAnalyzerPage() {
           {messages.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-4 text-sm">
               <span className="px-3 py-1 bg-bg-tertiary rounded-full text-text-secondary">
-                {messages.length} berichten
+                {messages.length} messages
               </span>
               <span className="px-3 py-1 bg-bg-tertiary rounded-full text-text-secondary">
-                {players.length} spelers
+                {players.length} players
               </span>
               <span className="px-3 py-1 bg-info/20 text-info rounded-full">
-                {Math.max(...messages.map(m => m.dayIndex)) + 1} dag(en)
+                {Math.max(...messages.map(m => m.dayIndex)) + 1} day(s)
               </span>
               {altSuspicions.filter(s => s.category === "critical").length > 0 && (
                 <span className="px-3 py-1 bg-error/20 text-error rounded-full font-semibold">
-                  {altSuspicions.filter(s => s.category === "critical").length} kritieke matches
+                  {altSuspicions.filter(s => s.category === "critical").length} critical matches
                 </span>
               )}
               {altSuspicions.filter(s => s.category === "high").length > 0 && (
                 <span className="px-3 py-1 bg-warning/20 text-warning rounded-full">
-                  {altSuspicions.filter(s => s.category === "high").length} hoge matches
+                  {altSuspicions.filter(s => s.category === "high").length} high matches
                 </span>
               )}
             </div>
@@ -1689,8 +1747,8 @@ export default function ChatAnalyzerPage() {
                   }`}
                 >
                   {tab === "chat" && "Chat"}
-                  {tab === "players" && `Spelers (${players.length})`}
-                  {tab === "alts" && `Alt Detectie ${altSuspicions.length > 0 ? `(${altSuspicions.length})` : ""}`}
+                  {tab === "players" && `Players (${players.length})`}
+                  {tab === "alts" && `Alt Detection ${altSuspicions.length > 0 ? `(${altSuspicions.length})` : ""}`}
                   {tab === "matrix" && "Similarity Matrix"}
                   {tab === "forensics" && "Forensics Lab"}
                 </button>
@@ -1704,7 +1762,7 @@ export default function ChatAnalyzerPage() {
                   <div className="flex-1 min-w-[200px]">
                     <input
                       type="text"
-                      placeholder="Zoek in berichten..."
+                      placeholder="Search messages..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
@@ -1715,7 +1773,7 @@ export default function ChatAnalyzerPage() {
                     onChange={(e) => setSelectedPlayer(e.target.value || null)}
                     className="px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
                   >
-                    <option value="">Alle spelers</option>
+                    <option value="">All players</option>
                     {players.map(p => (
                       <option key={p} value={p}>{p}</option>
                     ))}
@@ -1768,7 +1826,7 @@ export default function ChatAnalyzerPage() {
                   ))}
                   {filteredMessages.length === 0 && (
                     <div className="text-center text-text-muted py-8">
-                      Geen berichten gevonden
+                      No messages found
                     </div>
                   )}
                 </div>
@@ -1793,14 +1851,14 @@ export default function ChatAnalyzerPage() {
                         {stats.name}
                       </h3>
                       <span className="text-text-muted text-sm">
-                        {stats.messageCount} berichten
+                        {stats.messageCount} messages
                       </span>
                     </div>
 
                     <div className="space-y-3 text-sm">
                       <div className="grid grid-cols-4 gap-2">
                         <div className="bg-bg-tertiary rounded-lg p-2 text-center">
-                          <div className="text-text-muted text-xs">Woorden</div>
+                          <div className="text-text-muted text-xs">Words</div>
                           <div className="text-text-primary font-semibold">{stats.wordCount}</div>
                         </div>
                         <div className="bg-bg-tertiary rounded-lg p-2 text-center">
@@ -1823,7 +1881,7 @@ export default function ChatAnalyzerPage() {
 
                       {stats.typoPatterns.length > 0 && (
                         <div>
-                          <div className="text-text-muted mb-1 text-xs">Typefouten</div>
+                          <div className="text-text-muted mb-1 text-xs">Typos</div>
                           <div className="flex flex-wrap gap-1">
                             {stats.typoPatterns.map(typo => (
                               <span key={typo} className="px-2 py-0.5 bg-error/20 text-error rounded text-xs">
@@ -1836,7 +1894,7 @@ export default function ChatAnalyzerPage() {
 
                       {stats.letterSubstitutions.size > 0 && (
                         <div>
-                          <div className="text-text-muted mb-1 text-xs">Afkortingen</div>
+                          <div className="text-text-muted mb-1 text-xs">Abbreviations</div>
                           <div className="flex flex-wrap gap-1">
                             {[...stats.letterSubstitutions.keys()].slice(0, 5).map(sub => (
                               <span key={sub} className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">
@@ -1849,7 +1907,7 @@ export default function ChatAnalyzerPage() {
 
                       {stats.commonPhrases.length > 0 && (
                         <div>
-                          <div className="text-text-muted mb-1 text-xs">Uitdrukkingen</div>
+                          <div className="text-text-muted mb-1 text-xs">Phrases</div>
                           <div className="flex flex-wrap gap-1">
                             {stats.commonPhrases.slice(0, 3).map(phrase => (
                               <span key={phrase} className="px-2 py-0.5 bg-accent/20 text-accent rounded text-xs">
@@ -1865,7 +1923,7 @@ export default function ChatAnalyzerPage() {
                         stats.microPatterns.excessiveCaps || stats.microPatterns.numberSubstitution ||
                         stats.microPatterns.noSpaceAfterPunct) && (
                         <div>
-                          <div className="text-text-muted mb-1 text-xs">Micro-patronen</div>
+                          <div className="text-text-muted mb-1 text-xs">Micro-patterns</div>
                           <div className="flex flex-wrap gap-1">
                             {stats.microPatterns.lowercaseI && (
                               <span className="px-2 py-0.5 bg-success/20 text-success rounded text-xs">lowercase i</span>
@@ -1893,7 +1951,7 @@ export default function ChatAnalyzerPage() {
                       {stats.emoticonStyle.commonEmotes.length > 0 && (
                         <div>
                           <div className="text-text-muted mb-1 text-xs">
-                            Emotes ({stats.emoticonStyle.emoteFrequency}% van berichten)
+                            Emotes ({stats.emoticonStyle.emoteFrequency}% of messages)
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {stats.emoticonStyle.commonEmotes.slice(0, 5).map(emote => (
@@ -1902,7 +1960,7 @@ export default function ChatAnalyzerPage() {
                               </span>
                             ))}
                             {stats.emoticonStyle.usesNose && (
-                              <span className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">:-) stijl</span>
+                              <span className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">:-) style</span>
                             )}
                             {stats.emoticonStyle.usesEmoji && (
                               <span className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">emoji user</span>
@@ -1913,7 +1971,7 @@ export default function ChatAnalyzerPage() {
 
                       <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
                         {stats.punctuationStyle.spaceBefore && (
-                          <span className="px-2 py-0.5 bg-info/20 text-info rounded text-xs">spatie voor ?!</span>
+                          <span className="px-2 py-0.5 bg-info/20 text-info rounded text-xs">space before ?!</span>
                         )}
                         {stats.punctuationStyle.doublePunctuation && (
                           <span className="px-2 py-0.5 bg-info/20 text-info rounded text-xs">!!/??</span>
@@ -1935,20 +1993,20 @@ export default function ChatAnalyzerPage() {
                   <div className="bg-bg-secondary rounded-xl border border-border p-8 text-center">
                     <div className="text-4xl mb-4">&#128373;</div>
                     <h3 className="text-lg font-semibold text-text-primary mb-2">
-                      Geen verdachte alt-accounts gevonden
+                      No suspicious alt accounts found
                     </h3>
                     <p className="text-text-secondary">
-                      De forensische analyse heeft geen matches gevonden.
+                      The forensic analysis found no matches.
                       <br />
-                      Meer chatberichten verbeteren de detectie.
+                      More chat messages improve detection accuracy.
                     </p>
                   </div>
                 ) : (
                   <>
                     <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
                       <p className="text-accent text-sm">
-                        <strong>Forensische Analyse v2.0:</strong> Nu met handoff-detectie, zeldzame woorden fingerprint,
-                        micro-patronen, emoticon analyse, en Wurm-specifieke context.
+                        <strong>Forensic Analysis v3.0:</strong> Improved accuracy with stricter thresholds.
+                        Now requires stronger evidence for high confidence matches.
                       </p>
                     </div>
 
@@ -1981,12 +2039,12 @@ export default function ChatAnalyzerPage() {
                             </span>
                             {suspicion.neverOnlineTogether && (
                               <span className="px-2 py-1 bg-error text-white text-xs rounded font-bold">
-                                NOOIT SAMEN ONLINE
+                                NEVER ONLINE TOGETHER
                               </span>
                             )}
                             {suspicion.handoffScore >= 20 && (
                               <span className="px-2 py-1 bg-warning text-black text-xs rounded font-bold">
-                                HANDOFF PATROON
+                                HANDOFF PATTERN
                               </span>
                             )}
                           </div>
@@ -2005,7 +2063,7 @@ export default function ChatAnalyzerPage() {
 
                         {/* Human Readable Explanation */}
                         <div className="bg-bg-tertiary rounded-lg p-4 mb-4">
-                          <h4 className="text-sm font-semibold text-text-secondary mb-2">Analyse Samenvatting:</h4>
+                          <h4 className="text-sm font-semibold text-text-secondary mb-2">Analysis Summary:</h4>
                           <div className="text-text-primary text-sm whitespace-pre-line">
                             {suspicion.humanExplanation}
                           </div>
@@ -2088,7 +2146,7 @@ export default function ChatAnalyzerPage() {
                           {/* Rare Words */}
                           {suspicion.sharedRareWords.length > 0 && (
                             <div className="bg-bg-tertiary rounded-lg p-3 col-span-2 lg:col-span-1">
-                              <div className="text-xs text-text-muted mb-1">Zeldzame woorden</div>
+                              <div className="text-xs text-text-muted mb-1">Rare words</div>
                               <div className="flex flex-wrap gap-1">
                                 {suspicion.sharedRareWords.slice(0, 5).map((word, i) => (
                                   <span key={i} className="px-2 py-0.5 bg-warning/20 text-warning rounded text-xs">
@@ -2103,7 +2161,7 @@ export default function ChatAnalyzerPage() {
                         {/* Detailed Reasons (collapsible) */}
                         <details className="group">
                           <summary className="cursor-pointer text-sm text-text-secondary hover:text-text-primary mb-2">
-                            Bekijk alle {suspicion.reasons.length} redenen...
+                            View all {suspicion.reasons.length} reasons...
                           </summary>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                             {suspicion.reasons.map((reason, i) => (
@@ -2146,19 +2204,19 @@ export default function ChatAnalyzerPage() {
                             onClick={() => { setSelectedPlayer(suspicion.player1); setActiveTab("chat"); }}
                             className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
                           >
-                            Bekijk {suspicion.player1}
+                            View {suspicion.player1}
                           </button>
                           <button
                             onClick={() => { setSelectedPlayer(suspicion.player2); setActiveTab("chat"); }}
                             className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
                           >
-                            Bekijk {suspicion.player2}
+                            View {suspicion.player2}
                           </button>
                           <button
                             onClick={() => { setCompareMode([suspicion.player1, suspicion.player2]); setActiveTab("forensics"); }}
                             className="px-3 py-1 bg-accent/20 text-accent rounded-lg text-sm hover:bg-accent/30"
                           >
-                            Vergelijk in Lab
+                            Compare in Lab
                           </button>
                         </div>
                       </div>
@@ -2172,10 +2230,10 @@ export default function ChatAnalyzerPage() {
             {activeTab === "matrix" && similarityMatrix.players.length > 0 && (
               <div className="bg-bg-secondary rounded-xl border border-border p-4 overflow-x-auto">
                 <h3 className="text-lg font-semibold text-text-primary mb-4">
-                  Speler Similarity Matrix
+                  Player Similarity Matrix
                 </h3>
                 <p className="text-text-secondary text-sm mb-4">
-                  Heatmap van overeenkomsten tussen spelers. Hogere scores = meer verdacht.
+                  Heatmap of similarities between players. Higher scores = more suspicious.
                 </p>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-xs">
@@ -2241,11 +2299,11 @@ export default function ChatAnalyzerPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded" style={{ backgroundColor: "rgba(245, 158, 11, 0.5)" }}></div>
-                    <span className="text-text-muted">Verdacht (30-59)</span>
+                    <span className="text-text-muted">Suspicious (30-59)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded" style={{ backgroundColor: "rgba(59, 130, 246, 0.3)" }}></div>
-                    <span className="text-text-muted">Laag (&lt;30)</span>
+                    <span className="text-text-muted">Low (&lt;30)</span>
                   </div>
                 </div>
               </div>
@@ -2256,7 +2314,7 @@ export default function ChatAnalyzerPage() {
               <div className="space-y-4">
                 <div className="bg-bg-secondary rounded-xl border border-border p-4">
                   <h3 className="text-lg font-semibold text-text-primary mb-4">
-                    Forensics Lab - Directe Vergelijking
+                    Forensics Lab - Direct Comparison
                   </h3>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <select
@@ -2264,7 +2322,7 @@ export default function ChatAnalyzerPage() {
                       onChange={(e) => setCompareMode([e.target.value, compareMode?.[1] || ""])}
                       className="px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
                     >
-                      <option value="">Selecteer speler 1</option>
+                      <option value="">Select player 1</option>
                       {players.map(p => (
                         <option key={p} value={p}>{p}</option>
                       ))}
@@ -2274,7 +2332,7 @@ export default function ChatAnalyzerPage() {
                       onChange={(e) => setCompareMode([compareMode?.[0] || "", e.target.value])}
                       className="px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
                     >
-                      <option value="">Selecteer speler 2</option>
+                      <option value="">Select player 2</option>
                       {players.map(p => (
                         <option key={p} value={p}>{p}</option>
                       ))}
@@ -2299,7 +2357,7 @@ export default function ChatAnalyzerPage() {
                         <div className="space-y-4 text-sm">
                           {/* Stylometry */}
                           <div>
-                            <div className="text-text-muted mb-2 font-semibold">Stylometrie</div>
+                            <div className="text-text-muted mb-2 font-semibold">Stylometry</div>
                             <div className="grid grid-cols-2 gap-2">
                               <div className="bg-bg-tertiary p-2 rounded">
                                 <span className="text-text-muted">Yule&apos;s K:</span>{" "}
@@ -2326,7 +2384,7 @@ export default function ChatAnalyzerPage() {
 
                           {/* Typos */}
                           <div>
-                            <div className="text-text-muted mb-2 font-semibold">Typefouten</div>
+                            <div className="text-text-muted mb-2 font-semibold">Typos</div>
                             <div className="flex flex-wrap gap-1">
                               {stats.typoPatterns.length > 0 ? (
                                 stats.typoPatterns.map(t => (
@@ -2342,14 +2400,14 @@ export default function ChatAnalyzerPage() {
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-text-muted">Geen gedetecteerd</span>
+                                <span className="text-text-muted">None detected</span>
                               )}
                             </div>
                           </div>
 
                           {/* Substitutions */}
                           <div>
-                            <div className="text-text-muted mb-2 font-semibold">Letter-substituties</div>
+                            <div className="text-text-muted mb-2 font-semibold">Letter substitutions</div>
                             <div className="flex flex-wrap gap-1">
                               {stats.letterSubstitutions.size > 0 ? (
                                 [...stats.letterSubstitutions.keys()].map(s => (
@@ -2365,14 +2423,14 @@ export default function ChatAnalyzerPage() {
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-text-muted">Geen</span>
+                                <span className="text-text-muted">None</span>
                               )}
                             </div>
                           </div>
 
                           {/* Common phrases */}
                           <div>
-                            <div className="text-text-muted mb-2 font-semibold">Uitdrukkingen</div>
+                            <div className="text-text-muted mb-2 font-semibold">Phrases</div>
                             <div className="flex flex-wrap gap-1">
                               {stats.commonPhrases.slice(0, 5).map(p => (
                                 <span
@@ -2391,7 +2449,7 @@ export default function ChatAnalyzerPage() {
 
                           {/* Punctuation */}
                           <div>
-                            <div className="text-text-muted mb-2 font-semibold">Leestekens</div>
+                            <div className="text-text-muted mb-2 font-semibold">Punctuation</div>
                             <div className="flex flex-wrap gap-1">
                               {stats.punctuationStyle.spaceBefore && (
                                 <span className={`px-2 py-1 rounded text-xs ${
@@ -2399,7 +2457,7 @@ export default function ChatAnalyzerPage() {
                                     ? "bg-success text-white"
                                     : "bg-bg-tertiary text-text-secondary"
                                 }`}>
-                                  spatie voor ?!
+                                  space before ?!
                                 </span>
                               )}
                               {stats.punctuationStyle.doublePunctuation && (
@@ -2425,7 +2483,7 @@ export default function ChatAnalyzerPage() {
 
                           {/* Word length distribution visualization */}
                           <div>
-                            <div className="text-text-muted mb-2 font-semibold">Woordlengte distributie</div>
+                            <div className="text-text-muted mb-2 font-semibold">Word length distribution</div>
                             <div className="flex items-end gap-px h-16">
                               {stats.wordLengthDistribution.slice(1, 12).map((val, i) => (
                                 <div
@@ -2452,7 +2510,7 @@ export default function ChatAnalyzerPage() {
                   <div className="bg-bg-secondary rounded-xl border border-border p-8 text-center">
                     <div className="text-4xl mb-4">&#128300;</div>
                     <p className="text-text-secondary">
-                      Selecteer twee spelers om te vergelijken
+                      Select two players to compare
                     </p>
                   </div>
                 )}
@@ -2466,10 +2524,10 @@ export default function ChatAnalyzerPage() {
           <div className="bg-bg-secondary rounded-xl border border-border p-12 text-center">
             <div className="text-6xl mb-4">&#128172;</div>
             <h2 className="text-xl font-semibold text-text-primary mb-2">
-              Upload een chat log om te beginnen
+              Upload a chat log to begin
             </h2>
             <p className="text-text-secondary mb-4">
-              Ondersteund formaat: [HH:MM:SS] &lt;SpelerNaam&gt; bericht
+              Supported format: [HH:MM:SS] &lt;PlayerName&gt; message
             </p>
             <div className="bg-bg-tertiary rounded-lg p-4 text-left font-mono text-sm max-w-md mx-auto">
               <div className="text-text-muted">[21:25:05] &lt;Shenjiwurm&gt; its alot of fun</div>
@@ -2478,23 +2536,23 @@ export default function ChatAnalyzerPage() {
             </div>
 
             <div className="mt-8 text-left max-w-xl mx-auto">
-              <h3 className="text-lg font-semibold text-text-primary mb-3">Forensische Technieken:</h3>
+              <h3 className="text-lg font-semibold text-text-primary mb-3">Forensic Techniques:</h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-bg-tertiary rounded-lg p-3">
-                  <div className="font-semibold text-error">Temporele Analyse</div>
-                  <div className="text-text-muted">Detecteert accounts die nooit tegelijk online zijn</div>
+                  <div className="font-semibold text-error">Temporal Analysis</div>
+                  <div className="text-text-muted">Detects accounts that are never online together</div>
                 </div>
                 <div className="bg-bg-tertiary rounded-lg p-3">
                   <div className="font-semibold text-warning">N-gram Fingerprinting</div>
-                  <div className="text-text-muted">Karakter-patronen identificeren schrijfstijl</div>
+                  <div className="text-text-muted">Character patterns identify writing style</div>
                 </div>
                 <div className="bg-bg-tertiary rounded-lg p-3">
-                  <div className="font-semibold text-info">Yule&apos;s K Stylometrie</div>
-                  <div className="text-text-muted">Statistische auteurs-vingerafdruk</div>
+                  <div className="font-semibold text-info">Yule&apos;s K Stylometry</div>
+                  <div className="text-text-muted">Statistical author fingerprint</div>
                 </div>
                 <div className="bg-bg-tertiary rounded-lg p-3">
-                  <div className="font-semibold text-success">Netwerk Analyse</div>
-                  <div className="text-text-muted">Interactie-patronen en gesprekspartners</div>
+                  <div className="font-semibold text-success">Network Analysis</div>
+                  <div className="text-text-muted">Interaction patterns and conversation partners</div>
                 </div>
               </div>
             </div>
