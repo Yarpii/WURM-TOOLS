@@ -173,5 +173,61 @@ export interface WurmTopicOverlap {
   sharedTopics: string[];
 }
 
+// ============================================================================
+// SOCIAL ANALYSIS TYPES (v4.1)
+// ============================================================================
+
+/**
+ * Social insight - separate from alt detection
+ * Analyzes relationships between players
+ */
+export interface SocialInsight {
+  player1: string;
+  player2: string;
+  insightType: "self_talk_suspected" | "conflict_detected" | "close_friends" | "one_way_interaction";
+  confidence: number;
+  description: string;
+  evidence: string[];
+}
+
+/**
+ * Conversation pair analysis
+ * Tracks who talks to who and how
+ */
+export interface ConversationPair {
+  player1: string;
+  player2: string;
+  p1ToP2Count: number;       // How many times P1 responds to P2
+  p2ToP1Count: number;       // How many times P2 responds to P1
+  totalInteractions: number;
+  stylisticSimilarity: number; // 0-1 how similar their writing is
+  onlineTogetherMinutes: number;
+  bothActiveButNoInteraction: boolean; // Key for conflict detection
+}
+
+/**
+ * Slip detection - inconsistent typing patterns within one account
+ * Indicates someone trying to type differently but "slipping"
+ */
+export interface SlipPattern {
+  playerName: string;
+  slipType: "typo_inconsistency" | "style_shift" | "vocabulary_change";
+  description: string;
+  evidence: string[];
+  suspicionLevel: "low" | "medium" | "high";
+}
+
+/**
+ * Extended alt suspicion with self-talk analysis
+ */
+export interface SelfTalkIndicator {
+  player1: string;
+  player2: string;
+  talkToEachOther: boolean;
+  sameWritingStyle: boolean;
+  suspicionScore: number;
+  reasoning: string;
+}
+
 // Re-export AlgorithmConfig from constants for convenience
 export type { AlgorithmConfig, AlgorithmMode } from "./constants";

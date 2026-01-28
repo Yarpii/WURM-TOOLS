@@ -1,13 +1,14 @@
 // ============================================================================
-// CHAT ANALYZER - ALT DETECTION ENGINE (v4.0 - Enhanced Accuracy)
+// CHAT ANALYZER - ALT DETECTION ENGINE (v4.1 - Social Analysis)
 // ============================================================================
 
 import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, ScoreBreakdown, HandoffResult } from "./types";
 import { STOP_WORDS, ALGORITHM_CONFIGS, type AlgorithmMode, type AlgorithmConfig } from "./constants";
 import { cosineSimilarity, distributionSimilarity } from "./utils";
-import { buildRareWordIndex, detectSharedRareWords } from "./behavioral";
+import { buildRareWordIndex, detectSharedRareWords, detectSelfTalk, detectSlips, generateSocialInsights } from "./behavioral";
 import { generateHumanExplanation } from "./playerAnalysis";
 import { compareFunctionWordProfiles, compareActivityPatterns, compareWordBigrams } from "./linguistic";
+import type { SocialInsight, SlipPattern } from "./types";
 
 /**
  * Detect handoff pattern between two players
@@ -114,8 +115,8 @@ export function detectHandoffPattern(
 }
 
 /**
- * Main alt detection engine (v4.0 - Enhanced Accuracy)
- * Uses advanced stylometry, function words, and statistical analysis
+ * Main alt detection engine (v4.1 - Social Analysis)
+ * Uses advanced stylometry, function words, social analysis, and self-talk detection
  * @param stats - Player statistics array
  * @param messages - All chat messages
  * @param mode - Algorithm mode to use (default: "balanced")
@@ -124,7 +125,13 @@ export function detectAltsAdvanced(
   stats: AdvancedPlayerStats[],
   messages: ChatMessage[],
   mode: AlgorithmMode = "balanced"
-): { suspicions: AltSuspicion[]; matrix: SimilarityMatrix; config: AlgorithmConfig } {
+): {
+  suspicions: AltSuspicion[];
+  matrix: SimilarityMatrix;
+  config: AlgorithmConfig;
+  socialInsights: SocialInsight[];
+  slipPatterns: SlipPattern[];
+} {
   const config = ALGORITHM_CONFIGS[mode];
   const suspicions: AltSuspicion[] = [];
   const players = stats.map(s => s.name);
@@ -132,6 +139,18 @@ export function detectAltsAdvanced(
 
   // Build rare word index for all players
   const rareWordIndex = buildRareWordIndex(stats);
+
+  // NEW v4.1: Detect self-talk patterns (accounts talking to each other with same style)
+  const selfTalkIndicators = detectSelfTalk(stats, messages);
+  const selfTalkMap = new Map<string, number>();
+  for (const indicator of selfTalkIndicators) {
+    const key = [indicator.player1, indicator.player2].sort().join("|");
+    selfTalkMap.set(key, indicator.suspicionScore);
+  }
+
+  // NEW v4.1: Detect slips and social insights
+  const slipPatterns = detectSlips(stats, messages);
+  const socialInsights = generateSocialInsights(stats, messages);
 
   // Calculate total days from messages
   const totalDays = messages.length > 0
@@ -526,8 +545,24 @@ export function detectAltsAdvanced(
       const p1RespondsToP2 = p1.responsePartners.has(p2.name);
       const p2RespondsToP1 = p2.responsePartners.has(p1.name);
 
-      if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
+      // Check for self-talk pattern (VERY SUSPICIOUS - v4.1)
+      const selfTalkKey = [p1.name, p2.name].sort().join("|");
+      const selfTalkScore = selfTalkMap.get(selfTalkKey) || 0;
+
+      if (selfTalkScore >= 50) {
+        // They TALK to each other but have SAME writing style = very suspicious
+        const baseScore = Math.min(selfTalkScore, 45);
+        const weightedScore = Math.round(baseScore * config.networkWeight * 1.5);
+        scoreBreakdown.network += weightedScore;
+        reasons.push({
+          type: "network",
+          description: "SELF-TALK DETECTED: Talk to each other but write identically",
+          weight: weightedScore,
+          evidence: `Suspicion score: ${selfTalkScore} (same style while conversing)`,
+        });
+      } else if (!p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
           p1.messageCount >= 50 && p2.messageCount >= 50) {
+        // Original logic: never interact
         const baseScore = 8;
         const weightedScore = Math.round(baseScore * config.networkWeight);
         scoreBreakdown.network = weightedScore;
@@ -536,6 +571,24 @@ export function detectAltsAdvanced(
           description: "Never interacted with each other",
           weight: weightedScore,
           evidence: "No mentions or replies despite many messages",
+        });
+      }
+
+      // NEW v4.1: Check for conflict pattern (online together but ignoring each other)
+      // This is ANTI-alt evidence - they're different people who don't like each other
+      const overlappingMinutes = new Set([...p1.activeMinutes].filter(m => p2.activeMinutes.has(m))).size;
+      if (overlappingMinutes >= 30 &&
+          !p1MentionsP2 && !p2MentionsP1 && !p1RespondsToP2 && !p2RespondsToP1 &&
+          p1.messageCount >= 30 && p2.messageCount >= 30) {
+        // They're online together but never interact = possible conflict (NOT alts)
+        // This should REDUCE alt suspicion
+        const penalty = -15;
+        scoreBreakdown.network += penalty;
+        reasons.push({
+          type: "network",
+          description: "Conflict pattern: online together but never interact",
+          weight: penalty,
+          evidence: `${overlappingMinutes} min overlap with zero interaction (likely different people)`,
         });
       }
 
@@ -630,5 +683,7 @@ export function detectAltsAdvanced(
     suspicions: suspicions.sort((a, b) => b.confidence - a.confidence),
     matrix: { players, scores },
     config, // Return the config used for UI display
+    socialInsights, // NEW v4.1: Social relationship insights
+    slipPatterns, // NEW v4.1: Typing inconsistency patterns
   };
 }

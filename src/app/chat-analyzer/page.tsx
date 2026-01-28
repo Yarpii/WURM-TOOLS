@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, AlgorithmConfig } from "./types";
+import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, AlgorithmConfig, SocialInsight, SlipPattern } from "./types";
 import { getPlayerColor } from "./utils";
 import { parseChat, parseMultipleChats } from "./parser";
 import { analyzePlayerAdvanced } from "./playerAnalysis";
@@ -15,7 +15,7 @@ import { ALGORITHM_CONFIGS, type AlgorithmMode } from "./constants";
 export default function ChatAnalyzerPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [rawText, setRawText] = useState("");
-  const [activeTab, setActiveTab] = useState<"chat" | "players" | "alts" | "matrix" | "forensics">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "players" | "alts" | "social" | "matrix" | "forensics">("chat");
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [compareMode, setCompareMode] = useState<[string, string] | null>(null);
@@ -30,12 +30,14 @@ export default function ChatAnalyzerPage() {
     return players.map(p => analyzePlayerAdvanced(p, messages, players));
   }, [players, messages]);
 
-  const { altSuspicions, similarityMatrix, activeConfig } = useMemo(() => {
+  const { altSuspicions, similarityMatrix, activeConfig, socialInsights, slipPatterns } = useMemo(() => {
     if (playerStats.length < 2) {
       return {
         altSuspicions: [] as AltSuspicion[],
         similarityMatrix: { players: [], scores: [] } as SimilarityMatrix,
         activeConfig: ALGORITHM_CONFIGS[algorithmMode],
+        socialInsights: [] as SocialInsight[],
+        slipPatterns: [] as SlipPattern[],
       };
     }
     const result = detectAltsAdvanced(playerStats, messages, algorithmMode);
@@ -43,6 +45,8 @@ export default function ChatAnalyzerPage() {
       altSuspicions: result.suspicions,
       similarityMatrix: result.matrix,
       activeConfig: result.config,
+      socialInsights: result.socialInsights,
+      slipPatterns: result.slipPatterns,
     };
   }, [playerStats, messages, algorithmMode]);
 
@@ -161,7 +165,7 @@ export default function ChatAnalyzerPage() {
                 <textarea
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
-                  placeholder="[21:25:05] <Shenjiwurm> its alot of fun..."
+                  placeholder="[21:25:05] <Yarpii> hey everyone whats up..."
                   className="flex-1 px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border resize-none h-10"
                 />
                 <button
@@ -228,7 +232,7 @@ export default function ChatAnalyzerPage() {
           <>
             {/* Tabs */}
             <div className="flex flex-wrap gap-2 mb-6">
-              {(["chat", "players", "alts", "matrix", "forensics"] as const).map((tab) => (
+              {(["chat", "players", "alts", "social", "matrix", "forensics"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -241,6 +245,7 @@ export default function ChatAnalyzerPage() {
                   {tab === "chat" && "Chat"}
                   {tab === "players" && `Players (${players.length})`}
                   {tab === "alts" && `Alt Detection ${altSuspicions.length > 0 ? `(${altSuspicions.length})` : ""}`}
+                  {tab === "social" && `Social ${socialInsights.length > 0 ? `(${socialInsights.length})` : ""}`}
                   {tab === "matrix" && "Similarity Matrix"}
                   {tab === "forensics" && "Forensics Lab"}
                 </button>
@@ -272,6 +277,16 @@ export default function ChatAnalyzerPage() {
                 setActiveTab={setActiveTab}
                 setCompareMode={setCompareMode}
                 activeConfig={activeConfig}
+              />
+            )}
+
+            {/* Social Tab */}
+            {activeTab === "social" && (
+              <SocialTab
+                socialInsights={socialInsights}
+                slipPatterns={slipPatterns}
+                setSelectedPlayer={setSelectedPlayer}
+                setActiveTab={setActiveTab}
               />
             )}
 
@@ -563,7 +578,7 @@ function AltsTab({
 }: {
   altSuspicions: AltSuspicion[];
   setSelectedPlayer: (player: string | null) => void;
-  setActiveTab: (tab: "chat" | "players" | "alts" | "matrix" | "forensics") => void;
+  setActiveTab: (tab: "chat" | "players" | "alts" | "social" | "matrix" | "forensics") => void;
   setCompareMode: (mode: [string, string] | null) => void;
   activeConfig: AlgorithmConfig;
 }) {
@@ -619,7 +634,7 @@ function AltSuspicionCard({
 }: {
   suspicion: AltSuspicion;
   setSelectedPlayer: (player: string | null) => void;
-  setActiveTab: (tab: "chat" | "players" | "alts" | "matrix" | "forensics") => void;
+  setActiveTab: (tab: "chat" | "players" | "alts" | "social" | "matrix" | "forensics") => void;
   setCompareMode: (mode: [string, string] | null) => void;
 }) {
   return (
@@ -847,7 +862,7 @@ function MatrixTab({
 }: {
   similarityMatrix: SimilarityMatrix;
   setCompareMode: (mode: [string, string] | null) => void;
-  setActiveTab: (tab: "chat" | "players" | "alts" | "matrix" | "forensics") => void;
+  setActiveTab: (tab: "chat" | "players" | "alts" | "social" | "matrix" | "forensics") => void;
 }) {
   return (
     <div className="bg-bg-secondary rounded-xl border border-border p-4 overflow-x-auto">
@@ -926,6 +941,214 @@ function MatrixTab({
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: "rgba(59, 130, 246, 0.3)" }}></div>
           <span className="text-text-muted">Low (&lt;30)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SocialTab({
+  socialInsights,
+  slipPatterns,
+  setSelectedPlayer,
+  setActiveTab,
+}: {
+  socialInsights: SocialInsight[];
+  slipPatterns: SlipPattern[];
+  setSelectedPlayer: (player: string | null) => void;
+  setActiveTab: (tab: "chat" | "players" | "alts" | "social" | "matrix" | "forensics") => void;
+}) {
+  if (socialInsights.length === 0 && slipPatterns.length === 0) {
+    return (
+      <div className="bg-bg-secondary rounded-xl border border-border p-8 text-center">
+        <div className="text-4xl mb-4">&#128101;</div>
+        <h3 className="text-lg font-semibold text-text-primary mb-2">
+          No social patterns detected
+        </h3>
+        <p className="text-text-secondary">
+          No conflicts, self-talk, or typing inconsistencies found.
+          <br />
+          This analysis works best with more chat data and multiple active players.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Social Insights Section */}
+      {socialInsights.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-text-primary">
+            Social Relationships ({socialInsights.length})
+          </h3>
+
+          {socialInsights.map((insight, idx) => (
+            <div
+              key={idx}
+              className={`bg-bg-secondary rounded-xl border p-4 ${
+                insight.insightType === "self_talk_suspected"
+                  ? "border-error"
+                  : insight.insightType === "conflict_detected"
+                  ? "border-warning"
+                  : "border-border"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="font-semibold"
+                    style={{ color: getPlayerColor(insight.player1) }}
+                  >
+                    {insight.player1}
+                  </span>
+                  <span className="text-text-muted">
+                    {insight.insightType === "conflict_detected" ? "&#128683;" : "&#8596;"}
+                  </span>
+                  <span
+                    className="font-semibold"
+                    style={{ color: getPlayerColor(insight.player2) }}
+                  >
+                    {insight.player2}
+                  </span>
+
+                  {insight.insightType === "self_talk_suspected" && (
+                    <span className="px-2 py-1 bg-error text-white text-xs rounded font-bold">
+                      SELF-TALK DETECTED
+                    </span>
+                  )}
+                  {insight.insightType === "conflict_detected" && (
+                    <span className="px-2 py-1 bg-warning text-black text-xs rounded font-bold">
+                      POSSIBLE CONFLICT
+                    </span>
+                  )}
+                </div>
+                <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  insight.confidence >= 70
+                    ? "bg-error/20 text-error"
+                    : insight.confidence >= 50
+                    ? "bg-warning/20 text-warning"
+                    : "bg-info/20 text-info"
+                }`}>
+                  {insight.confidence}% confidence
+                </div>
+              </div>
+
+              <p className="text-text-primary mb-3">{insight.description}</p>
+
+              <div className="bg-bg-tertiary rounded-lg p-3">
+                <div className="text-xs text-text-muted mb-1">Evidence:</div>
+                <ul className="text-sm text-text-secondary list-disc list-inside space-y-1">
+                  {insight.evidence.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => { setSelectedPlayer(insight.player1); setActiveTab("chat"); }}
+                  className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
+                >
+                  View {insight.player1}
+                </button>
+                <button
+                  onClick={() => { setSelectedPlayer(insight.player2); setActiveTab("chat"); }}
+                  className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
+                >
+                  View {insight.player2}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Slip Patterns Section */}
+      {slipPatterns.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-text-primary">
+            Typing Inconsistencies ({slipPatterns.length})
+          </h3>
+          <p className="text-text-secondary text-sm">
+            Players whose typing style changes during the session - may indicate someone
+            trying to type differently but &quot;slipping&quot; back to their natural style.
+          </p>
+
+          {slipPatterns.map((slip, idx) => (
+            <div
+              key={idx}
+              className={`bg-bg-secondary rounded-xl border p-4 ${
+                slip.suspicionLevel === "high"
+                  ? "border-error"
+                  : slip.suspicionLevel === "medium"
+                  ? "border-warning"
+                  : "border-border"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="font-semibold text-lg"
+                    style={{ color: getPlayerColor(slip.playerName) }}
+                  >
+                    {slip.playerName}
+                  </span>
+                  <span className={`px-2 py-1 text-xs rounded font-bold ${
+                    slip.suspicionLevel === "high"
+                      ? "bg-error text-white"
+                      : slip.suspicionLevel === "medium"
+                      ? "bg-warning text-black"
+                      : "bg-info/20 text-info"
+                  }`}>
+                    {slip.slipType.replace(/_/g, " ").toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-text-primary mb-3">{slip.description}</p>
+
+              <div className="bg-bg-tertiary rounded-lg p-3">
+                <div className="text-xs text-text-muted mb-1">Evidence:</div>
+                <ul className="text-sm text-text-secondary list-disc list-inside space-y-1">
+                  {slip.evidence.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-3">
+                <button
+                  onClick={() => { setSelectedPlayer(slip.playerName); setActiveTab("chat"); }}
+                  className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
+                >
+                  View messages
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Info Box */}
+      <div className="bg-info/10 border border-info/30 rounded-xl p-4 text-sm">
+        <h4 className="font-semibold text-info mb-2">Understanding Social Analysis</h4>
+        <div className="text-text-secondary space-y-2">
+          <p>
+            <strong>Self-Talk Detected:</strong> Two accounts talk to each other but have
+            identical writing styles. Real friends write differently - this suggests one
+            person controlling both accounts and talking to themselves.
+          </p>
+          <p>
+            <strong>Possible Conflict:</strong> Two players are online together but never
+            interact with each other, while actively chatting with others. This may indicate
+            they&apos;re avoiding each other (and are NOT the same person).
+          </p>
+          <p>
+            <strong>Typing Inconsistencies:</strong> A player&apos;s writing style changes during
+            the session - they might be &quot;slipping&quot; back to their natural style after
+            trying to type differently.
+          </p>
         </div>
       </div>
     </div>
@@ -1175,9 +1398,9 @@ function EmptyState() {
         Supported format: [HH:MM:SS] &lt;PlayerName&gt; message
       </p>
       <div className="bg-bg-tertiary rounded-lg p-4 text-left font-mono text-sm max-w-md mx-auto">
-        <div className="text-text-muted">[21:25:05] &lt;Shenjiwurm&gt; its alot of fun</div>
-        <div className="text-text-muted">[21:25:12] &lt;Shenjiwurm&gt; they guys that are greifing me</div>
-        <div className="text-text-muted">[21:25:18] &lt;Meemers&gt; ohh</div>
+        <div className="text-text-muted">[21:25:05] &lt;Yarpii&gt; hey everyone whats going on</div>
+        <div className="text-text-muted">[21:25:12] &lt;Minabello&gt; not much just working on my deed</div>
+        <div className="text-text-muted">[21:25:18] &lt;Stormweaver&gt; anyone want to trade some bricks?</div>
       </div>
 
       <div className="mt-8 text-left max-w-xl mx-auto">

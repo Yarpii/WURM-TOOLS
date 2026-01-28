@@ -19,6 +19,11 @@ export type {
   // NEW types
   FunctionWordProfile,
   ActivityPattern,
+  // v4.1 Social Analysis types
+  SocialInsight,
+  ConversationPair,
+  SlipPattern,
+  SelfTalkIndicator,
 } from "./types";
 
 // Constants
@@ -80,6 +85,12 @@ export {
   detectWurmTopicOverlap,
   buildRareWordIndex,
   detectSharedRareWords,
+  // v4.1 Social Analysis
+  analyzeConversationPairs,
+  detectSelfTalk,
+  detectConflicts,
+  detectSlips,
+  generateSocialInsights,
 } from "./behavioral";
 
 // Player analysis
