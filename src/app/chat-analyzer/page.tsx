@@ -135,12 +135,25 @@ export default function ChatAnalyzerPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">
-            Chat Forensics Analyzer
-          </h1>
-          <p className="text-text-secondary">
-            Advanced analysis with stylometry, temporal patterns & forensic linguistics
-          </p>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-text-primary mb-2">
+                Chat Forensics Analyzer
+              </h1>
+              <p className="text-text-secondary">
+                Advanced analysis with stylometry, temporal patterns & forensic linguistics
+              </p>
+            </div>
+            <a
+              href="/chat-analyzer/docs"
+              className="px-4 py-2 bg-bg-tertiary text-text-secondary rounded-lg hover:bg-bg-tertiary/80 transition-colors text-sm inline-flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              How it works
+            </a>
+          </div>
         </div>
 
         {/* Upload Section */}
