@@ -3,6 +3,7 @@
 // ============================================================================
 
 import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SocialInsight, SlipPattern, SimilarityMatrix } from "./types";
+import { getPlayerColor } from "./utils";
 
 // ============================================================================
 // HELPERS
@@ -29,13 +30,92 @@ function timestamp(): string {
 // 1. EXPORT PLAYER CHAT (TXT)
 // ============================================================================
 
-export function exportPlayerChat(messages: ChatMessage[], playerName: string) {
-  const playerMessages = messages.filter(m => m.player === playerName);
-  if (playerMessages.length === 0) return;
+export function exportPlayerChat(messages: ChatMessage[], playerNames: string[]) {
+  const filtered = messages.filter(m => playerNames.includes(m.player));
+  if (filtered.length === 0) return;
 
-  const lines = playerMessages.map(m => `[${m.timestamp}] <${m.player}> ${m.message}`);
-  const header = `// Chat log for: ${playerName}\n// Messages: ${playerMessages.length}\n// Exported: ${new Date().toISOString()}\n\n`;
-  downloadFile(header + lines.join("\n"), `chat_${playerName}_${timestamp()}.txt`, "text/plain");
+  const label = playerNames.length === 1 ? playerNames[0] : `${playerNames.length}_players`;
+  const lines = filtered.map(m => `[${m.timestamp}] <${m.player}> ${m.message}`);
+  const header = `// Chat log for: ${playerNames.join(", ")}\n// Messages: ${filtered.length}\n// Exported: ${new Date().toISOString()}\n\n`;
+  downloadFile(header + lines.join("\n"), `chat_${label}_${timestamp()}.txt`, "text/plain");
+}
+
+// ============================================================================
+// 1b. EXPORT PLAYER CHAT (HTML)
+// ============================================================================
+
+function playerColorCSS(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 70%, 65%)`;
+}
+
+export function exportPlayerChatHTML(messages: ChatMessage[], playerNames: string[]) {
+  const filtered = messages.filter(m => playerNames.includes(m.player));
+  if (filtered.length === 0) return;
+
+  const label = playerNames.length === 1 ? playerNames[0] : `${playerNames.length} players`;
+  const fileLabel = playerNames.length === 1 ? playerNames[0] : `${playerNames.length}_players`;
+
+  const uniquePlayers = [...new Set(filtered.map(m => m.player))];
+  const legend = uniquePlayers.map(p =>
+    `<span style="color:${playerColorCSS(p)};font-weight:bold;margin-right:12px;">${escapeHtml(p)}</span>`
+  ).join("");
+
+  const rows = filtered.map(m =>
+    `<div class="msg"><span class="ts">[${escapeHtml(m.timestamp)}]</span> <span class="player" style="color:${playerColorCSS(m.player)}">&lt;${escapeHtml(m.player)}&gt;</span> <span class="text">${escapeHtml(m.message)}</span></div>`
+  ).join("\n");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Log - ${escapeHtml(label)}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; background: #0f0f1a; color: #e2e2e2; padding: 24px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 22px; margin-bottom: 4px; }
+    .meta { color: #888; font-size: 13px; margin-bottom: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .legend { background: #1e1e2e; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; font-size: 13px; }
+    .legend-label { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .chat { background: #1e1e2e; border-radius: 12px; padding: 16px; overflow-y: auto; max-height: 80vh; }
+    .msg { padding: 3px 8px; border-radius: 4px; font-size: 13px; line-height: 1.6; }
+    .msg:hover { background: #262637; }
+    .ts { color: #555; }
+    .player { font-weight: bold; cursor: default; }
+    .text { color: #ccc; word-break: break-word; }
+    .footer { margin-top: 20px; color: #444; font-size: 11px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    @media print {
+      body { background: #fff; color: #000; }
+      .chat { background: #f9f9f9 !important; max-height: none; }
+      .msg:hover { background: transparent; }
+      .text { color: #222; }
+      .ts { color: #999; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chat Log: ${escapeHtml(label)}</h1>
+    <div class="meta">${filtered.length} messages | Exported ${new Date().toLocaleString()}</div>
+    <div class="legend">
+      <div class="legend-label">Players</div>
+      ${legend}
+    </div>
+    <div class="chat">
+${rows}
+    </div>
+    <div class="footer">Chat Forensics Analyzer | WURM Tools</div>
+  </div>
+</body>
+</html>`;
+
+  downloadFile(html, `chat_${fileLabel}_${timestamp()}.html`, "text/html");
 }
 
 // ============================================================================
