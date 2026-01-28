@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, AlgorithmConfig, SocialInsight, SlipPattern } from "./types";
 import { getPlayerColor } from "./utils";
 import { parseChat, parseMultipleChats } from "./parser";
@@ -21,6 +21,21 @@ export default function ChatAnalyzerPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [compareMode, setCompareMode] = useState<[string, string] | null>(null);
   const [algorithmMode, setAlgorithmMode] = useState<AlgorithmMode>("balanced");
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    if (exportOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [exportOpen]);
 
   const players = useMemo(() => {
     const playerSet = new Set(messages.map(m => m.player));
@@ -240,45 +255,46 @@ export default function ChatAnalyzerPage() {
               )}
 
               {/* Export Dropdown */}
-              <div className="ml-auto relative group">
-                <button className="px-4 py-1.5 bg-accent text-white rounded-lg hover:bg-accent/80 transition-colors text-sm inline-flex items-center gap-2">
+              <div className="ml-auto relative" ref={exportRef}>
+                <button
+                  onClick={() => setExportOpen(!exportOpen)}
+                  className="px-4 py-1.5 bg-accent text-white rounded-lg hover:bg-accent/80 transition-colors text-sm inline-flex items-center gap-2"
+                >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   Export
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className={`w-3 h-3 transition-transform ${exportOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <div className="absolute right-0 top-full mt-1 w-56 bg-bg-secondary border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <button
-                    onClick={() => exportFullReportJSON({
-                      messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode,
-                    })}
-                    className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-t-lg transition-colors"
-                  >
-                    <div className="font-semibold">Full Report (JSON)</div>
-                    <div className="text-text-muted text-xs">All data, stats, and findings</div>
-                  </button>
-                  <button
-                    onClick={() => exportSummaryHTML({
-                      messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode,
-                    })}
-                    className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary transition-colors"
-                  >
-                    <div className="font-semibold">Summary Report (HTML)</div>
-                    <div className="text-text-muted text-xs">Shareable visual report</div>
-                  </button>
-                  {selectedPlayer && (
+                {exportOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-bg-secondary border border-border rounded-lg shadow-xl z-50">
                     <button
-                      onClick={() => exportPlayerChat(messages, selectedPlayer)}
-                      className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-b-lg transition-colors border-t border-border"
+                      onClick={() => { exportFullReportJSON({ messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode }); setExportOpen(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-t-lg transition-colors"
                     >
-                      <div className="font-semibold">Player Chat (TXT)</div>
-                      <div className="text-text-muted text-xs">Messages from {selectedPlayer}</div>
+                      <div className="font-semibold">Full Report (JSON)</div>
+                      <div className="text-text-muted text-xs">All data, stats, and findings</div>
                     </button>
-                  )}
-                </div>
+                    <button
+                      onClick={() => { exportSummaryHTML({ messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode }); setExportOpen(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary transition-colors"
+                    >
+                      <div className="font-semibold">Summary Report (HTML)</div>
+                      <div className="text-text-muted text-xs">Shareable visual report</div>
+                    </button>
+                    {selectedPlayer && (
+                      <button
+                        onClick={() => { exportPlayerChat(messages, selectedPlayer); setExportOpen(false); }}
+                        className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-b-lg transition-colors border-t border-border"
+                      >
+                        <div className="font-semibold">Player Chat (TXT)</div>
+                        <div className="text-text-muted text-xs">Messages from {selectedPlayer}</div>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
