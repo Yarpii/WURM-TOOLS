@@ -46,7 +46,7 @@ export {
 export { getPlayerColor, cosineSimilarity, distributionSimilarity } from "./utils";
 
 // Parser
-export { parseTimeToSeconds, parseDateFromLine, parseChatLine, parseChat, parseMultipleChats } from "./parser";
+export { parseTimeToSeconds, parseDateFromLine, parseChatLine, parseChat, parseMultipleChats, isSystemPlayer } from "./parser";
 
 // Linguistic analysis
 export {
