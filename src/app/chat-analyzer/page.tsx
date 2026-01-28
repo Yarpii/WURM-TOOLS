@@ -7,6 +7,7 @@ import { parseChat, parseMultipleChats } from "./parser";
 import { analyzePlayerAdvanced } from "./playerAnalysis";
 import { detectAltsAdvanced } from "./altDetection";
 import { ALGORITHM_CONFIGS, type AlgorithmMode } from "./constants";
+import { exportPlayerChat, exportFullReportJSON, exportSummaryHTML } from "./export";
 
 // ============================================================================
 // REACT COMPONENT
@@ -217,7 +218,7 @@ export default function ChatAnalyzerPage() {
           )}
 
           {messages.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="mt-4 flex flex-wrap gap-4 text-sm items-center">
               <span className="px-3 py-1 bg-bg-tertiary rounded-full text-text-secondary">
                 {messages.length} messages
               </span>
@@ -237,6 +238,48 @@ export default function ChatAnalyzerPage() {
                   {altSuspicions.filter(s => s.category === "high").length} high matches
                 </span>
               )}
+
+              {/* Export Dropdown */}
+              <div className="ml-auto relative group">
+                <button className="px-4 py-1.5 bg-accent text-white rounded-lg hover:bg-accent/80 transition-colors text-sm inline-flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className="absolute right-0 top-full mt-1 w-56 bg-bg-secondary border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <button
+                    onClick={() => exportFullReportJSON({
+                      messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode,
+                    })}
+                    className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-t-lg transition-colors"
+                  >
+                    <div className="font-semibold">Full Report (JSON)</div>
+                    <div className="text-text-muted text-xs">All data, stats, and findings</div>
+                  </button>
+                  <button
+                    onClick={() => exportSummaryHTML({
+                      messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode,
+                    })}
+                    className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary transition-colors"
+                  >
+                    <div className="font-semibold">Summary Report (HTML)</div>
+                    <div className="text-text-muted text-xs">Shareable visual report</div>
+                  </button>
+                  {selectedPlayer && (
+                    <button
+                      onClick={() => exportPlayerChat(messages, selectedPlayer)}
+                      className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-b-lg transition-colors border-t border-border"
+                    >
+                      <div className="font-semibold">Player Chat (TXT)</div>
+                      <div className="text-text-muted text-xs">Messages from {selectedPlayer}</div>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -269,6 +312,7 @@ export default function ChatAnalyzerPage() {
             {activeTab === "chat" && (
               <ChatTab
                 messages={filteredMessages}
+                allMessages={messages}
                 players={players}
                 selectedPlayer={selectedPlayer}
                 setSelectedPlayer={setSelectedPlayer}
@@ -337,6 +381,7 @@ export default function ChatAnalyzerPage() {
 
 function ChatTab({
   messages,
+  allMessages,
   players,
   selectedPlayer,
   setSelectedPlayer,
@@ -344,6 +389,7 @@ function ChatTab({
   setSearchTerm,
 }: {
   messages: ChatMessage[];
+  allMessages: ChatMessage[];
   players: string[];
   selectedPlayer: string | null;
   setSelectedPlayer: (player: string | null) => void;
@@ -372,6 +418,17 @@ function ChatTab({
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
+        {selectedPlayer && (
+          <button
+            onClick={() => exportPlayerChat(allMessages, selectedPlayer)}
+            className="px-4 py-2 bg-accent/20 text-accent rounded-lg hover:bg-accent/30 inline-flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export
+          </button>
+        )}
         {(selectedPlayer || searchTerm) && (
           <button
             onClick={() => { setSelectedPlayer(null); setSearchTerm(""); }}
