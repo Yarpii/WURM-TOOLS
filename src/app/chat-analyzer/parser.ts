@@ -5,6 +5,50 @@
 import type { ChatMessage, ParsedLine } from "./types";
 
 /**
+ * System/bot player names to exclude from analysis
+ * These are game-generated messages, not real players
+ */
+const SYSTEM_PLAYERS = new Set([
+  "system",
+  "systeem",
+  "server",
+  "wurm",
+  "gm",
+  "gamemaster",
+  "admin",
+  "administrator",
+  "bot",
+  "announcement",
+  "info",
+  "event",
+  "news",
+  "alert",
+  "warning",
+  "notice",
+]);
+
+/**
+ * Check if a player name is a system account
+ */
+export function isSystemPlayer(playerName: string): boolean {
+  const lower = playerName.toLowerCase().trim();
+
+  // Exact match
+  if (SYSTEM_PLAYERS.has(lower)) return true;
+
+  // Starts with system identifiers
+  if (lower.startsWith("system") || lower.startsWith("systeem")) return true;
+  if (lower.startsWith("gm-") || lower.startsWith("gm_")) return true;
+  if (lower.startsWith("admin")) return true;
+  if (lower.startsWith("[system") || lower.startsWith("[gm")) return true;
+
+  // Contains brackets often used for system messages
+  if (lower.startsWith("[") && lower.endsWith("]")) return true;
+
+  return false;
+}
+
+/**
  * Parse timestamp string to seconds since midnight
  */
 export function parseTimeToSeconds(timestamp: string): number {
@@ -101,6 +145,11 @@ export function parseChat(text: string, dayOffset: number = 0): ChatMessage[] {
     }
 
     if (result.message) {
+      // Skip system messages - they shouldn't be analyzed as player chat
+      if (isSystemPlayer(result.message.player)) {
+        continue;
+      }
+
       // Auto-detect day change: if time goes backwards significantly (>6 hours gap backwards)
       // This handles cases where timestamps wrap from 23:59 to 00:00
       if (lastTimeSeconds !== -1 && result.message.timeSeconds < lastTimeSeconds - 21600) {
