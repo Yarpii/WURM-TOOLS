@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import type { ChatMessage, AdvancedPlayerStats, AltSuspicion, SimilarityMatrix, AlgorithmConfig, SocialInsight, SlipPattern } from "./types";
 import { getPlayerColor } from "./utils";
 import { parseChat, parseMultipleChats } from "./parser";
 import { analyzePlayerAdvanced } from "./playerAnalysis";
 import { detectAltsAdvanced } from "./altDetection";
 import { ALGORITHM_CONFIGS, type AlgorithmMode } from "./constants";
+import { exportPlayerChat, exportPlayerChatHTML, exportFullReportJSON, exportSummaryHTML } from "./export";
 
 // ============================================================================
 // REACT COMPONENT
@@ -16,10 +17,25 @@ export default function ChatAnalyzerPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [rawText, setRawText] = useState("");
   const [activeTab, setActiveTab] = useState<"chat" | "players" | "alts" | "social" | "matrix" | "forensics">("chat");
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [compareMode, setCompareMode] = useState<[string, string] | null>(null);
   const [algorithmMode, setAlgorithmMode] = useState<AlgorithmMode>("balanced");
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    if (exportOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [exportOpen]);
 
   const players = useMemo(() => {
     const playerSet = new Set(messages.map(m => m.player));
@@ -52,8 +68,8 @@ export default function ChatAnalyzerPage() {
 
   const filteredMessages = useMemo(() => {
     let filtered = messages;
-    if (selectedPlayer) {
-      filtered = filtered.filter(m => m.player === selectedPlayer);
+    if (selectedPlayers.length > 0) {
+      filtered = filtered.filter(m => selectedPlayers.includes(m.player));
     }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -63,13 +79,20 @@ export default function ChatAnalyzerPage() {
       );
     }
     return filtered;
-  }, [messages, selectedPlayer, searchTerm]);
+  }, [messages, selectedPlayers, searchTerm]);
+
+  // Helper to toggle a player in/out of multi-select
+  const togglePlayer = useCallback((player: string) => {
+    setSelectedPlayers(prev =>
+      prev.includes(player) ? prev.filter(p => p !== player) : [...prev, player]
+    );
+  }, []);
 
   // Single file parse wrapper
   const parseSingleChat = useCallback((text: string) => {
     const parsed = parseChat(text, 0);
     setMessages(parsed);
-    setSelectedPlayer(null);
+    setSelectedPlayers([]);
     setCompareMode(null);
   }, []);
 
@@ -77,7 +100,7 @@ export default function ChatAnalyzerPage() {
   const parseMultipleChatsHandler = useCallback((texts: string[]) => {
     const allMessages = parseMultipleChats(texts);
     setMessages(allMessages);
-    setSelectedPlayer(null);
+    setSelectedPlayers([]);
     setCompareMode(null);
   }, []);
 
@@ -217,7 +240,7 @@ export default function ChatAnalyzerPage() {
           )}
 
           {messages.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="mt-4 flex flex-wrap gap-4 text-sm items-center">
               <span className="px-3 py-1 bg-bg-tertiary rounded-full text-text-secondary">
                 {messages.length} messages
               </span>
@@ -237,6 +260,58 @@ export default function ChatAnalyzerPage() {
                   {altSuspicions.filter(s => s.category === "high").length} high matches
                 </span>
               )}
+
+              {/* Export Dropdown */}
+              <div className="ml-auto relative" ref={exportRef}>
+                <button
+                  onClick={() => setExportOpen(!exportOpen)}
+                  className="px-4 py-1.5 bg-accent text-white rounded-lg hover:bg-accent/80 transition-colors text-sm inline-flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export
+                  <svg className={`w-3 h-3 transition-transform ${exportOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {exportOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-bg-secondary border border-border rounded-lg shadow-xl z-50">
+                    <button
+                      onClick={() => { exportFullReportJSON({ messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode }); setExportOpen(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-t-lg transition-colors"
+                    >
+                      <div className="font-semibold">Full Report (JSON)</div>
+                      <div className="text-text-muted text-xs">All data, stats, and findings</div>
+                    </button>
+                    <button
+                      onClick={() => { exportSummaryHTML({ messages, playerStats, altSuspicions, socialInsights, slipPatterns, similarityMatrix, algorithmMode }); setExportOpen(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary transition-colors"
+                    >
+                      <div className="font-semibold">Summary Report (HTML)</div>
+                      <div className="text-text-muted text-xs">Shareable visual report</div>
+                    </button>
+                    {selectedPlayers.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => { exportPlayerChatHTML(messages, selectedPlayers); setExportOpen(false); }}
+                          className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary transition-colors border-t border-border"
+                        >
+                          <div className="font-semibold">Player Chat (HTML)</div>
+                          <div className="text-text-muted text-xs">Colored chat from {selectedPlayers.length === 1 ? selectedPlayers[0] : `${selectedPlayers.length} players`}</div>
+                        </button>
+                        <button
+                          onClick={() => { exportPlayerChat(messages, selectedPlayers); setExportOpen(false); }}
+                          className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-bg-tertiary rounded-b-lg transition-colors"
+                        >
+                          <div className="font-semibold">Player Chat (TXT)</div>
+                          <div className="text-text-muted text-xs">Plain text from {selectedPlayers.length === 1 ? selectedPlayers[0] : `${selectedPlayers.length} players`}</div>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -269,9 +344,11 @@ export default function ChatAnalyzerPage() {
             {activeTab === "chat" && (
               <ChatTab
                 messages={filteredMessages}
+                allMessages={messages}
                 players={players}
-                selectedPlayer={selectedPlayer}
-                setSelectedPlayer={setSelectedPlayer}
+                selectedPlayers={selectedPlayers}
+                setSelectedPlayers={setSelectedPlayers}
+                togglePlayer={togglePlayer}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
               />
@@ -286,7 +363,7 @@ export default function ChatAnalyzerPage() {
             {activeTab === "alts" && (
               <AltsTab
                 altSuspicions={altSuspicions}
-                setSelectedPlayer={setSelectedPlayer}
+                setSelectedPlayers={setSelectedPlayers}
                 setActiveTab={setActiveTab}
                 setCompareMode={setCompareMode}
                 activeConfig={activeConfig}
@@ -298,7 +375,7 @@ export default function ChatAnalyzerPage() {
               <SocialTab
                 socialInsights={socialInsights}
                 slipPatterns={slipPatterns}
-                setSelectedPlayer={setSelectedPlayer}
+                setSelectedPlayers={setSelectedPlayers}
                 setActiveTab={setActiveTab}
               />
             )}
@@ -337,22 +414,26 @@ export default function ChatAnalyzerPage() {
 
 function ChatTab({
   messages,
+  allMessages,
   players,
-  selectedPlayer,
-  setSelectedPlayer,
+  selectedPlayers,
+  setSelectedPlayers,
+  togglePlayer,
   searchTerm,
   setSearchTerm,
 }: {
   messages: ChatMessage[];
+  allMessages: ChatMessage[];
   players: string[];
-  selectedPlayer: string | null;
-  setSelectedPlayer: (player: string | null) => void;
+  selectedPlayers: string[];
+  setSelectedPlayers: (players: string[]) => void;
+  togglePlayer: (player: string) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
 }) {
   return (
     <div className="bg-bg-secondary rounded-xl border border-border overflow-hidden">
-      <div className="p-4 border-b border-border flex flex-wrap gap-4">
+      <div className="p-4 border-b border-border flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-[200px]">
           <input
             type="text"
@@ -362,20 +443,26 @@ function ChatTab({
             className="w-full px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
           />
         </div>
-        <select
-          value={selectedPlayer || ""}
-          onChange={(e) => setSelectedPlayer(e.target.value || null)}
-          className="px-4 py-2 bg-bg-tertiary rounded-lg text-text-primary border border-border"
-        >
-          <option value="">All players</option>
-          {players.map(p => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        {(selectedPlayer || searchTerm) && (
+        {selectedPlayers.length > 0 && (
+          <span className="text-xs text-text-muted">
+            {selectedPlayers.length} player{selectedPlayers.length > 1 ? "s" : ""} selected
+          </span>
+        )}
+        {selectedPlayers.length > 0 && (
           <button
-            onClick={() => { setSelectedPlayer(null); setSearchTerm(""); }}
-            className="px-4 py-2 bg-error/20 text-error rounded-lg hover:bg-error/30"
+            onClick={() => exportPlayerChatHTML(allMessages, selectedPlayers)}
+            className="px-4 py-2 bg-accent/20 text-accent rounded-lg hover:bg-accent/30 inline-flex items-center gap-2 text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export HTML
+          </button>
+        )}
+        {(selectedPlayers.length > 0 || searchTerm) && (
+          <button
+            onClick={() => { setSelectedPlayers([]); setSearchTerm(""); }}
+            className="px-4 py-2 bg-error/20 text-error rounded-lg hover:bg-error/30 text-sm"
           >
             Reset
           </button>
@@ -387,9 +474,9 @@ function ChatTab({
           {players.map(player => (
             <button
               key={player}
-              onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
+              onClick={() => togglePlayer(player)}
               className={`px-3 py-1 rounded-full text-sm transition-all ${
-                selectedPlayer === player ? "ring-2 ring-white" : ""
+                selectedPlayers.includes(player) ? "ring-2 ring-white" : ""
               }`}
               style={{
                 backgroundColor: `${getPlayerColor(player)}20`,
@@ -411,7 +498,7 @@ function ChatTab({
             <span
               className="font-semibold shrink-0 cursor-pointer hover:underline"
               style={{ color: getPlayerColor(msg.player) }}
-              onClick={() => setSelectedPlayer(selectedPlayer === msg.player ? null : msg.player)}
+              onClick={() => togglePlayer(msg.player)}
             >
               &lt;{msg.player}&gt;
             </span>
@@ -584,13 +671,13 @@ function PlayersTab({ playerStats }: { playerStats: AdvancedPlayerStats[] }) {
 
 function AltsTab({
   altSuspicions,
-  setSelectedPlayer,
+  setSelectedPlayers,
   setActiveTab,
   setCompareMode,
   activeConfig,
 }: {
   altSuspicions: AltSuspicion[];
-  setSelectedPlayer: (player: string | null) => void;
+  setSelectedPlayers: (players: string[]) => void;
   setActiveTab: (tab: "chat" | "players" | "alts" | "social" | "matrix" | "forensics") => void;
   setCompareMode: (mode: [string, string] | null) => void;
   activeConfig: AlgorithmConfig;
@@ -630,7 +717,7 @@ function AltsTab({
         <AltSuspicionCard
           key={idx}
           suspicion={suspicion}
-          setSelectedPlayer={setSelectedPlayer}
+          setSelectedPlayers={setSelectedPlayers}
           setActiveTab={setActiveTab}
           setCompareMode={setCompareMode}
         />
@@ -641,12 +728,12 @@ function AltsTab({
 
 function AltSuspicionCard({
   suspicion,
-  setSelectedPlayer,
+  setSelectedPlayers,
   setActiveTab,
   setCompareMode,
 }: {
   suspicion: AltSuspicion;
-  setSelectedPlayer: (player: string | null) => void;
+  setSelectedPlayers: (players: string[]) => void;
   setActiveTab: (tab: "chat" | "players" | "alts" | "social" | "matrix" | "forensics") => void;
   setCompareMode: (mode: [string, string] | null) => void;
 }) {
@@ -754,16 +841,22 @@ function AltSuspicionCard({
       {/* Action Buttons */}
       <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-2">
         <button
-          onClick={() => { setSelectedPlayer(suspicion.player1); setActiveTab("chat"); }}
+          onClick={() => { setSelectedPlayers([suspicion.player1]); setActiveTab("chat"); }}
           className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
         >
           View {suspicion.player1}
         </button>
         <button
-          onClick={() => { setSelectedPlayer(suspicion.player2); setActiveTab("chat"); }}
+          onClick={() => { setSelectedPlayers([suspicion.player2]); setActiveTab("chat"); }}
           className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
         >
           View {suspicion.player2}
+        </button>
+        <button
+          onClick={() => { setSelectedPlayers([suspicion.player1, suspicion.player2]); setActiveTab("chat"); }}
+          className="px-3 py-1 bg-info/20 text-info rounded-lg text-sm hover:bg-info/30"
+        >
+          View Both
         </button>
         <button
           onClick={() => { setCompareMode([suspicion.player1, suspicion.player2]); setActiveTab("forensics"); }}
@@ -963,12 +1056,12 @@ function MatrixTab({
 function SocialTab({
   socialInsights,
   slipPatterns,
-  setSelectedPlayer,
+  setSelectedPlayers,
   setActiveTab,
 }: {
   socialInsights: SocialInsight[];
   slipPatterns: SlipPattern[];
-  setSelectedPlayer: (player: string | null) => void;
+  setSelectedPlayers: (players: string[]) => void;
   setActiveTab: (tab: "chat" | "players" | "alts" | "social" | "matrix" | "forensics") => void;
 }) {
   if (socialInsights.length === 0 && slipPatterns.length === 0) {
@@ -1060,13 +1153,13 @@ function SocialTab({
 
               <div className="mt-3 flex gap-2">
                 <button
-                  onClick={() => { setSelectedPlayer(insight.player1); setActiveTab("chat"); }}
+                  onClick={() => { setSelectedPlayers([insight.player1]); setActiveTab("chat"); }}
                   className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
                 >
                   View {insight.player1}
                 </button>
                 <button
-                  onClick={() => { setSelectedPlayer(insight.player2); setActiveTab("chat"); }}
+                  onClick={() => { setSelectedPlayers([insight.player2]); setActiveTab("chat"); }}
                   className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
                 >
                   View {insight.player2}
@@ -1132,7 +1225,7 @@ function SocialTab({
 
               <div className="mt-3">
                 <button
-                  onClick={() => { setSelectedPlayer(slip.playerName); setActiveTab("chat"); }}
+                  onClick={() => { setSelectedPlayers([slip.playerName]); setActiveTab("chat"); }}
                   className="px-3 py-1 bg-bg-tertiary rounded-lg text-text-secondary text-sm hover:bg-bg-tertiary/80"
                 >
                   View messages
