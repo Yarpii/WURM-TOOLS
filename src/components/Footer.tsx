@@ -47,11 +47,6 @@ export default function Footer() {
                   Marketplace
                 </Link>
               </li>
-              <li>
-                <Link href="/chat-analyzer" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Chat Analyzer
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -163,10 +158,6 @@ export default function Footer() {
               <Link href="/disclaimer" className="text-text-muted hover:text-text-primary transition-colors">
                 Disclaimer
               </Link>
-              <Link href="/chat-analyzer/docs" className="text-text-muted hover:text-text-primary transition-colors">
-                Algorithm Docs
-              </Link>
-              <span className="text-text-muted">|</span>
               <span className="text-xs text-text-muted">
                 Not affiliated with Code Club AB
               </span>
