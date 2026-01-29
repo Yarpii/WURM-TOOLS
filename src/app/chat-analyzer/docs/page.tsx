@@ -32,19 +32,11 @@ export default function ChatAnalyzerDocsPage() {
             provide comprehensive insights.
           </p>
           <div className="bg-info/10 border border-info/30 rounded-lg p-4 text-sm">
-            <strong className="text-info">Open Source:</strong>
+            <strong className="text-info">Note:</strong>
             <span className="text-text-secondary ml-2">
-              This project is open source. If you have ideas to improve the algorithms or spot
-              issues, feel free to contribute on{" "}
-              <a
-                href="https://github.com/Yarpii/WURM-TOOLS"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:underline"
-              >
-                GitHub
-              </a>
-              .
+              This tool provides probabilistic analysis only. Results should always be
+              interpreted with caution and are not definitive proof of any connection
+              between accounts.
             </span>
           </div>
         </section>
@@ -61,8 +53,7 @@ export default function ChatAnalyzerDocsPage() {
               <h3 className="font-semibold text-text-primary mb-2">Never Online Together</h3>
               <p className="text-text-secondary text-sm mb-2">
                 If two accounts are never online at the same time (0 overlapping minutes) despite
-                both being highly active, this is a strong indicator they may be controlled by the
-                same person.
+                both being highly active, this could suggest they may be linked.
               </p>
               <div className="text-xs text-text-muted">
                 Score: <span className="text-error font-mono">+45 points</span> (weighted)
@@ -73,7 +64,7 @@ export default function ChatAnalyzerDocsPage() {
               <h3 className="font-semibold text-text-primary mb-2">Handoff Pattern Detection</h3>
               <p className="text-text-secondary text-sm mb-2">
                 Detects when one player stops talking and another starts within 5 minutes. This
-                &quot;handoff&quot; pattern suggests someone switching between accounts.
+                &quot;handoff&quot; pattern may indicate someone switching between accounts.
               </p>
               <ul className="text-xs text-text-muted list-disc list-inside space-y-1">
                 <li>Session gap: 10 minutes (considered &quot;stopped talking&quot;)</li>
@@ -87,7 +78,7 @@ export default function ChatAnalyzerDocsPage() {
               <p className="text-text-secondary text-sm mb-2">
                 Analyzes time-of-day activity patterns. If two accounts are never online together
                 AND have different activity patterns (one plays mornings, another evenings), this
-                adds extra suspicion.
+                adds to the overall similarity score.
               </p>
             </div>
           </div>
@@ -147,7 +138,7 @@ export default function ChatAnalyzerDocsPage() {
               <h3 className="font-semibold text-text-primary mb-2">Typo Patterns</h3>
               <p className="text-text-secondary text-sm mb-2">
                 People make consistent typos. Shared distinctive typos (teh, alot, jsut) are
-                strong evidence of the same person.
+                notable, as consistent typos tend to be a personal habit.
               </p>
               <div className="text-xs text-text-muted">
                 Score: <span className="text-warning font-mono">+25 points</span> for 3+ shared typos
@@ -183,7 +174,7 @@ export default function ChatAnalyzerDocsPage() {
               <h3 className="font-semibold text-text-primary mb-2">Message Length Distribution</h3>
               <p className="text-text-secondary text-sm">
                 People have consistent message lengths. If two accounts have very similar message
-                length distributions, they may be the same person.
+                length distributions, this may suggest a connection.
               </p>
             </div>
 
@@ -207,7 +198,7 @@ export default function ChatAnalyzerDocsPage() {
               <h3 className="font-semibold text-text-primary mb-2">Rare Word Fingerprint</h3>
               <p className="text-text-secondary text-sm">
                 Words 5+ characters long that only 1-2 players use. Shared rare vocabulary is
-                a strong indicator of the same author.
+                worth noting, though common game terminology is filtered out.
               </p>
             </div>
           </div>
@@ -224,12 +215,12 @@ export default function ChatAnalyzerDocsPage() {
             <div className="bg-bg-tertiary rounded-lg p-4 border-l-4 border-error">
               <h3 className="font-semibold text-text-primary mb-2">Self-Talk Detection</h3>
               <p className="text-text-secondary text-sm mb-2">
-                <strong>Key insight:</strong> If two accounts TALK to each other but have the SAME
-                writing style, this is very suspicious. Real friends have different writing styles.
+                <strong>Key insight:</strong> If two accounts talk to each other but share a very similar
+                writing style, this is noteworthy. Different people typically have distinct writing styles.
               </p>
               <p className="text-text-secondary text-sm mb-2">
-                This detects people who create alt accounts and talk to themselves to make them
-                seem like real separate people.
+                This can highlight cases where accounts that interact may still share
+                similar writing patterns.
               </p>
               <div className="text-xs text-text-muted">
                 Score: up to <span className="text-error font-mono">+45 points</span> (heavily weighted)
@@ -239,16 +230,16 @@ export default function ChatAnalyzerDocsPage() {
             <div className="bg-bg-tertiary rounded-lg p-4 border-l-4 border-warning">
               <h3 className="font-semibold text-text-primary mb-2">Conflict Detection</h3>
               <p className="text-text-secondary text-sm mb-2">
-                <strong>Anti-alt evidence:</strong> If two players are online together but never
-                interact with each other (while both chatting with others), they&apos;re probably
-                different people who don&apos;t like each other.
+                <strong>Counter-evidence:</strong> If two players are online together but never
+                interact with each other (while both chatting with others), they are more likely
+                to be different people.
               </p>
               <p className="text-text-secondary text-sm mb-2">
-                This REDUCES alt suspicion because alts controlled by the same person wouldn&apos;t
-                be online at the same time.
+                This reduces the similarity score, as linked accounts would typically
+                not be online simultaneously.
               </p>
               <div className="text-xs text-text-muted">
-                Score: <span className="text-success font-mono">-15 points</span> (reduces suspicion)
+                Score: <span className="text-success font-mono">-15 points</span> (reduces similarity)
               </div>
             </div>
 
@@ -328,7 +319,7 @@ export default function ChatAnalyzerDocsPage() {
               <h3 className="font-semibold text-error mb-2">Critical</h3>
               <p className="text-text-secondary text-sm">
                 Never online together + 3+ very strong reasons + 82%+ confidence.
-                Very likely the same person.
+                Strong similarities detected across multiple categories.
               </p>
             </div>
 
@@ -336,14 +327,14 @@ export default function ChatAnalyzerDocsPage() {
               <h3 className="font-semibold text-warning mb-2">High</h3>
               <p className="text-text-secondary text-sm">
                 72%+ confidence + 2+ very strong reasons.
-                Strong evidence of alt account.
+                Notable similarities worth reviewing.
               </p>
             </div>
 
             <div className="bg-info/10 border border-info rounded-lg p-4">
               <h3 className="font-semibold text-info mb-2">Medium</h3>
               <p className="text-text-secondary text-sm">
-                55%+ confidence. Suspicious but needs more evidence.
+                55%+ confidence. Some similarities found, but more data would help.
               </p>
             </div>
 
@@ -390,38 +381,6 @@ export default function ChatAnalyzerDocsPage() {
               </span>
             </li>
           </ul>
-        </section>
-
-        {/* Contributing */}
-        <section className="bg-accent/10 border border-accent/30 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-accent mb-4">Contribute</h2>
-          <p className="text-text-secondary mb-4">
-            Have ideas to improve the algorithms? Found a bug? Want to add new detection methods?
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="https://github.com/Yarpii/WURM-TOOLS/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/80 transition-colors inline-flex items-center gap-2"
-            >
-              Open an Issue
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-            <a
-              href="https://github.com/Yarpii/WURM-TOOLS/pulls"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-bg-tertiary text-text-primary rounded-lg hover:bg-bg-tertiary/80 transition-colors inline-flex items-center gap-2"
-            >
-              Submit a PR
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          </div>
         </section>
 
         {/* Footer */}
