@@ -58,7 +58,6 @@ const navCategories: NavCategory[] = [
     items: [
       { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
       { href: "/cooking", label: "Cooking", icon: "cooking", description: "Affinity & CCFP calculator" },
-
       { href: "/projects", label: "Projects", icon: "folder", description: "Crafting project planning" },
       { href: "/data", label: "Data", icon: "database", description: "Game data management", adminOnly: true },
     ],
