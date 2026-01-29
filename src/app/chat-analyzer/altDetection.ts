@@ -629,7 +629,7 @@ export function detectAltsAdvanced(
           type: "bonus",
           description: "Triple category match",
           weight: bonus,
-          evidence: "Temporal + Linguistic + Behavioral all indicate same person",
+          evidence: "Temporal + Linguistic + Behavioral patterns all align",
         });
       }
 

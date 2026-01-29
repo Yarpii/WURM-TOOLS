@@ -164,7 +164,7 @@ export function generateHumanExplanation(
 ): string {
   const parts: string[] = [];
 
-  parts.push(`${p1.name} and ${p2.name} may be the same person because:`);
+  parts.push(`${p1.name} and ${p2.name} show similarities that could suggest a shared account because:`);
 
   // Temporal evidence
   if (neverOnlineTogether) {

@@ -252,12 +252,12 @@ export default function ChatAnalyzerPage() {
               </span>
               {altSuspicions.filter(s => s.category === "critical").length > 0 && (
                 <span className="px-3 py-1 bg-error/20 text-error rounded-full font-semibold">
-                  {altSuspicions.filter(s => s.category === "critical").length} critical matches
+                  {altSuspicions.filter(s => s.category === "critical").length} strong similarities
                 </span>
               )}
               {altSuspicions.filter(s => s.category === "high").length > 0 && (
                 <span className="px-3 py-1 bg-warning/20 text-warning rounded-full">
-                  {altSuspicions.filter(s => s.category === "high").length} high matches
+                  {altSuspicions.filter(s => s.category === "high").length} notable similarities
                 </span>
               )}
 
@@ -332,7 +332,7 @@ export default function ChatAnalyzerPage() {
                 >
                   {tab === "chat" && "Chat"}
                   {tab === "players" && `Players (${players.length})`}
-                  {tab === "alts" && `Alt Detection ${altSuspicions.length > 0 ? `(${altSuspicions.length})` : ""}`}
+                  {tab === "alts" && `Alt Account Similarities ${altSuspicions.length > 0 ? `(${altSuspicions.length})` : ""}`}
                   {tab === "social" && `Social ${socialInsights.length > 0 ? `(${socialInsights.length})` : ""}`}
                   {tab === "matrix" && "Similarity Matrix"}
                   {tab === "forensics" && "Forensics Lab"}
@@ -687,7 +687,7 @@ function AltsTab({
       <div className="bg-bg-secondary rounded-xl border border-border p-8 text-center">
         <div className="text-4xl mb-4">&#128373;</div>
         <h3 className="text-lg font-semibold text-text-primary mb-2">
-          No suspicious alt accounts found
+          No notable similarities found
         </h3>
         <p className="text-text-secondary">
           The forensic analysis found no matches using <strong>{activeConfig.name}</strong>.
@@ -783,7 +783,7 @@ function AltSuspicionCard({
             ? "bg-info/20 text-info"
             : "bg-bg-tertiary text-text-secondary"
         }`}>
-          {suspicion.confidence}% match
+          {suspicion.confidence}% similarity
         </div>
       </div>
 

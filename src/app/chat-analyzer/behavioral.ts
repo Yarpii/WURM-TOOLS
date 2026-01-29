@@ -218,15 +218,21 @@ export function detectSharedRareWords(
   );
 
   const sharedRare: string[] = [];
-  // STRICT: Only words used by exactly 1-2 people are truly rare
-  const rareThreshold = 2;
+  // Dynamic threshold: in small groups most words are used by few players,
+  // so scale the rarity threshold down. Word must be used by at most
+  // ~15% of total players (minimum 2) to count as rare.
+  const rareThreshold = Math.max(2, Math.floor(totalPlayers * 0.15));
 
   for (const word of p1Words) {
     if (p2Words.has(word)) {
       const usageCount = rareIndex.get(word)?.size || 0;
-      // Must be used by only these 2 players (or just 1 in the index due to timing)
+      // Must be used by very few players relative to the group size
       if (usageCount > 0 && usageCount <= rareThreshold) {
-        sharedRare.push(word);
+        // Extra filter: require minimum word length of 6 for very common-sounding words
+        // Words 5 chars are only kept if used by exactly 1-2 players (very strict)
+        if (word.length >= 6 || usageCount <= 2) {
+          sharedRare.push(word);
+        }
       }
     }
   }
