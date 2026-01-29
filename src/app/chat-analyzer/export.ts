@@ -236,7 +236,7 @@ export function exportSummaryHTML(data: FullReportData) {
             ${tags.join(" ")}
           </div>
           <span style="background:${badgeColor};color:#fff;padding:6px 14px;border-radius:999px;font-weight:bold;font-size:16px;">
-            ${s.confidence}% match
+            ${s.confidence}% similarity
           </span>
         </div>
         <div style="background:#262637;border-radius:8px;padding:12px;margin-bottom:12px;">
@@ -389,9 +389,9 @@ export function exportSummaryHTML(data: FullReportData) {
     </div>
 
     ${data.altSuspicions.length > 0 ? `
-    <h2>Alt Account Suspicions (${data.altSuspicions.length})</h2>
+    <h2>Alt Account Similarities (${data.altSuspicions.length})</h2>
     ${suspicionRows}
-    ` : "<h2>No Alt Suspicions Found</h2><p style='color:#888;'>The analysis found no suspicious matches.</p>"}
+    ` : "<h2>No Notable Similarities Found</h2><p style='color:#888;'>The analysis found no notable similarities.</p>"}
 
     ${data.socialInsights.length > 0 ? `
     <h2>Social Insights (${data.socialInsights.length})</h2>
