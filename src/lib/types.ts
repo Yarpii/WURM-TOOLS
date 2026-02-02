@@ -1599,3 +1599,103 @@ export interface ArchaeologyFilters {
   user_id?: number;
   search?: string;
 }
+
+// ==================== ANIMAL BREEDING ====================
+
+export type AnimalType = 'horse' | 'bison' | 'bull' | 'cow' | 'sheep' | 'pig' | 'hen' | 'rooster' | 'dog' | 'cat' | 'hell_horse' | 'unicorn';
+export type AnimalGender = 'male' | 'female';
+export type TraitCategory = 'speed' | 'draft' | 'combat' | 'misc' | 'negative';
+
+export interface Stable {
+  id: number;
+  user_id: number;
+  name: string;
+  server: string;
+  capacity: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  animal_count?: number;
+}
+
+export interface Animal {
+  id: number;
+  user_id: number;
+  stable_id?: number;
+  name: string;
+  animal_type: AnimalType;
+  gender: AnimalGender;
+  color?: string;
+  mother_id?: number;
+  father_id?: number;
+  generation: number;
+  is_alive: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  stable_name?: string;
+  mother_name?: string;
+  father_name?: string;
+  traits?: AnimalTrait[];
+}
+
+export interface AnimalTrait {
+  id: number;
+  animal_id: number;
+  trait_name: string;
+  trait_category: TraitCategory;
+  is_inherited: boolean;
+  created_at: string;
+}
+
+export interface CreateStableInput {
+  name: string;
+  server: string;
+  capacity?: number;
+  notes?: string;
+}
+
+export interface UpdateStableInput {
+  name?: string;
+  server?: string;
+  capacity?: number;
+  notes?: string;
+}
+
+export interface CreateAnimalInput {
+  stable_id?: number;
+  name: string;
+  animal_type: AnimalType;
+  gender: AnimalGender;
+  color?: string;
+  mother_id?: number;
+  father_id?: number;
+  notes?: string;
+}
+
+export interface UpdateAnimalInput {
+  stable_id?: number | null;
+  name?: string;
+  animal_type?: AnimalType;
+  gender?: AnimalGender;
+  color?: string;
+  mother_id?: number | null;
+  father_id?: number | null;
+  is_alive?: boolean;
+  notes?: string;
+}
+
+export interface AddAnimalTraitInput {
+  animal_id: number;
+  trait_name: string;
+  trait_category: TraitCategory;
+  is_inherited?: boolean;
+}
+
+export interface AnimalFamilyNode {
+  animal: Animal;
+  mother?: AnimalFamilyNode;
+  father?: AnimalFamilyNode;
+  children?: Animal[];
+}

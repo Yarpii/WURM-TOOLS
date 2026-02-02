@@ -40,6 +40,7 @@ const navCategories: NavCategory[] = [
       { href: "/timers", label: "Timers", icon: "timer", description: "Sleep bonus & activity timers" },
       { href: "/treasures", label: "Treasures", icon: "treasure", description: "Treasure hunt tracker" },
       { href: "/achievements", label: "Achievements", icon: "trophy", description: "Goals & leaderboard" },
+      { href: "/animals", label: "Animals", icon: "animal", description: "Breeding & family tree" },
     ],
   },
   {
@@ -160,6 +161,11 @@ const icons: Record<string, React.ReactNode> = {
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+    </svg>
+  ),
+  animal: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 19c-4 0-7-2-7-5 0-2 1.5-3.5 3-4l1-3c.5-1.5 2-2 3-2s2.5.5 3 2l1 3c1.5.5 3 2 3 4 0 3-3 5-7 5zm-3-5h.01M15 14h.01" />
     </svg>
   ),
   chat: (
