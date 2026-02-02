@@ -1602,9 +1602,9 @@ export interface ArchaeologyFilters {
 
 // ==================== ANIMAL BREEDING ====================
 
-export type AnimalType = 'horse' | 'bison' | 'bull' | 'cow' | 'sheep' | 'pig' | 'hen' | 'rooster' | 'dog' | 'cat' | 'hell_horse' | 'unicorn';
+export type AnimalType = 'horse' | 'bison' | 'bull' | 'cow' | 'sheep' | 'pig' | 'hen' | 'rooster' | 'dog' | 'cat' | 'hell_horse' | 'unicorn' | 'donkey' | 'mule' | 'deer' | 'pheasant' | 'crab';
 export type AnimalGender = 'male' | 'female';
-export type TraitCategory = 'speed' | 'draft' | 'combat' | 'misc' | 'negative';
+export type TraitCategory = 'speed' | 'draft' | 'combat' | 'output' | 'misc' | 'negative';
 
 export interface Stable {
   id: number;

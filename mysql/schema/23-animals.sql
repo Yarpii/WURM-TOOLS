@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS animal_traits (
     id INT AUTO_INCREMENT PRIMARY KEY,
     animal_id INT NOT NULL,
     trait_name VARCHAR(100) NOT NULL,
-    trait_category ENUM('speed', 'draft', 'combat', 'misc', 'negative') NOT NULL DEFAULT 'misc',
+    trait_category ENUM('speed', 'draft', 'combat', 'output', 'misc', 'negative') NOT NULL DEFAULT 'misc',
     is_inherited BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_animal_traits_animal FOREIGN KEY (animal_id) REFERENCES animals(id) ON DELETE CASCADE,
