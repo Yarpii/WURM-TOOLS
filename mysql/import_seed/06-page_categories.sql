@@ -1,4 +1,5 @@
-INSERT INTO `page_categories` (`page_id`, `category_id`) VALUES
+SET FOREIGN_KEY_CHECKS=0;
+INSERT IGNORE INTO `page_categories` (`page_id`, `category_id`) VALUES
 (835, 2851),
 (835, 2852),
 (837, 2851),
@@ -4176,7 +4177,7 @@ INSERT INTO `page_categories` (`page_id`, `category_id`) VALUES
 (2658, 3624),
 (2659, 2893),
 (2659, 2894);
-INSERT INTO `page_categories` (`page_id`, `category_id`) VALUES
+INSERT IGNORE INTO `page_categories` (`page_id`, `category_id`) VALUES
 (2659, 2965),
 (2659, 3081),
 (2659, 3285),
@@ -8332,7 +8333,7 @@ INSERT INTO `page_categories` (`page_id`, `category_id`) VALUES
 (4542, 3347),
 (4542, 3352),
 (4542, 3641);
-INSERT INTO `page_categories` (`page_id`, `category_id`) VALUES
+INSERT IGNORE INTO `page_categories` (`page_id`, `category_id`) VALUES
 (4542, 4193),
 (4542, 4556),
 (4543, 2894),
@@ -10115,3 +10116,4 @@ INSERT INTO `page_categories` (`page_id`, `category_id`) VALUES
 (6362, 3462),
 (6363, 3462),
 (6363, 4256);
+SET FOREIGN_KEY_CHECKS=1;

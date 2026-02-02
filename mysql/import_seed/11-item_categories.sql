@@ -1,4 +1,5 @@
-INSERT INTO `item_categories` (`item_id`, `category`) VALUES
+SET FOREIGN_KEY_CHECKS=0;
+INSERT IGNORE INTO `item_categories` (`item_id`, `category`) VALUES
 (1, 'freedom settlements'),
 (2, 'freedom settlements'),
 (3, 'deliverance settlements'),
@@ -2557,7 +2558,7 @@ INSERT INTO `item_categories` (`item_id`, `category`) VALUES
 (680, 'healing spells'),
 (680, 'spells'),
 (681, 'babel/h');
-INSERT INTO `item_categories` (`item_id`, `category`) VALUES
+INSERT IGNORE INTO `item_categories` (`item_id`, `category`) VALUES
 (681, 'healing'),
 (681, 'items'),
 (681, 'natural substances items'),
@@ -5041,7 +5042,7 @@ INSERT INTO `item_categories` (`item_id`, `category`) VALUES
 (1305, 'items'),
 (1305, 'masonry items'),
 (1305, 'rendered items');
-INSERT INTO `item_categories` (`item_id`, `category`) VALUES
+INSERT IGNORE INTO `item_categories` (`item_id`, `category`) VALUES
 (1305, 'structures'),
 (1305, 'walls'),
 (1306, 'babel/r'),
@@ -7527,7 +7528,7 @@ INSERT INTO `item_categories` (`item_id`, `category`) VALUES
 (1895, 'items'),
 (1895, 'ship building items'),
 (1896, 'babel/t');
-INSERT INTO `item_categories` (`item_id`, `category`) VALUES
+INSERT IGNORE INTO `item_categories` (`item_id`, `category`) VALUES
 (1896, 'cloth tailoring items'),
 (1896, 'items'),
 (1897, 'babel/t'),
@@ -8143,3 +8144,4 @@ INSERT INTO `item_categories` (`item_id`, `category`) VALUES
 (2066, 'spells'),
 (2066, 'stub'),
 (2067, 'mol-rehan epic settlements');
+SET FOREIGN_KEY_CHECKS=1;

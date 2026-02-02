@@ -1,4 +1,5 @@
-INSERT INTO `categories` (`id`, `name`) VALUES
+SET FOREIGN_KEY_CHECKS=0;
+INSERT IGNORE INTO `categories` (`id`, `name`) VALUES
 (5971, 'Abandoned settlements'),
 (9822, 'Adamantine products'),
 (3532, 'Alcohol'),
@@ -297,3 +298,4 @@ INSERT INTO `categories` (`id`, `name`) VALUES
 (5767, 'Wurm universe'),
 (2852, 'Wurmpedia help'),
 (4294, 'Zinc products');
+SET FOREIGN_KEY_CHECKS=1;

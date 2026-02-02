@@ -1,4 +1,5 @@
-INSERT INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`, `material_slug`, `quantity`, `unit`, `sort_order`) VALUES
+SET FOREIGN_KEY_CHECKS=0;
+INSERT IGNORE INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`, `material_slug`, `quantity`, `unit`, `sort_order`) VALUES
 (1, 20, 1601, 'small nails', 'small_nails', 3.00, 'piece', 0),
 (2, 20, 1179, 'plank', 'plank', 6.00, 'piece', 1),
 (3, 20, 103, 'beeswax', 'beeswax', 5.00, 'piece', 2),
@@ -818,7 +819,7 @@ INSERT INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`,
 (817, 1217, NULL, 'sand', 'sand', 10.00, 'kg', 1),
 (818, 1219, 1215, 'Pottery brick', 'pottery_brick', 5.00, 'piece', 0),
 (819, 1219, 1024, 'Mortar (10 kg)', 'mortar', 5.00, 'piece', 1);
-INSERT INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`, `material_slug`, `quantity`, `unit`, `sort_order`) VALUES
+INSERT IGNORE INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`, `material_slug`, `quantity`, `unit`, `sort_order`) VALUES
 (820, 1219, 1179, 'Planks', 'plank', 15.00, 'piece', 2),
 (821, 1219, 1498, 'Shafts', 'shaft', 10.00, 'piece', 3),
 (822, 1219, 1601, 'Small nails', 'small_nails', 1.00, 'piece', 4),
@@ -1590,7 +1591,7 @@ INSERT INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`,
 (1588, 1956, 178, 'brass lump', 'brass_lump', 1.00, 'piece', 0),
 (1589, 1956, 180, 'Brass ribbon', 'brass_ribbon', 3.00, 'piece', 1),
 (1590, 1956, 1214, 'Pottery bowl', 'pottery_bowl', 1.00, 'piece', 2);
-INSERT INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`, `material_slug`, `quantity`, `unit`, `sort_order`) VALUES
+INSERT IGNORE INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`, `material_slug`, `quantity`, `unit`, `sort_order`) VALUES
 (1591, 1959, 103, 'beeswax', 'beeswax', 1.00, 'piece', 0),
 (1592, 1959, 1663, 'square piece of cloth (0.30 kg)', 'square_piece_of_cloth', 1.00, 'piece', 1),
 (1593, 1959, 1777, 'string of cloth', 'string_of_cloth', 1.00, 'piece', 2),
@@ -1689,3 +1690,4 @@ INSERT INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`,
 (1686, 2041, 1179, 'Plank', 'plank', 20.00, 'piece', 0),
 (1687, 2041, 829, 'Large nails', 'large_nails', 1.00, 'piece', 1),
 (1688, 2046, 2006, 'Wood scrap (min. 1.50 kg)', 'wood_scrap', 10.00, 'piece', 0);
+SET FOREIGN_KEY_CHECKS=1;

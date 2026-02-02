@@ -1,4 +1,5 @@
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+SET FOREIGN_KEY_CHECKS=0;
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (835, 'Undefined_settlement', 'Undefined settlement', 9610, 75245, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:46', '2026-01-21 05:30:46'),
 (837, 'Undefined_historical_settlement', 'Undefined historical settlement', 9941, 72094, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:46', '2026-01-21 05:30:46'),
 (867, 'Obelisk', 'Obelisk', 10095, 122888, 'item', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:46', '2026-01-21 05:30:46'),
@@ -281,7 +282,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (1297, 'Emerald_staff', 'Emerald staff', 11659, 129759, 'item', '[\"Main\", \"Items\", \"Natural substances items\", \"Emerald staff\"]', 'wurmpedia', NULL, '2026-01-21 05:30:51', '2026-01-21 05:30:51'),
 (1298, 'Opal_staff', 'Opal staff', 11662, 129760, 'item', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:51', '2026-01-21 05:30:51'),
 (1299, 'Ruby_staff', 'Ruby staff', 11664, 129761, 'item', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:51', '2026-01-21 05:30:51');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (1300, 'Diamond_staff', 'Diamond staff', 11665, 129762, 'item', '[\"Main\", \"Items\", \"Natural substances items\", \"Diamond staff\"]', 'wurmpedia', NULL, '2026-01-21 05:30:51', '2026-01-21 05:30:51'),
 (1301, 'Fir_tree', 'Fir tree', 15964, 111387, 'article', '[\"Main\", \"Terrain\", \"Trees\", \"Fir\"]', 'wurmpedia', NULL, '2026-01-21 05:30:51', '2026-01-21 05:30:51'),
 (1302, 'Linden_tree', 'Linden tree', 15966, 111391, 'article', '[\"Main\", \"Terrain\", \"Trees\", \"Linden\"]', 'wurmpedia', NULL, '2026-01-21 05:30:51', '2026-01-21 05:30:51'),
@@ -549,7 +550,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (1649, 'Tapestry_of_Faeldray', 'Tapestry of Faeldray', 12809, 126520, 'item', '[\"Main\", \"Skills\", \"Tailoring\", \"Cloth tailoring\", \"Tapestry of Faeldray\"]', 'wurmpedia', NULL, '2026-01-21 05:30:54', '2026-01-21 05:30:54'),
 (1650, 'Table_of_weapons', 'Table of weapons', 12815, 128535, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:54', '2026-01-21 05:30:54'),
 (1651, 'Green_cap_garden_gnome', 'Green cap garden gnome', 12817, 115405, 'item', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:54', '2026-01-21 05:30:54');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (1652, 'Timber_framed_balcony', 'Timber framed balcony', 12821, 119722, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Timber framed balcony\"]', 'wurmpedia', NULL, '2026-01-21 05:30:54', '2026-01-21 05:30:54'),
 (1653, 'Wooden_wide_window', 'Wooden wide window', 12822, 119677, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Wooden wide window\"]', 'wurmpedia', NULL, '2026-01-21 05:30:54', '2026-01-21 05:30:54'),
 (1654, 'Timber_framed_jetty', 'Timber framed jetty', 12824, 119723, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Timber framed jetty\"]', 'wurmpedia', NULL, '2026-01-21 05:30:54', '2026-01-21 05:30:54'),
@@ -872,7 +873,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (2001, 'Settlement:Onoldeler', 'Onoldeler', 6444, 97993, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:56', '2026-01-21 05:30:56'),
 (2002, 'Settlement:Orange_County', 'Orange County', 4004, 94165, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:56', '2026-01-21 05:30:56'),
 (2003, 'Settlement:Orient_Isles', 'Orient Isles', 5010, 97999, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:56', '2026-01-21 05:30:56');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (2004, 'Settlement:Outer_Heaven_(JK-H)', 'Outer Heaven (JK-H)', 8141, 94169, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:56', '2026-01-21 05:30:56'),
 (2005, 'Settlement:Overkill\'s_Fortress_of_Solitude', 'Overkill\'s Fortress of Solitude', 5788, 94171, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:56', '2026-01-21 05:30:56'),
 (2006, 'Settlement:Phoenix_Enterprises', 'Phoenix Enterprises', 5722, 117510, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:56', '2026-01-21 05:30:56'),
@@ -1196,7 +1197,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (2353, 'Wide_staircase_with_left_banisters', 'Wide staircase with left banisters', 14107, 127307, 'item', '[\"Main\", \"Structures\", \"Floors\", \"Wide staircase with left banisters\"]', 'wurmpedia', NULL, '2026-01-21 05:30:58', '2026-01-21 05:30:58'),
 (2354, 'Wide_staircase_with_right_banisters', 'Wide staircase with right banisters', 14109, 127308, 'item', '[\"Main\", \"Structures\", \"Floors\", \"Wide staircase with right banisters\"]', 'wurmpedia', NULL, '2026-01-21 05:30:58', '2026-01-21 05:30:58'),
 (2355, 'Small_chest', 'Small chest', 3760, 128727, 'item', '[\"Main\", \"Skills\", \"Carpentry\", \"Fine carpentry\", \"Small chest\"]', 'wurmpedia', NULL, '2026-01-21 05:30:58', '2026-01-21 05:30:58');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (2356, 'Wooden_portcullis', 'Wooden portcullis', 14114, 119681, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Wooden portcullis\"]', 'wurmpedia', NULL, '2026-01-21 05:30:58', '2026-01-21 05:30:58'),
 (2359, 'Halter_rope', 'Halter rope', 14149, 129595, 'item', '[\"Main\", \"Skills\", \"Ropemaking\", \"Halter rope\"]', 'wurmpedia', NULL, '2026-01-21 05:30:58', '2026-01-21 05:30:58'),
 (2360, 'Small_anvil', 'Small anvil', 3730, 122510, 'item', '[\"Main\", \"Skills\", \"Smithing\", \"Blacksmithing\", \"Small anvil\"]', 'wurmpedia', NULL, '2026-01-21 05:30:58', '2026-01-21 05:30:58'),
@@ -1462,7 +1463,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (2663, 'Rendered_fence', 'Rendered fence', 14773, 118951, 'item', '[]', 'wurmpedia', NULL, '2026-01-21 05:31:01', '2026-01-21 05:31:01'),
 (2664, 'Rounded_stone_iron_fence_gate', 'Rounded stone iron fence gate', 14777, 118987, 'item', '[]', 'wurmpedia', NULL, '2026-01-21 05:31:01', '2026-01-21 05:31:01'),
 (2666, 'Fishing_line', 'Fishing line', 3733, 109411, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:31:01', '2026-01-21 05:31:01');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (2667, 'Large_magical_chest', 'Large magical chest', 8300, 126969, 'item', '[\"Main\", \"Items\", \"Shop items\", \"Large magical chest\"]', 'wurmpedia', NULL, '2026-01-21 05:31:01', '2026-01-21 05:31:01'),
 (2674, 'Hazelnut_bush', 'Hazelnut bush', 14805, 112708, 'article', '[\"Main\", \"Terrain\", \"Bushes\", \"Hazelnut bush\"]', 'wurmpedia', NULL, '2026-01-21 05:31:01', '2026-01-21 05:31:01'),
 (2675, 'Blueberry_bush', 'Blueberry bush', 14806, 119785, 'article', '[\"Main\", \"Terrain\", \"Bushes\", \"Blueberry bush\"]', 'wurmpedia', NULL, '2026-01-21 05:31:01', '2026-01-21 05:31:01'),
@@ -1735,7 +1736,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (3059, 'Deep_water_fishing_reel', 'Deep water fishing reel', 15618, 122518, 'item', '[\"Main\", \"Skills\", \"Smithing\", \"Blacksmithing\", \"Deep water fishing reel\"]', 'wurmpedia', NULL, '2026-01-21 05:31:05', '2026-01-21 05:31:05'),
 (3060, 'Tackle_box', 'Tackle box', 15619, 124237, 'item', '[\"Main\", \"Skills\", \"Smithing\", \"Blacksmithing\", \"Tackle box\"]', 'wurmpedia', NULL, '2026-01-21 05:31:05', '2026-01-21 05:31:05'),
 (3062, 'Fishing_net', 'Fishing net', 15624, 128546, 'item', '[\"Main\", \"Skills\", \"Tailoring\", \"Cloth tailoring\", \"Fishing net\"]', 'wurmpedia', NULL, '2026-01-21 05:31:05', '2026-01-21 05:31:05');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (3063, 'Fish_keep_net', 'Fish keep net', 15625, 122803, 'item', '[\"Main\", \"Skills\", \"Ropemaking\", \"Fish keep net\"]', 'wurmpedia', NULL, '2026-01-21 05:31:05', '2026-01-21 05:31:05'),
 (3064, 'Buoy', 'Buoy', 15626, 131005, 'item', '[\"Main\", \"Skills\", \"Carpentry\", \"Buoy\"]', 'wurmpedia', NULL, '2026-01-21 05:31:05', '2026-01-21 05:31:05'),
 (3065, 'Basic_fishing_line', 'Basic fishing line', 15627, 112350, 'item', '[\"Main\", \"Skills\", \"Tailoring\", \"Cloth Tailoring\", \"Basic fishing line\"]', 'wurmpedia', NULL, '2026-01-21 05:31:05', '2026-01-21 05:31:05'),
@@ -2022,7 +2023,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (3533, 'Bladder', 'Bladder', 2525, 124107, 'item', '[\"Main\", \"Skills\", \"Cooking\", \"Butchering\", \"Bladder\"]', 'wurmpedia', NULL, '2026-01-21 05:31:11', '2026-01-21 05:31:11'),
 (3544, 'Water_tile', 'Water tile', 7655, 128326, 'article', '[\"Main\", \"Terrain\", \"Water tile\"]', 'wurmpedia', NULL, '2026-01-21 05:31:11', '2026-01-21 05:31:11'),
 (3546, 'Wine', 'Wine', 2234, 125129, 'item', '[\"Main\", \"Skills\", \"Cooking\", \"Wine\"]', 'wurmpedia', NULL, '2026-01-21 05:31:11', '2026-01-21 05:31:11');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (3549, 'Affinity', 'Affinity', 6314, 129902, 'article', '[\"Main\", \"Game Mechanics\", \"Affinity\"]', 'wurmpedia', NULL, '2026-01-21 05:31:11', '2026-01-21 05:31:11'),
 (3551, 'Account_types', 'Account types', 16676, 129914, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:31:11', '2026-01-21 05:31:11'),
 (3555, 'Wood_scrap', 'Wood scrap', 1667, 128038, 'item', '[\"Main\", \"Skills\", \"Woodcutting\", \"Wood scrap\"]', 'wurmpedia', NULL, '2026-01-21 05:31:11', '2026-01-21 05:31:11'),
@@ -2300,7 +2301,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (4045, 'Log_canopy', 'Log canopy', 17784, 130706, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Log canopy\"]', 'wurmpedia', NULL, '2026-01-21 05:31:29', '2026-01-21 05:31:29'),
 (4046, 'Log_double_door', 'Log double door', 17785, 130853, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Log double door\"]', 'wurmpedia', NULL, '2026-01-21 05:31:29', '2026-01-21 05:31:29'),
 (4047, 'Log_door', 'Log door', 17786, 130707, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Log door\"]', 'wurmpedia', NULL, '2026-01-21 05:31:29', '2026-01-21 05:31:29');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (4048, 'Log_double_window', 'Log double window', 17787, 130820, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Log double window\"]', 'wurmpedia', NULL, '2026-01-21 05:31:29', '2026-01-21 05:31:29'),
 (4049, 'Log_window', 'Log window', 17788, 130712, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Log window\"]', 'wurmpedia', NULL, '2026-01-21 05:31:29', '2026-01-21 05:31:29'),
 (4050, 'Log_wide_window', 'Log wide window', 17789, 130827, 'item', '[\"Main\", \"Structures\", \"Walls\", \"Log wide window\"]', 'wurmpedia', NULL, '2026-01-21 05:31:29', '2026-01-21 05:31:29'),
@@ -2577,7 +2578,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (4518, 'Unicorn_twisted_horn', 'Unicorn twisted horn', 8694, 116386, 'item', '[\"Main\", \"Skills\", \"Butchering\", \"Unicorn twisted horn\"]', 'wurmpedia', NULL, '2026-01-21 05:31:38', '2026-01-21 05:31:38'),
 (4519, 'Firemaking', 'Firemaking', 3048, 128649, 'skill', '[\"Main\", \"Skills\", \"Firemaking\"]', 'wurmpedia', NULL, '2026-01-21 05:31:38', '2026-01-21 05:31:38'),
 (4520, 'Repairing', 'Repairing', 3049, 124386, 'skill', '[\"Main\", \"Skills\", \"Repairing\"]', 'wurmpedia', NULL, '2026-01-21 05:31:38', '2026-01-21 05:31:38');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (4523, 'Chair', 'Chair', 3070, 113615, 'item', '[\"Main\", \"Skills\", \"Carpentry\", \"Fine carpentry\", \"Chair\"]', 'wurmpedia', NULL, '2026-01-21 05:31:38', '2026-01-21 05:31:38'),
 (4524, 'Round_table', 'Round table', 3071, 127096, 'item', '[\"Main\", \"Skills\", \"Carpentry\", \"Fine carpentry\", \"Round table\"]', 'wurmpedia', NULL, '2026-01-21 05:31:38', '2026-01-21 05:31:38'),
 (4525, 'Stuck', 'Stuck', 3072, 127753, 'article', '[\"Main\", \"Game Mechanics\", \"Stuck\"]', 'wurmpedia', NULL, '2026-01-21 05:31:38', '2026-01-21 05:31:38'),
@@ -2864,7 +2865,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (5407, 'Flag', 'Flag', 6275, 129044, 'item', '[\"Main\", \"Skills\", \"Tailoring\", \"Cloth tailoring\", \"Flag\"]', 'wurmpedia', NULL, '2026-01-21 05:32:04', '2026-01-21 05:32:04'),
 (5408, 'Banner', 'Banner', 6276, 129042, 'item', '[\"Main\", \"Skills\", \"Tailoring\", \"Cloth tailoring\", \"Banner\"]', 'wurmpedia', NULL, '2026-01-21 05:32:04', '2026-01-21 05:32:04'),
 (5409, 'Kingdom_flag', 'Kingdom flag', 6277, 129041, 'item', '[\"Main\", \"Skills\", \"Tailoring\", \"Cloth tailoring\", \"Kingdom flag\"]', 'wurmpedia', NULL, '2026-01-21 05:32:04', '2026-01-21 05:32:04');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (5410, 'Kingdom_banner', 'Kingdom banner', 6278, 129045, 'item', '[\"Main\", \"Skills\", \"Tailoring\", \"Cloth tailoring\", \"Kingdom banner\"]', 'wurmpedia', NULL, '2026-01-21 05:32:04', '2026-01-21 05:32:04'),
 (5418, 'Nodrop', 'Nodrop', 6293, 127076, 'article', '[\"Main\", \"Game mechanics\", \"Nodrop\"]', 'wurmpedia', NULL, '2026-01-21 05:32:06', '2026-01-21 05:32:06'),
 (5419, 'Mind', 'Mind', 6300, 85974, 'skill', '[\"Main\", \"Characteristics\", \"Mind\"]', 'wurmpedia', NULL, '2026-01-21 05:32:06', '2026-01-21 05:32:06'),
@@ -3162,7 +3163,7 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (6298, 'Tar_tile', 'Tar tile', 9312, 128323, 'item', '[\"Main\", \"Terrain\", \"Tar tile\"]', 'wurmpedia', NULL, '2026-01-21 05:32:51', '2026-01-21 05:32:51'),
 (6299, 'Base_Price/row_template', 'Base Price/row template', 9321, 112256, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:32:51', '2026-01-21 05:32:51'),
 (6300, 'Player:Xtigermanxx', 'Xtigermanxx', 9303, 64450, 'skill', '[]', 'wurmpedia', NULL, '2026-01-21 05:32:51', '2026-01-21 05:32:51');
-INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (6303, 'Wurm_client_release_notes_2010', 'Wurm client release notes 2010', 9360, 66263, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:32:51', '2026-01-21 05:32:51'),
 (6304, 'Wurm_client_release_notes_2009', 'Wurm client release notes 2009', 9359, 66264, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:32:51', '2026-01-21 05:32:51'),
 (6307, 'Wurm_client_release_notes_2008', 'Wurm client release notes 2008', 9362, 66265, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:32:51', '2026-01-21 05:32:51'),
@@ -3176,3 +3177,5 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_t
 (6351, 'Player:Cryoses', 'Cryoses', 8612, 99192, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:33:19', '2026-01-21 05:33:19'),
 (6362, 'Player:Mthec', 'Mthec', 9432, 97954, 'skill', '[\"Kelron\", \"Golden Valley\", \"Colossus of Zephyr\", \"Zephyr\"]', 'wurmpedia', NULL, '2026-01-21 05:33:19', '2026-01-21 05:33:19'),
 (6363, 'Player:Coheed', 'Coheed', 9631, 115121, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:33:19', '2026-01-21 05:33:19');
+
+SET FOREIGN_KEY_CHECKS=1;

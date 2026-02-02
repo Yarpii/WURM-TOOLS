@@ -1,4 +1,5 @@
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+SET FOREIGN_KEY_CHECKS=0;
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (18839, 867, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (18840, 867, '/index.php/Stone_brick', 'stone brick', 'Stone brick', 'infobox:Creation', 'Stone_brick'),
 (18841, 867, '/index.php/Clay', 'clay', 'Clay', 'infobox:Creation', 'Clay'),
@@ -495,7 +496,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (25235, 986, '/index.php/Horde_of_the_Summoned', 'Horde of the Summoned', 'Horde of the Summoned', 'section:Description', 'Horde_of_the_Summoned'),
 (25236, 986, '/index.php/Settlement:Blackbone', 'Blackbone', 'Settlement:Blackbone', 'section:Spawn settlements', 'Settlement:Blackbone'),
 (25237, 986, '/index.php/Elevation', 'Elevation', 'Elevation', 'section:Travel', 'Elevation');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (25238, 986, '/index.php/Settlement:Doomspine', 'Doomspine', 'Settlement:Doomspine', 'section:Travel', 'Settlement:Doomspine'),
 (25239, 986, '/index.php/File:Affliction_01.jpg', 'In-game map', 'File:Affliction 01.jpg', 'section:Maps', 'File:Affliction_01.jpg'),
 (25240, 986, '/index.php/Server_graphs', 'server graphs', 'Server graphs', 'section:Statistics', 'Server_graphs'),
@@ -993,7 +994,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (28361, 1190, '/index.php/Hay', 'hay', 'Hay', 'section:Usage', 'Hay'),
 (28362, 1190, '/index.php/Hay_bundles', 'hay bundles', 'Hay bundles', 'section:Usage', 'Hay_bundles'),
 (28363, 1190, '/index.php/Hay_stacks', 'hay stacks', 'Hay stacks', 'section:Usage', 'Hay_stacks');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (28364, 1190, '/index.php/Grass_tiles', 'grass tiles', 'Grass tiles', 'section:Usage', 'Grass_tiles'),
 (28365, 1190, '/index.php/Thatch', 'thatch', 'Thatch', 'section:Usage', 'Thatch'),
 (28366, 1190, '/index.php/Dirt_tile', 'dirt tile', 'Dirt tile', 'section:Usage', 'Dirt_tile'),
@@ -1482,7 +1483,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (30679, 1271, '/index.php/Metal_lump', 'metal', 'Metal lump', 'section:Notes', 'Metal_lump'),
 (30680, 1271, '/index.php/Shields', 'Shields', 'Shields', 'section:Skills & Characteristics', 'Shields'),
 (30681, 1271, '/index.php/Body', 'Body', 'Body', 'section:Skills & Characteristics', 'Body');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (30682, 1271, '/index.php/Body_control', 'Body control', 'Body control', 'section:Skills & Characteristics', 'Body_control'),
 (30683, 1271, '/index.php/Mind', 'Mind', 'Mind', 'section:Skills & Characteristics', 'Mind'),
 (30684, 1271, '/index.php/Mind_speed', 'Mind speed', 'Mind speed', 'section:Skills & Characteristics', 'Mind_speed'),
@@ -1974,7 +1975,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (32636, 1294, '/index.php/Clay_flowerpot', 'clay flowerpot', 'Clay flowerpot', 'infobox:Creation', 'Clay_flowerpot'),
 (32637, 1294, '/index.php/Improve', 'improved', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (32638, 1294, '/index.php/Gardening', 'gardening', 'Gardening', 'section:Notes', 'Gardening');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (32639, 1294, '/index.php/Shovel', 'shovel', 'Shovel', 'section:Notes', 'Shovel'),
 (32640, 1294, '/index.php/Trowel', 'trowel', 'Trowel', 'section:Notes', 'Trowel'),
 (32641, 1294, '/index.php/File:Flowerpots.jpg', '', 'Seven pottery flowerpot with different flowers on them as labelled.', 'section:Images', 'File:Flowerpots.jpg'),
@@ -2475,7 +2476,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (33833, 1437, '/index.php/Flowerbed', 'flowerbeds', 'Flowerbed', 'section:Usage', 'Flowerbed'),
 (33834, 1438, '/index.php/Sickle', 'sickle', 'Sickle', 'infobox:Creation', 'Sickle'),
 (33835, 1438, '/index.php/Tile', 'tile', 'Tile', 'infobox:Creation', 'Tile');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (33836, 1438, '/index.php/Gardening', 'gardening', 'Gardening', 'infobox:Skill and improvement', 'Gardening'),
 (33837, 1438, '/index.php/Improve', 'improved', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (33838, 1438, '/index.php/Pottery_flowerpot', 'flower pots', 'Pottery flowerpot', 'section:Usage', 'Pottery_flowerpot'),
@@ -2958,7 +2959,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (34881, 1484, '/index.php/Skull', 'Skull', 'Skull', 'infobox:Information', 'Skull'),
 (34882, 1484, '/index.php/Strange_bone', 'Strange bone', 'Strange bone', 'infobox:Information', 'Strange_bone'),
 (34883, 1484, '/index.php/Tooth', 'Tooth', 'Tooth', 'infobox:Information', 'Tooth');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (34884, 1484, '/index.php/Eye', 'Eye', 'Eye', 'infobox:Information', 'Eye'),
 (34885, 1484, '/index.php/Gland', 'Gland', 'Gland', 'infobox:Information', 'Gland'),
 (34886, 1484, '/index.php/Unique', 'Unique', 'Unique', 'infobox:Information', 'Unique'),
@@ -3457,7 +3458,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (35914, 1580, '/index.php/Black_ink', 'black ink', 'Black ink', 'section:Notes', 'Black_ink'),
 (35915, 1580, '/index.php/Fishing_rod', 'fishing rod', 'Fishing rod', 'section:Notes', 'Fishing_rod'),
 (35916, 1580, '/index.php/Octopus_(fishing)', 'octopus (fishing)', 'Octopus (fishing)', 'section:Notes', 'Octopus_(fishing)');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (35917, 1576, '/index.php/File:Bridgesupport.png', '', '', 'section:Images', 'File:Bridgesupport.png'),
 (35918, 1576, '/index.php/Bridge', 'Bridge', 'Bridge', 'section:See Also', 'Bridge'),
 (35919, 1576, '/index.php/Brick_bridge', 'Brick bridge', 'Brick bridge', 'section:See Also', 'Brick_bridge'),
@@ -3920,7 +3921,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (36497, 1607, '/index.php/Wall_plan', 'wall plan', 'Wall plan', 'section:Creation', 'Wall_plan'),
 (36498, 1607, '/index.php/Hammer', 'hammer', 'Hammer', 'section:Modifying', 'Hammer'),
 (36499, 1607, '/index.php/Mallet', 'mallet', 'Mallet', 'section:Modifying', 'Mallet');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (36500, 1607, '/index.php/Stone_window', 'Stone window', 'Stone window', 'section:Modifying', 'Stone_window'),
 (36501, 1607, '/index.php/Repairing', 'repair', 'Repairing', 'section:Improving', 'Repairing'),
 (36502, 1607, '/index.php/Damage', 'damage', 'Damage', 'section:Improving', 'Damage'),
@@ -4379,7 +4380,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (37236, 1648, '/index.php/Beige_tapestry', 'Beige tapestry', 'Beige tapestry', 'section:See also', 'Beige_tapestry'),
 (37237, 1648, '/index.php/Cavalry_motif_tapestry', 'Cavalry motif tapestry', 'Cavalry motif tapestry', 'section:See also', 'Cavalry_motif_tapestry'),
 (37238, 1648, '/index.php/Festivities_motif_tapestry', 'Festivities motif tapestry', 'Festivities motif tapestry', 'section:See also', 'Festivities_motif_tapestry');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (37239, 1648, '/index.php/Green_tapestry', 'Green tapestry', 'Green tapestry', 'section:See also', 'Green_tapestry'),
 (37240, 1648, '/index.php/Tapestry_of_Ehizellbob', 'Tapestry of Ehizellbob', 'Tapestry of Ehizellbob', 'section:See also', 'Tapestry_of_Ehizellbob'),
 (37241, 1648, '/index.php/Tapestry_of_Evening', 'Tapestry of Evening', 'Tapestry of Evening', 'section:See also', 'Tapestry_of_Evening'),
@@ -4850,7 +4851,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (38257, 1691, '/index.php/Wurm_Server_Release_Notes_2025', '2025', 'Wurm Server Release Notes 2025', 'section:Wurm server release notes', 'Wurm_Server_Release_Notes_2025'),
 (38258, 1691, '/index.php/Wurm_Server_Release_Notes_2024', '2024', 'Wurm Server Release Notes 2024', 'section:Wurm server release notes', 'Wurm_Server_Release_Notes_2024'),
 (38259, 1691, '/index.php/Wurm_Server_Release_Notes_2023', '2023', 'Wurm Server Release Notes 2023', 'section:Wurm server release notes', 'Wurm_Server_Release_Notes_2023');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (38260, 1691, '/index.php/Wurm_Server_Release_Notes_2022', '2022', 'Wurm Server Release Notes 2022', 'section:Wurm server release notes', 'Wurm_Server_Release_Notes_2022'),
 (38261, 1691, '/index.php/Wurm_Server_Release_Notes_2021', '2021', 'Wurm Server Release Notes 2021', 'section:Wurm server release notes', 'Wurm_Server_Release_Notes_2021'),
 (38262, 1691, '/index.php/Wurm_Server_Release_Notes_2020', '2020', 'Wurm Server Release Notes 2020', 'section:Wurm server release notes', 'Wurm_Server_Release_Notes_2020'),
@@ -5316,7 +5317,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (39551, 1776, '/index.php/Vegetables', 'vegetables', 'Vegetables', 'section:Infos', 'Vegetables'),
 (39552, 1776, '/index.php/Cereals', 'cereals', 'Cereals', 'section:Infos', 'Cereals'),
 (39553, 1776, '/index.php/Wemp_plants', 'wemp plants', 'Wemp plants', 'section:Infos', 'Wemp_plants');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (39554, 1776, '/index.php/Cotton', 'cotton', 'Cotton', 'section:Infos', 'Cotton'),
 (39555, 1776, '/index.php/Bull', 'bulls', 'Bull', 'section:Infos', 'Bull'),
 (39556, 1776, '/index.php/Cows', 'cows', 'Cows', 'section:Infos', 'Cows'),
@@ -5780,7 +5781,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (40290, 1901, '/index.php/Player:Shaar', 'Shaar', 'Player:Shaar', 'section:Founders', 'Player:Shaar'),
 (40291, 1901, '/index.php/Acropolis', 'Acropolis', 'Acropolis', 'section:Alliances', 'Acropolis'),
 (40292, 1903, '/index.php/Player:Stabbish', 'Stabbish', 'Player:Stabbish', 'section:Residents', 'Player:Stabbish');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (40293, 1903, '/index.php/Cliffside', 'Cliffside', 'Cliffside', 'section:Nearby Settlements', 'Cliffside'),
 (40294, 1903, '/index.php/Vires', 'Vires', 'Vires', 'section:Nearby Settlements', 'Vires'),
 (40295, 1903, '/index.php/Lion%27s_Head', 'Lion\'s Head', 'Lion\'s Head', 'section:Nearby Settlements', 'Lion%27s_Head'),
@@ -6242,7 +6243,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (41048, 2008, '/index.php/Server_Types#Wild_server_details', 'Wild Server', 'Server Types', 'section:History', 'Server_Types'),
 (41049, 2008, '/index.php/Copperblazes', 'Copperblazes', 'Copperblazes', 'section:History', 'Copperblazes'),
 (41050, 2009, '/index.php/Undefined_settlement', 'Black Hills', 'Undefined settlement', 'section:Location', 'Undefined_settlement');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (41051, 2009, '/index.php/Player:Xemos', 'Xemos', 'Player:Xemos', 'section:Citizens', 'Player:Xemos'),
 (41052, 2009, '/index.php/Player:Berndarmin', 'Berndarmin', 'Player:Berndarmin', 'section:Citizens', 'Player:Berndarmin'),
 (41053, 2009, '/index.php/Player:Roflkittens', 'Roflkittens', 'Player:Roflkittens', 'section:Citizens', 'Player:Roflkittens'),
@@ -6698,7 +6699,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (41781, 2170, '/index.php/Jenn-Kellon', 'Jenn-Kellon', 'Jenn-Kellon', 'section:Village History', 'Jenn-Kellon'),
 (41782, 2170, '/index.php/Freedom', 'Freedom', 'Freedom', 'section:Village History', 'Freedom'),
 (41783, 2170, '/index.php/Samling', 'Samling', 'Samling', 'section:Village History', 'Samling');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (41784, 2170, '/index.php/Insanity_Port', 'Insanity Port', 'Insanity Port', 'section:Village History', 'Insanity_Port'),
 (41785, 2170, '/index.php/Player:Ago', 'Ago', 'Player:Ago', 'section:Villagers', 'Player:Ago'),
 (41786, 2170, '/index.php/Player:Xerus', 'Xerus', 'Player:Xerus', 'section:Villagers', 'Player:Xerus'),
@@ -7170,7 +7171,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (42662, 2285, '/index.php/File:Black_and_White_Lamb.jpg', '', '', 'section:Notes', 'File:Black_and_White_Lamb.jpg'),
 (42698, 2287, '/index.php/File:Valrei_map.jpg', '', '', 'section:Map overview', 'File:Valrei_map.jpg'),
 (42699, 2287, '/index.php/Valrei_(moon)', 'Valrei', 'Valrei (moon)', 'section:Map overview', 'Valrei_(moon)');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (42700, 2287, '/index.php/Mission', 'missions', 'Mission', 'section:Map overview', 'Mission'),
 (42701, 2287, '/index.php/Scenarios', 'scenarios', 'Scenarios', 'section:Map overview', 'Scenarios'),
 (42713, 1521, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
@@ -7651,7 +7652,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (43817, 2352, '/index.php/Plank', 'Plank', 'Plank', 'infobox:Total materials', 'Plank'),
 (43818, 2352, '/index.php/Shaft', 'Shafts', 'Shaft', 'infobox:Total materials', 'Shaft'),
 (43819, 2352, '/index.php/Small_nails', 'Small nails', 'Small nails', 'infobox:Total materials', 'Small_nails');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (43820, 2352, '/index.php/Large_nails', 'Large nails', 'Large nails', 'infobox:Total materials', 'Large_nails'),
 (43821, 2352, '/index.php/Carpentry', 'Carpentry', 'Carpentry', 'infobox:Skill and improvement', 'Carpentry'),
 (43822, 2352, '/index.php/Plank', 'plank', 'Plank', 'infobox:Notes', 'Plank'),
@@ -8135,7 +8136,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (45193, 2417, '/index.php/Rift_points_shop', 'Rift points shop', 'Rift points shop', 'section:See also', 'Rift_points_shop'),
 (45194, 2418, '/index.php/Improve', 'Improved', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (45195, 2418, '/index.php/Cloth_tailoring', 'cloth tailoring', 'Cloth tailoring', 'infobox:Skill and improvement', 'Cloth_tailoring');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (45196, 2418, '/index.php/Dye', 'dyed', 'Dye', 'infobox:Properties', 'Dye'),
 (45197, 2418, '/index.php/Smithing', 'Smithing', 'Smithing', 'section:Notes on Improving', 'Smithing'),
 (45198, 2418, '/index.php/Cloth_Tailoring', 'Cloth Tailoring', 'Cloth Tailoring', 'section:Notes on Improving', 'Cloth_Tailoring'),
@@ -8632,7 +8633,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (46010, 2444, '/index.php/Shaft', 'shaft', 'Shaft', 'infobox:Creation', 'Shaft'),
 (46011, 2444, '/index.php/Plank', 'plank', 'Plank', 'infobox:Creation', 'Plank'),
 (46012, 2444, '/index.php/Tools', 'Tools', 'Tools', 'infobox:Creation', 'Tools');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (46013, 2444, '/index.php/Shafts', 'shafts', 'Shafts', 'infobox:Total materials', 'Shafts'),
 (46014, 2444, '/index.php/Planks', 'planks', 'Planks', 'infobox:Total materials', 'Planks'),
 (46015, 2444, '/index.php/Small_nails', 'small nails', 'Small nails', 'infobox:Total materials', 'Small_nails'),
@@ -9134,7 +9135,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (47197, 1712, '/index.php/Load_cargo', 'loading cargo', 'Load cargo', 'section:Houses', 'Load_cargo'),
 (47198, 1712, '/index.php/Cart', 'Carts', 'Cart', 'section:Vehicles', 'Cart'),
 (47199, 1712, '/index.php/Boat', 'boats', 'Boat', 'section:Vehicles', 'Boat');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (47200, 1712, '/index.php/Lock', 'lock', 'Lock', 'section:Vehicles', 'Lock'),
 (47201, 1712, '/index.php/Horse', 'horses', 'Horse', 'section:Animals', 'Horse'),
 (47202, 1712, '/index.php/Branding_iron', 'branding iron', 'Branding iron', 'section:Animals', 'Branding_iron'),
@@ -9606,7 +9607,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (47887, 2583, '/index.php/Mortar', 'mortars', 'Mortar', 'infobox:Total materials', 'Mortar'),
 (47888, 2583, '/index.php/Pottery_brick', 'Pottery bricks', 'Pottery brick', 'infobox:Total materials', 'Pottery_brick'),
 (47889, 2583, '/index.php/Masonry', 'Masonry', 'Masonry', 'infobox:Skill and improvement', 'Masonry');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (47890, 2583, '/index.php/Improve', 'Improve', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (47891, 2583, '/index.php/Pottery_brick', 'Pottery brick', 'Pottery brick', 'infobox:Notes', 'Pottery_brick'),
 (47892, 2583, '/index.php/Mortar', 'mortar', 'Mortar', 'infobox:Notes', 'Mortar'),
@@ -10077,7 +10078,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (48409, 2600, '/index.php/Sandstone_narrow_window', 'Sandstone narrow window', 'Sandstone narrow window', 'section:See also', 'Sandstone_narrow_window'),
 (48410, 2600, '/index.php/Sandstone_portcullis_(wall)', 'Sandstone portcullis', 'Sandstone portcullis (wall)', 'section:See also', 'Sandstone_portcullis_(wall)'),
 (48411, 2600, '/index.php/Sandstone_barred_wall', 'Sandstone barred wall', 'Sandstone barred wall', 'section:See also', 'Sandstone_barred_wall');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (48412, 2600, '/index.php/Sandstone_arched_wall', 'Sandstone arched wall', 'Sandstone arched wall', 'section:See also', 'Sandstone_arched_wall'),
 (48413, 2600, '/index.php/Sandstone_T_arch', 'Sandstone T arch', 'Sandstone T arch', 'section:See also', 'Sandstone_T_arch'),
 (48414, 2600, '/index.php/Sandstone_arch_right', 'Sandstone arch right', 'Sandstone arch right', 'section:See also', 'Sandstone_arch_right'),
@@ -10537,7 +10538,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (48881, 2615, '/index.php/Mortar', 'mortar', 'Mortar', 'section:Creation', 'Mortar'),
 (48882, 2615, '/index.php/Trowel', 'trowel', 'Trowel', 'section:Creation', 'Trowel'),
 (48883, 2615, '/index.php/Wall_plan', 'wall plan', 'Wall plan', 'section:Creation', 'Wall_plan');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (48884, 2615, '/index.php/Repairing', 'repair', 'Repairing', 'section:Improving', 'Repairing'),
 (48885, 2615, '/index.php/Damage', 'damage', 'Damage', 'section:Improving', 'Damage'),
 (48886, 2615, '/index.php/Marble_brick', 'Marble brick', 'Marble brick', 'section:Improving', 'Marble_brick'),
@@ -10980,7 +10981,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (49389, 2631, '/index.php/Stone_brick', 'Stone bricks', 'Stone brick', 'infobox:Total materials', 'Stone_brick'),
 (49390, 2631, '/index.php/Clay', 'clay', 'Clay', 'infobox:Total materials', 'Clay'),
 (49391, 2631, '/index.php/Masonry', 'Masonry', 'Masonry', 'infobox:Skill and improvement', 'Masonry');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (49392, 2631, '/index.php/Improve', 'Improve', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (49393, 2631, '/index.php/Stone_brick', 'Stone brick', 'Stone brick', 'infobox:Notes', 'Stone_brick'),
 (49394, 2631, '/index.php/Mortar', 'mortar', 'Mortar', 'infobox:Notes', 'Mortar'),
@@ -11450,7 +11451,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (49991, 2658, '/index.php/Empirical_Evaluation_of_Fences', 'Empirical Evaluation of Fences', 'Empirical Evaluation of Fences', 'section:See also', 'Empirical_Evaluation_of_Fences'),
 (49992, 2659, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (49993, 2659, '/index.php/Mallet', 'Mallet', 'Mallet', 'infobox:Creation', 'Mallet');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (49994, 2659, '/index.php/Hammer', 'Hammer', 'Hammer', 'infobox:Creation', 'Hammer'),
 (49995, 2659, '/index.php/Trowel', 'Trowel', 'Trowel', 'infobox:Creation', 'Trowel'),
 (49996, 2659, '/index.php/Tile_Border', 'Tile Border', 'Tile Border', 'infobox:Creation', 'Tile_Border'),
@@ -11920,7 +11921,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (51655, 2705, '/index.php/Slate_portcullis_(wall)', 'Slate portcullis', 'Slate portcullis (wall)', 'section:See also', 'Slate_portcullis_(wall)'),
 (51656, 2705, '/index.php/Slate_barred_wall', 'Slate barred wall', 'Slate barred wall', 'section:See also', 'Slate_barred_wall'),
 (51657, 2705, '/index.php/Slate_arched_wall', 'Slate arched wall', 'Slate arched wall', 'section:See also', 'Slate_arched_wall');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (51658, 2705, '/index.php/Slate_arch_right', 'Slate arch right', 'Slate arch right', 'section:See also', 'Slate_arch_right'),
 (51659, 2705, '/index.php/Slate_arch_left', 'Slate arch left', 'Slate arch left', 'section:See also', 'Slate_arch_left'),
 (51660, 2706, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
@@ -12370,7 +12371,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (52137, 2719, '/index.php/Plain_stone_barred_wall', 'Plain stone barred wall', 'Plain stone barred wall', 'section:See also', 'Plain_stone_barred_wall'),
 (52138, 2719, '/index.php/Plain_stone_arched_wall', 'Plain stone arched wall', 'Plain stone arched wall', 'section:See also', 'Plain_stone_arched_wall'),
 (52139, 2719, '/index.php/Plain_stone_T_arch', 'Plain stone T arch', 'Plain stone T arch', 'section:See also', 'Plain_stone_T_arch');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (52140, 2719, '/index.php/Plain_stone_arch_left', 'Plain stone arch left', 'Plain stone arch left', 'section:See also', 'Plain_stone_arch_left'),
 (52141, 2720, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (52142, 2720, '/index.php/Trowel', 'trowel', 'Trowel', 'infobox:Creation', 'Trowel'),
@@ -12849,7 +12850,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (52808, 2749, '/index.php/Rounded_stone', 'Rounded stone', 'Rounded stone', 'infobox:Notes', 'Rounded_stone'),
 (52809, 2749, '/index.php/Inventory', 'inventory', 'Inventory', 'infobox:Notes', 'Inventory'),
 (52810, 2749, '/index.php/Maximum_slope', 'maximum slope', 'Maximum slope', 'section:Skill required', 'Maximum_slope');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (52811, 2749, '/index.php/Carpentry', 'carpentry', 'Carpentry', 'section:Skill required', 'Carpentry'),
 (52812, 2749, '/index.php/Masonry', 'masonry', 'Masonry', 'section:Skill required', 'Masonry'),
 (52813, 2749, '/index.php/Player:Ketza', 'Ketza', 'Player:Ketza', 'section:Skill required', 'Player:Ketza'),
@@ -13332,7 +13333,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (53308, 2774, '/index.php/Key', 'key', 'Key', 'section:Notes', 'Key'),
 (53309, 2774, '/index.php/Category:Fences', 'Fences', 'Category:Fences', 'section:See also', 'Category:Fences'),
 (53310, 2774, '/index.php/Category:Gates', 'Fence gates', 'Category:Gates', 'section:See also', 'Category:Gates');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (53311, 2774, '/index.php/Empirical_Evaluation_of_Fences', 'Empirical Evaluation of Fences', 'Empirical Evaluation of Fences', 'section:See also', 'Empirical_Evaluation_of_Fences'),
 (53661, 2781, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (53662, 2781, '/index.php/Square_piece_of_wool_cloth', 'Square piece of wool cloth', 'Square piece of wool cloth', 'infobox:Creation', 'Square_piece_of_wool_cloth'),
@@ -13789,7 +13790,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (54824, 2834, '/index.php/Mallet', 'mallet', 'Mallet', 'section:Notes', 'Mallet'),
 (54825, 2834, '/index.php/Trowel', 'trowel', 'Trowel', 'section:Notes', 'Trowel'),
 (54826, 2834, '/index.php/Category:Openings', 'Category:Openings', 'Category:Openings', 'section:See Also', 'Category:Openings');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (54827, 2834, '/index.php/Stone_slab_staircase', 'Stone slab staircase', 'Stone slab staircase', 'section:See Also', 'Stone_slab_staircase'),
 (54828, 2834, '/index.php/Stone_brick_staircase', 'Stone brick staircase', 'Stone brick staircase', 'section:See Also', 'Stone_brick_staircase'),
 (54829, 2834, '/index.php/Slate_slab_staircase', 'Slate slab staircase', 'Slate slab staircase', 'section:See Also', 'Slate_slab_staircase'),
@@ -14255,7 +14256,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (55334, 2742, '/index.php/Masonry', 'masonry', 'Masonry', 'section:Skill required', 'Masonry'),
 (55335, 2742, '/index.php/Player:Ketza', 'Ketza', 'Player:Ketza', 'section:Skill required', 'Player:Ketza'),
 (55336, 2742, '/index.php/Category:Fences', 'Fences', 'Category:Fences', 'section:See also', 'Category:Fences');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (55337, 2742, '/index.php/Category:Gates', 'Fence gates', 'Category:Gates', 'section:See also', 'Category:Gates'),
 (55338, 2742, '/index.php/Empirical_Evaluation_of_Fences', 'Empirical Evaluation of Fences', 'Empirical Evaluation of Fences', 'section:See also', 'Empirical_Evaluation_of_Fences'),
 (55341, 2740, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
@@ -14746,7 +14747,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (56983, 2971, '/index.php/Player', 'player', 'Player', 'section:Description', 'Player'),
 (56984, 2971, '/index.php/Quality', 'Quality', 'Quality', 'section:Intoxication', 'Quality'),
 (56985, 2971, '/index.php/Damage', 'damage', 'Damage', 'section:Intoxication', 'Damage');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (56986, 2971, '/index.php/Speed', 'speed', 'Speed', 'section:Intoxication', 'Speed'),
 (56987, 2971, '/index.php/Well', 'well', 'Well', 'section:Intoxication', 'Well'),
 (56988, 2971, '/index.php/Fountain', 'fountain', 'Fountain', 'section:Intoxication', 'Fountain'),
@@ -15230,7 +15231,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (58116, 3062, '/index.php/Roach', 'roach', 'Roach', 'section:Notes', 'Roach'),
 (58117, 3062, '/index.php/Minnow', 'minnows', 'Minnow', 'section:Notes', 'Minnow'),
 (58118, 3062, '/index.php/Treasure_hunt', 'Treasure hunt', 'Treasure hunt', 'section:Notes', 'Treasure_hunt');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (58119, 3062, '/index.php/Nature', 'Nature', 'Nature', 'section:Skills & Characteristics', 'Nature'),
 (58120, 3062, '/index.php/Fishing', 'Fishing', 'Fishing', 'section:Skills & Characteristics', 'Fishing'),
 (58121, 3062, '/index.php/Soul', 'Soul', 'Soul', 'section:Skills & Characteristics', 'Soul'),
@@ -15721,7 +15722,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (58996, 3131, '/index.php/Resource_nodes', 'Resource nodes', 'Resource nodes', 'section:Notes', 'Resource_nodes'),
 (58997, 3131, '/index.php/Pearl_necklace', 'pearl necklaces', 'Pearl necklace', 'section:Notes', 'Pearl_necklace'),
 (59001, 3133, '/index.php/Fishing', 'Fishing', 'Fishing', 'infobox:Creation', 'Fishing');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (59002, 3133, '/index.php/Improve', 'improved', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (59003, 3133, '/index.php/Food_storage_bin', 'food storage bin', 'Food storage bin', 'infobox:Properties', 'Food_storage_bin'),
 (59004, 3132, '/index.php/Fishing', 'Fishing', 'Fishing', 'infobox:Creation', 'Fishing'),
@@ -16215,7 +16216,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (60801, 3228, '/index.php/Maximum_slope', 'maximum slope', 'Maximum slope', 'section:Skill required', 'Maximum_slope'),
 (60802, 3228, '/index.php/Carpentry', 'carpentry', 'Carpentry', 'section:Skill required', 'Carpentry'),
 (60803, 3228, '/index.php/Masonry', 'masonry', 'Masonry', 'section:Skill required', 'Masonry');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (60804, 3228, '/index.php/Player:Ketza', 'Ketza', 'Player:Ketza', 'section:Skill required', 'Player:Ketza'),
 (60805, 3228, '/index.php/Troll', 'trolls', 'Troll', 'section:Notes', 'Troll'),
 (60806, 3228, '/index.php/Gate_lock', 'gate lock', 'Gate lock', 'section:Notes', 'Gate_lock'),
@@ -16711,7 +16712,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (63863, 3283, '/index.php/Animal_equipment', 'Animal equipment', 'Animal equipment', 'infobox:Creation', 'Animal_equipment'),
 (63864, 3283, '/index.php/Large_nails', 'large nails', 'Large nails', 'infobox:Total materials', 'Large_nails'),
 (63865, 3283, '/index.php/Plank', 'planks', 'Plank', 'infobox:Total materials', 'Plank');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (63866, 3283, '/index.php/Iron_ribbon', 'iron ribbons', 'Iron ribbon', 'infobox:Total materials', 'Iron_ribbon'),
 (63867, 3283, '/index.php/Small_nails', 'small nails', 'Small nails', 'infobox:Total materials', 'Small_nails'),
 (63868, 3283, '/index.php/Wooden_beam', 'wooden beams', 'Wooden beam', 'infobox:Total materials', 'Wooden_beam'),
@@ -17197,7 +17198,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (65381, 3363, '/index.php/Portal', 'portal', 'Portal', 'section:Getting Started', 'Portal'),
 (65382, 3363, '/index.php/Bartender', 'bartender', 'Bartender', 'section:Getting Started', 'Bartender'),
 (65383, 3363, '/index.php/Token', 'token', 'Token', 'section:Getting Started', 'Token');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (65384, 3363, '/index.php/Well', 'well', 'Well', 'section:Getting Started', 'Well'),
 (65385, 3363, '/index.php/Village_recruitment_board', 'village recruitment board', 'Village recruitment board', 'section:Getting Started', 'Village_recruitment_board'),
 (65386, 3363, '/index.php/Settlement', 'settlement', 'Settlement', 'section:Getting Started', 'Settlement'),
@@ -17669,7 +17670,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (67329, 3478, '/index.php/Black_ink', 'black ink', 'Black ink', 'infobox:Creation', 'Black_ink'),
 (67330, 3478, '/index.php/Natural_substances', 'Natural substances', 'Natural substances', 'infobox:Skill and improvement', 'Natural_substances'),
 (67331, 3478, '/index.php/Improve', 'improved', 'Improve', 'infobox:Skill and improvement', 'Improve');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (67332, 3478, '/index.php/Black_ink', 'black ink', 'Black ink', 'section:Description', 'Black_ink'),
 (67333, 3478, '/index.php/Pig', 'pigs', 'Pig', 'section:Description', 'Pig'),
 (67334, 3478, '/index.php/Food_storage_bin', 'food storage bin', 'Food storage bin', 'section:Description', 'Food_storage_bin'),
@@ -18174,7 +18175,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (68179, 3299, '/index.php/File:Sol_shield.png', '', '', 'section:Monthly Skins', 'File:Sol_shield.png'),
 (68180, 3299, '/index.php/File:Smallknarrskin.png', '', '', 'section:Monthly Skins', 'File:Smallknarrskin.png'),
 (68181, 3299, '/index.php/File:Smallcaravelskin.png', '', '', 'section:Monthly Skins', 'File:Smallcaravelskin.png');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (68182, 3299, '/index.php/File:Scythe_Skin.png', '', '', 'section:Monthly Skins', 'File:Scythe_Skin.png'),
 (68183, 3299, '/index.php/File:Santa_beard.png', '', '', 'section:Monthly Skins', 'File:Santa_beard.png'),
 (68184, 3299, '/index.php/File:Grimshadow.png', '', '', 'section:Monthly Skins', 'File:Grimshadow.png'),
@@ -18685,7 +18686,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (74013, 3642, '/index.php/Oven', 'oven', 'Oven', 'section:Usage', 'Oven'),
 (74014, 3642, '/index.php/Forge', 'forge', 'Forge', 'section:Usage', 'Forge'),
 (74015, 3642, '/index.php/Kiln', 'kiln', 'Kiln', 'section:Usage', 'Kiln');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (74016, 3642, '/index.php/Pottery_mug', 'pottery mug', 'Pottery mug', 'section:Usage', 'Pottery_mug'),
 (74017, 3643, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (74018, 3643, '/index.php/Hand', 'hand', 'Hand', 'infobox:Creation', 'Hand'),
@@ -19161,7 +19162,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (77143, 3729, '/index.php/Cucumber', 'Cucumber', 'Cucumber', 'section:Method', 'Cucumber'),
 (77144, 3729, '/index.php/Foraging', 'Foraging', 'Foraging', 'section:Method', 'Foraging'),
 (77145, 3729, '/index.php/Animal_burrow', 'Animal burrow', 'Animal burrow', 'section:Method', 'Animal_burrow');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (77146, 3729, '/index.php/Critter_nest', 'Critter nest', 'Critter nest', 'section:Method', 'Critter_nest'),
 (77147, 3729, '/index.php/Resource_nodes', 'Resource nodes', 'Resource nodes', 'section:Method', 'Resource_nodes'),
 (77148, 3730, '/index.php/Lettuce', 'lettuce', 'Lettuce', 'infobox:Creation', 'Lettuce'),
@@ -19639,7 +19640,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (81086, 3807, '/index.php/Favor', 'favor', 'Favor', 'section:Expiration effects', 'Favor'),
 (81087, 3807, '/index.php/Ritual_of_the_Sun', 'Ritual of the Sun', 'Ritual of the Sun', 'section:Expiration effects', 'Ritual_of_the_Sun'),
 (81100, 3808, '/index.php/Holy_site', 'Holy site', 'Holy site', 'section:Description', 'Holy_site');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (81101, 3808, '/index.php/Holy_sites', 'Holy sites', 'Holy sites', 'section:Description', 'Holy_sites'),
 (81102, 3808, '/index.php/QL', 'QL', 'QL', 'section:Passive effects', 'QL'),
 (81103, 3808, '/index.php/Faith', 'faith', 'Faith', 'section:Passive effects', 'Faith'),
@@ -20113,7 +20114,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (85654, 3902, '/index.php/Seaweed', 'Seaweed', 'Seaweed', 'section:Description', 'Seaweed'),
 (85655, 3902, '/index.php/File:Seaweed.jpg', '', 'Seaweed', 'section:Description', 'File:Seaweed.jpg'),
 (85656, 3902, '/index.php/Clay', 'Clay', 'Clay', 'section:Description', 'Clay');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (85657, 3902, '/index.php/Mineral_debris', 'Mineral debris', 'Mineral debris', 'section:Description', 'Mineral_debris'),
 (85658, 3902, '/index.php/File:Mineral_debris.jpg', '', 'Mineral debris', 'section:Description', 'File:Mineral_debris.jpg'),
 (85659, 3902, '/index.php/Coconut', 'Coconuts', 'Coconut', 'section:Description', 'Coconut'),
@@ -20607,7 +20608,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (86147, 3949, '/index.php/Cooking', 'Cooking', 'Cooking', 'section:See Also', 'Cooking'),
 (86148, 3950, '/index.php/Botanizing', 'botanizing', 'Botanizing', 'infobox:Creation', 'Botanizing'),
 (86149, 3950, '/index.php/Botanizing', 'Botanizing', 'Botanizing', 'infobox:Skill and improvement', 'Botanizing');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (86150, 3950, '/index.php/Improve', 'improved', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (86151, 3950, '/index.php/Food_storage_bin', 'food storage bin', 'Food storage bin', 'infobox:Properties', 'Food_storage_bin'),
 (86152, 3950, '/index.php/Botanizing', 'Botanizing', 'Botanizing', 'section:Notes', 'Botanizing'),
@@ -21119,7 +21120,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (90537, 4043, '/index.php/Log_canopy', 'Log canopy', 'Log canopy', 'section:See also', 'Log_canopy'),
 (90538, 4043, '/index.php/Log_door', 'Log door', 'Log door', 'section:See also', 'Log_door'),
 (90539, 4043, '/index.php/Log_double_door', 'Log double door', 'Log double door', 'section:See also', 'Log_double_door');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (90540, 4043, '/index.php/Log_double_window', 'Log double window', 'Log double window', 'section:See also', 'Log_double_window'),
 (90541, 4043, '/index.php/Log_T_arch', 'Log T arch', 'Log T arch', 'section:See also', 'Log_T_arch'),
 (90542, 4043, '/index.php/Log_wall', 'Log wall', 'Log wall', 'section:See also', 'Log_wall'),
@@ -21628,7 +21629,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (91288, 4066, '/index.php/Log', 'logs', 'Log', 'infobox:Total materials', 'Log'),
 (91289, 4066, '/index.php/Peg', 'pegs', 'Peg', 'infobox:Total materials', 'Peg'),
 (91290, 4066, '/index.php/Carpentry', 'Carpentry', 'Carpentry', 'infobox:Skill and improvement', 'Carpentry');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (91291, 4066, '/index.php/Log', 'log', 'Log', 'infobox:Notes', 'Log'),
 (91292, 4066, '/index.php/Peg', 'peg', 'Peg', 'infobox:Notes', 'Peg'),
 (91293, 4066, '/index.php/Door_lock', 'door lock', 'Door lock', 'section:Locking', 'Door_lock'),
@@ -22115,7 +22116,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (92660, 4062, '/index.php/Clay', 'clay', 'Clay', 'section:Notes', 'Clay'),
 (92661, 4062, '/index.php/Crowbar', 'crowbar', 'Crowbar', 'section:Notes', 'Crowbar'),
 (92662, 4062, '/index.php/Rustic_log_arch', 'Rustic log arch', 'Rustic log arch', 'section:See also', 'Rustic_log_arch');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (92663, 4062, '/index.php/Rustic_log_balcony', 'Rustic log balcony', 'Rustic log balcony', 'section:See also', 'Rustic_log_balcony'),
 (92664, 4062, '/index.php/Rustic_log_canopy', 'Rustic log canopy', 'Rustic log canopy', 'section:See also', 'Rustic_log_canopy'),
 (92665, 4062, '/index.php/Rustic_log_door', 'Rustic log door', 'Rustic log door', 'section:See also', 'Rustic_log_door'),
@@ -22618,7 +22619,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (95095, 3235, '/index.php/Resource_nodes', 'Resource nodes', 'Resource nodes', 'section:Description', 'Resource_nodes'),
 (95096, 3235, '/index.php/Desert_weeds', 'Desert weeds', 'Desert weeds', 'section:Description', 'Desert_weeds'),
 (95097, 3235, '/index.php/Dune_grass', 'Dune grass', 'Dune grass', 'section:Description', 'Dune_grass');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (95098, 3235, '/index.php/Mineral_debris', 'Mineral debris', 'Mineral debris', 'section:Description', 'Mineral_debris'),
 (95099, 3235, '/index.php/Seaweed', 'Seaweed', 'Seaweed', 'section:Description', 'Seaweed'),
 (95100, 3235, '/index.php/Flotsam', 'Flotsam', 'Flotsam', 'section:Description', 'Flotsam'),
@@ -23126,7 +23127,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (96930, 4244, '/index.php/Shaft', 'shaft', 'Shaft', 'infobox:Total materials', 'Shaft'),
 (96931, 4244, '/index.php/Fine_carpentry', 'fine carpentry', 'Fine carpentry', 'infobox:Skill and improvement', 'Fine_carpentry'),
 (96932, 4244, '/index.php/Dye', 'dyed', 'Dye', 'infobox:Properties', 'Dye');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (96933, 4244, '/index.php/Quality', 'quality', 'Quality', 'section:Notes', 'Quality'),
 (96934, 4244, '/index.php/Week', 'week', 'Week', 'section:Limitations', 'Week'),
 (96935, 4244, '/index.php/Small_sign', 'Small sign', 'Small sign', 'section:See also', 'Small_sign'),
@@ -23649,7 +23650,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (99083, 2731, '/index.php/Potion_of_acid', 'potion of acid', 'Potion of acid', 'section:Requirements', 'Potion_of_acid'),
 (99084, 2731, '/index.php/Legendary', 'legendary', 'Legendary', 'section:Demise spells', 'Legendary'),
 (99085, 2731, '/index.php/Wild_cat', 'Wild cat', 'Wild cat', 'section:Demise spells', 'Wild_cat');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (99086, 2731, '/index.php/Brown_bear', 'brown bear', 'Brown bear', 'section:Demise spells', 'Brown_bear'),
 (99087, 2731, '/index.php/Hell_horse', 'hell horse', 'Hell horse', 'section:Demise spells', 'Hell_horse'),
 (99088, 2731, '/index.php/Troll', 'Troll', 'Troll', 'section:Demise spells', 'Troll'),
@@ -24164,7 +24165,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (100877, 4429, '/index.php/Cloth_armour', 'Cloth armour', 'Cloth armour', 'section:See also', 'Cloth_armour'),
 (100878, 4429, '/index.php/Leather_armour', 'Leather armour', 'Leather armour', 'section:See also', 'Leather_armour'),
 (100879, 4429, '/index.php/Chain_armour', 'Chain armour', 'Chain armour', 'section:See also', 'Chain_armour');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (100880, 4429, '/index.php/Plate_armour', 'Plate armour', 'Plate armour', 'section:See also', 'Plate_armour'),
 (100881, 4429, '/index.php/Fighting', 'Fighting', 'Fighting', 'section:See also', 'Fighting'),
 (100882, 4430, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
@@ -24625,7 +24626,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (102510, 4519, '/index.php/Ore', 'ore', 'Ore', 'section:Notes', 'Ore'),
 (102511, 4519, '/index.php/Ash', 'ash', 'Ash', 'section:Notes', 'Ash'),
 (102512, 4519, '/index.php/Mind', 'Mind', 'Mind', 'section:Skills & Characteristics', 'Mind');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (102513, 4519, '/index.php/Mind_logic', 'Mind logic', 'Mind logic', 'section:Skills & Characteristics', 'Mind_logic'),
 (102812, 4523, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (102813, 4523, '/index.php/Plank', 'plank', 'Plank', 'infobox:Creation', 'Plank'),
@@ -25108,7 +25109,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (104032, 1315, '/index.php/Botanizing', 'Botanizing', 'Botanizing', 'infobox:Creation Methods', 'Botanizing'),
 (104033, 1315, '/index.php/Forestry', 'forestry', 'Forestry', 'infobox:Possible skills and Improvement', 'Forestry'),
 (104034, 1315, '/index.php/Botanizing', 'botanizing', 'Botanizing', 'infobox:Possible skills and Improvement', 'Botanizing');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (104035, 1315, '/index.php/Improve', 'improved', 'Improve', 'infobox:Possible skills and Improvement', 'Improve'),
 (104036, 1315, '/index.php/Food_storage_bin', 'food storage bin', 'Food storage bin', 'infobox:Properties', 'Food_storage_bin'),
 (104037, 1315, '/index.php/Cooking', 'cooking', 'Cooking', 'section:Notes', 'Cooking'),
@@ -25597,7 +25598,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (105863, 1727, '/index.php/Permissions#Permission_Categories', 'permission categories', 'Permissions', 'section:Ships', 'Permissions'),
 (105864, 1727, '/index.php/File:Ship_permissions.jpg', '', '', 'section:Ships', 'File:Ship_permissions.jpg'),
 (105865, 1727, '/index.php/File:Container_permissions.jpg', '', '', 'section:Item Permissions', 'File:Container_permissions.jpg');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (105866, 1727, '/index.php/Small_padlock', 'small padlock', 'Small padlock', 'section:Item Permissions', 'Small_padlock'),
 (105867, 1727, '/index.php/Large_padlock', 'large padlock', 'Large padlock', 'section:Item Permissions', 'Large_padlock'),
 (105868, 1727, '/index.php/File:Bed_permissions.jpg', '', '', 'section:Item Permissions', 'File:Bed_permissions.jpg'),
@@ -26074,7 +26075,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (106849, 2530, '/index.php/Weapon_smithing', 'Weapon smithing', 'Weapon smithing', 'section:Skills & Characteristics', 'Weapon_smithing'),
 (106850, 2530, '/index.php/Body', 'Body', 'Body', 'section:Skills & Characteristics', 'Body'),
 (106851, 2530, '/index.php/Body_strength', 'Body strength', 'Body strength', 'section:Skills & Characteristics', 'Body_strength');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (106852, 2530, '/index.php/Body_control', 'Body control', 'Body control', 'section:Skills & Characteristics', 'Body_control'),
 (106853, 2530, '/index.php/Category:Blades_smithing_items', 'Category:Blades smithing items', 'Category:Blades smithing items', 'section:See Also', 'Category:Blades_smithing_items'),
 (106854, 2530, '/index.php/Smithing', 'Smithing', 'Smithing', 'section:See Also', 'Smithing'),
@@ -26539,7 +26540,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (107842, 1752, '/index.php/Marble_shards', 'marble shards', 'Marble shards', 'section:Notes', 'Marble_shards'),
 (107843, 1752, '/index.php/Stone_chisel', 'stone chisel', 'Stone chisel', 'section:Notes', 'Stone_chisel'),
 (107844, 1762, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (107845, 1762, '/index.php/Stone_chisel', 'stone chisel', 'Stone chisel', 'infobox:Creation', 'Stone_chisel'),
 (107846, 1762, '/index.php/Stone_shards', 'stone shards', 'Stone shards', 'infobox:Creation', 'Stone_shards'),
 (107847, 1762, '/index.php/Statues', 'Statues', 'Statues', 'infobox:Creation', 'Statues'),
@@ -27005,7 +27006,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (108498, 4501, '/index.php/Glowing_hot', 'glowing hot', 'Glowing hot', 'infobox:Creation', 'Glowing_hot'),
 (108499, 4501, '/index.php/Lump', 'lump', 'Lump', 'infobox:Creation', 'Lump'),
 (108500, 4501, '/index.php/Large_anvil', 'large anvil', 'Large anvil', 'infobox:Creation', 'Large_anvil');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (108501, 4501, '/index.php/Armour', 'Armour', 'Armour', 'infobox:Creation', 'Armour'),
 (108502, 4501, '/index.php/Plate_armour_smithing', 'plate armour smithing', 'Plate armour smithing', 'infobox:Skill and improvement', 'Plate_armour_smithing'),
 (108503, 4501, '/index.php/Dye', 'dyed', 'Dye', 'infobox:Properties', 'Dye'),
@@ -27447,7 +27448,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (109296, 3531, '/index.php/Circle_of_cunning', 'Circle of cunning', 'Circle of cunning', 'section:Acronyms and Abbreviations', 'Circle_of_cunning'),
 (109297, 3531, '/index.php/Flaming_aura', 'Flaming aura', 'Flaming aura', 'section:Acronyms and Abbreviations', 'Flaming_aura'),
 (109298, 3531, '/index.php/Frostbrand', 'Frostbrand', 'Frostbrand', 'section:Acronyms and Abbreviations', 'Frostbrand');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (109299, 3531, '/index.php/Demise_spells', 'Human demise', 'Demise spells', 'section:Acronyms and Abbreviations', 'Demise_spells'),
 (109300, 3531, '/index.php/Demise_spells', 'Legendary demise', 'Demise spells', 'section:Acronyms and Abbreviations', 'Demise_spells'),
 (109301, 3531, '/index.php/Lurker_in_the_dark', 'Lurker in the dark', 'Lurker in the dark', 'section:Acronyms and Abbreviations', 'Lurker_in_the_dark'),
@@ -27943,7 +27944,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (113395, 3197, '/index.php/Activate', 'Activate', 'Activate', 'section:Method', 'Activate'),
 (113396, 3197, '/index.php/Statuette', 'statuette', 'Statuette', 'section:Method', 'Statuette'),
 (113397, 3197, '/index.php/Wound', 'wound', 'Wound', 'section:Method', 'Wound');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (113398, 3197, '/index.php/Player', 'player', 'Player', 'section:Healing resistance', 'Player'),
 (113399, 3197, '/index.php/Life_transfer', 'Life transfer', 'Life transfer', 'section:Healing resistance', 'Life_transfer'),
 (113400, 3197, '/index.php/White_light', 'white light', 'White light', 'section:Notes', 'White_light'),
@@ -28420,7 +28421,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (114724, 2454, '/index.php/Water', 'Water', 'Water', 'section:Tools Used', 'Water'),
 (114725, 2454, '/index.php/Whetstone', 'Whetstone', 'Whetstone', 'section:Tools Used', 'Whetstone'),
 (114726, 2454, '/index.php/Pelt', 'Pelt', 'Pelt', 'section:Tools Used', 'Pelt');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (114727, 2454, '/index.php/Smithing', 'Smithing', 'Smithing', 'section:Skills & Characteristics', 'Smithing'),
 (114728, 2454, '/index.php/Body', 'Body', 'Body', 'section:Skills & Characteristics', 'Body'),
 (114729, 2454, '/index.php/Body_control', 'Body control', 'Body control', 'section:Skills & Characteristics', 'Body_control'),
@@ -28916,7 +28917,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (115930, 2384, '/index.php/Local', 'local', 'Local', 'infobox:Creation', 'Local'),
 (115931, 2384, '/index.php/Premium', 'premium', 'Premium', 'infobox:Creation', 'Premium'),
 (115932, 2384, '/index.php/Unique', 'unique', 'Unique', 'infobox:Creation', 'Unique');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (115933, 2384, '/index.php/Improve', 'improved', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (115934, 2384, '/index.php/Combine', 'combined', 'Combine', 'infobox:Properties', 'Combine'),
 (115935, 2384, '/index.php/Dragon_scale_armour', 'dragon scale armour', 'Dragon scale armour', 'section:Description', 'Dragon_scale_armour'),
@@ -29413,7 +29414,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (117474, 1721, '/index.php/Cauldron', 'Cauldron', 'Cauldron', 'section:Tools and Ingredients', 'Cauldron'),
 (117475, 1721, '/index.php/Frying_pan', 'Frying pan', 'Frying pan', 'section:Tools and Ingredients', 'Frying_pan'),
 (117476, 1721, '/index.php/Open_helm', 'Open helm', 'Open helm', 'section:Tools and Ingredients', 'Open_helm');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (117477, 1721, '/index.php/Pie_dish', 'Pie dish', 'Pie dish', 'section:Tools and Ingredients', 'Pie_dish'),
 (117478, 1721, '/index.php/Plate', 'Plate', 'Plate', 'section:Tools and Ingredients', 'Plate'),
 (117479, 1721, '/index.php/Pottery_bowl', 'Pottery bowl', 'Pottery bowl', 'section:Tools and Ingredients', 'Pottery_bowl'),
@@ -29870,7 +29871,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (118682, 1390, '/index.php/Yellow_potion', 'Yellow potion', 'Yellow potion', 'section:Can be sent', 'Yellow_potion'),
 (118683, 1390, '/index.php/Bulk_storage_bin', 'Bulk storage bin', 'Bulk storage bin', 'section:Cannot be sent', 'Bulk_storage_bin'),
 (118684, 1390, '/index.php/Christmas_tree', 'Christmas tree', 'Christmas tree', 'section:Cannot be sent', 'Christmas_tree');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (118685, 1390, '/index.php/Bank_of_Wurm', 'Coin', 'Bank of Wurm', 'section:Cannot be sent', 'Bank_of_Wurm'),
 (118686, 1390, '/index.php/Corpse', 'Corpse', 'Corpse', 'section:Cannot be sent', 'Corpse'),
 (118687, 1390, '/index.php/Deck_board', 'Deck board', 'Deck board', 'section:Cannot be sent', 'Deck_board'),
@@ -30353,7 +30354,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (120058, 5049, '/index.php/Dragon_scale_armour', 'Dragon scale armour', 'Dragon scale armour', 'section:Comparison', 'Dragon_scale_armour'),
 (120059, 5049, '/index.php/Chain_armour_smithing', 'Chain', 'Chain armour smithing', 'section:Attack type protection', 'Chain_armour_smithing'),
 (120060, 5049, '/index.php/Cloth_armour', 'Cloth', 'Cloth armour', 'section:Attack type protection', 'Cloth_armour');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (120061, 5049, '/index.php/Dragon_scale_armour', 'Dragon scale', 'Dragon scale armour', 'section:Attack type protection', 'Dragon_scale_armour'),
 (120062, 5049, '/index.php/Category:Drake_hide_armour', 'Drake hide', 'Category:Drake hide armour', 'section:Attack type protection', 'Category:Drake_hide_armour'),
 (120063, 5049, '/index.php/Leather_armour', 'Leather', 'Leather armour', 'section:Attack type protection', 'Leather_armour'),
@@ -30742,7 +30743,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (120872, 2385, '/index.php/Black_dragon_hatchling', 'Black dragon hatchling', 'Black dragon hatchling', 'section:Description', 'Black_dragon_hatchling'),
 (120873, 2385, '/index.php/Blue_dragon_hatchling', 'Blue dragon hatchling', 'Blue dragon hatchling', 'section:Description', 'Blue_dragon_hatchling'),
 (120874, 2385, '/index.php/Green_dragon_hatchling', 'Green dragon hatchling', 'Green dragon hatchling', 'section:Description', 'Green_dragon_hatchling');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (120875, 2385, '/index.php/Red_dragon_hatchling', 'Red dragon hatchling', 'Red dragon hatchling', 'section:Description', 'Red_dragon_hatchling'),
 (120876, 2385, '/index.php/White_dragon_hatchling', 'White dragon hatchling', 'White dragon hatchling', 'section:Description', 'White_dragon_hatchling'),
 (120877, 2385, '/index.php/Drake_hide', 'drake hide', 'Drake hide', 'section:Description', 'Drake_hide'),
@@ -31236,7 +31237,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (124817, 5304, '/index.php/Medium_mast', 'Medium mast', 'Medium mast', 'section:Items', 'Medium_mast'),
 (124818, 5304, '/index.php/Large_mast', 'Large mast', 'Large mast', 'section:Items', 'Large_mast'),
 (124819, 5304, '/index.php/Tall_mast', 'Tall mast', 'Tall mast', 'section:Items', 'Tall_mast');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (124823, 5304, '/index.php/Deck_board', 'Deck board', 'Deck board', 'section:Items', 'Deck_board'),
 (124825, 5304, '/index.php/Large_tackle', 'Large tackle', 'Large tackle', 'section:Items', 'Large_tackle'),
 (124826, 5304, '/index.php/Small_tackle', 'Small tackle', 'Small tackle', 'section:Items', 'Small_tackle'),
@@ -31720,7 +31721,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (126715, 5361, '/index.php/QL', 'QL', 'QL', 'section:Notes', 'QL'),
 (126716, 5361, '/index.php/Square_piece_of_cloth', 'square piece of cloth', 'Square piece of cloth', 'section:Notes', 'Square_piece_of_cloth'),
 (126717, 5361, '/index.php/String_of_cloth', 'string of cloth', 'String of cloth', 'section:Notes', 'String_of_cloth');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (126718, 5362, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (126719, 5362, '/index.php/Small_mast', 'small mast', 'Small mast', 'infobox:Creation', 'Small_mast'),
 (126720, 5362, '/index.php/Small_square_sail', 'small square sail', 'Small square sail', 'infobox:Creation', 'Small_square_sail'),
@@ -32211,7 +32212,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (131786, 4247, '/index.php/Mortar', 'Mortar', 'Mortar', 'section:Combinable Items', 'Mortar'),
 (131787, 4247, '/index.php/Octopus_ink_sac', 'Octopus ink sac', 'Octopus ink sac', 'section:Combinable Items', 'Octopus_ink_sac'),
 (131788, 4247, '/index.php/Reed', 'Reed', 'Reed', 'section:Combinable Items', 'Reed');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (131789, 4247, '/index.php/Rift_crystal', 'Rift crystal', 'Rift crystal', 'section:Combinable Items', 'Rift_crystal'),
 (131790, 4247, '/index.php/Rift_wood', 'Rift wood', 'Rift wood', 'section:Combinable Items', 'Rift_wood'),
 (131791, 4247, '/index.php/String_of_cloth', 'String of cloth', 'String of cloth', 'section:Combinable Items', 'String_of_cloth'),
@@ -32723,7 +32724,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (135663, 5518, '/index.php/Improve', 'improved', 'Improve', 'infobox:Skill and improvement', 'Improve'),
 (135664, 5518, '/index.php/Food_storage_bin', 'food storage bin', 'Food storage bin', 'infobox:Properties', 'Food_storage_bin'),
 (135665, 3687, '/index.php/PvE', 'PvE', 'PvE', 'infobox:Server Settings', 'PvE');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (135666, 3687, '/index.php/Steal', 'steal', 'Steal', 'infobox:Server Settings', 'Steal'),
 (135667, 3687, '/index.php/Settlements', 'Settlements', 'Settlements', 'infobox:Server Settings', 'Settlements'),
 (135668, 3687, '/index.php/Locate_artifact#List_of_artifacts', 'artifacts', 'Locate artifact', 'infobox:Server Settings', 'Locate_artifact'),
@@ -33225,7 +33226,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (140809, 5576, '/index.php/Wild', 'wild', 'Wild', 'section:Loot in Wurm', 'Wild'),
 (140810, 1473, '/index.php/Fighting', 'fighting', 'Fighting', 'section:Description', 'Fighting'),
 (140811, 1473, '/index.php/Channeling', 'channeling', 'Channeling', 'section:Description', 'Channeling');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (140812, 1473, '/index.php/Statuette', 'statuette', 'Statuette', 'section:Description', 'Statuette'),
 (140813, 1473, '/index.php/Altar_of_Three', 'Altar of Three', 'Altar of Three', 'section:Magranon\'s converting speech', 'Altar_of_Three'),
 (140814, 1473, '/index.php/Gods', 'god', 'Gods', 'section:Abilities', 'Gods'),
@@ -33731,7 +33732,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (142244, 3035, '/index.php/Sacrificing', 'sacrificing', 'Sacrificing', 'section:Gains and Replenishment', 'Sacrificing'),
 (142245, 3035, '/index.php/Praying', 'Praying', 'Praying', 'section:Gains and Replenishment', 'Praying'),
 (142246, 3035, '/index.php/Category:Armour', 'Armour', 'Category:Armour', 'section:Gains and Replenishment', 'Category:Armour');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (142247, 3035, '/index.php/Category:Cloth_armour', 'cloth armour', 'Category:Cloth armour', 'section:Gains and Replenishment', 'Category:Cloth_armour'),
 (142248, 3035, '/index.php/Altar', 'altar', 'Altar', 'section:Sacrificing', 'Altar'),
 (142249, 3035, '/index.php/Gods', 'god', 'Gods', 'section:Sacrificing', 'Gods'),
@@ -34206,7 +34207,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (143274, 4896, '/index.php/HUD#Statusbar', 'status bar', 'HUD', 'section:Description', 'HUD'),
 (143275, 4896, '/index.php/Console', 'console', 'Console', 'section:Description', 'Console'),
 (143276, 4896, '/index.php/Unstable_client', 'unstable client', 'Unstable client', 'section:Description', 'Unstable_client');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (143277, 4896, '/index.php/Client_configuration#Advanced_tab', 'frame rate limiter', 'Client configuration', 'section:Description', 'Client_configuration'),
 (143278, 4896, '/index.php/Client_configuration', 'client configuration', 'Client configuration', 'section:Description', 'Client_configuration'),
 (143279, 4896, '/index.php/Key_bindings', 'Key bindings', 'Key bindings', 'section:See also', 'Key_bindings'),
@@ -34692,7 +34693,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (145363, 2887, '/index.php/Pumpkin', 'Pumpkin', 'Pumpkin', 'section:Types of vegetables in Wurm', 'Pumpkin'),
 (145364, 2887, '/index.php/Pumpkin_seeds', 'Pumpkin seeds', 'Pumpkin seeds', 'section:Types of vegetables in Wurm', 'Pumpkin_seeds'),
 (145365, 2887, '/index.php/Sugar_beet', 'Sugar beet', 'Sugar beet', 'section:Types of vegetables in Wurm', 'Sugar_beet');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (145366, 2887, '/index.php/Sugar_beet_seeds', 'Sugar beet seeds', 'Sugar beet seeds', 'section:Types of vegetables in Wurm', 'Sugar_beet_seeds'),
 (145367, 2887, '/index.php/Tomato', 'Tomato', 'Tomato', 'section:Types of vegetables in Wurm', 'Tomato'),
 (145368, 2887, '/index.php/Tomato_seeds', 'Tomato seeds', 'Tomato seeds', 'section:Types of vegetables in Wurm', 'Tomato_seeds'),
@@ -35179,7 +35180,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (146816, 2805, '/index.php/Seal', 'Seal', 'Seal', 'section:Types of Fish Harvestable Through Fishing', 'Seal'),
 (146817, 2805, '/index.php/Blue_whale', 'Blue whale', 'Blue whale', 'section:Types of Fish Harvestable Through Fishing', 'Blue_whale'),
 (146818, 2805, '/index.php/Shark_(creature)', 'Shark_(creature)', 'Shark (creature)', 'section:Types of Fish Harvestable Through Fishing', 'Shark_(creature)');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (146819, 2805, '/index.php/Crab', 'Crab', 'Crab', 'section:Types of Fish Harvestable Through Fishing', 'Crab'),
 (146820, 2805, '/index.php/Dolphin', 'Dolphin', 'Dolphin', 'section:Types of Fish Harvestable Through Fishing', 'Dolphin'),
 (146821, 2805, '/index.php/Sea_serpent', 'Sea serpent', 'Sea serpent', 'section:Types of Fish Harvestable Through Fishing', 'Sea_serpent'),
@@ -35679,7 +35680,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (147861, 5222, '/index.php/Dye', 'dyed', 'Dye', 'infobox:Properties', 'Dye'),
 (147862, 5222, '/index.php/Guard_tower', 'guard tower', 'Guard tower', 'section:Notes', 'Guard_tower'),
 (147863, 5222, '/index.php/Tile', 'tiles', 'Tile', 'section:Notes', 'Tile');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (147864, 5222, '/index.php/Colossus_of_Fo', 'Colossus of Fo', 'Colossus of Fo', 'section:See also', 'Colossus_of_Fo'),
 (147865, 5222, '/index.php/Colossus_of_Magranon', 'Colossus of Magranon', 'Colossus of Magranon', 'section:See also', 'Colossus_of_Magranon'),
 (147866, 5222, '/index.php/Colossus_of_Vynora', 'Colossus of Vynora', 'Colossus of Vynora', 'section:See also', 'Colossus_of_Vynora'),
@@ -36152,7 +36153,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (149142, 1219, '/index.php/Hedges', 'hedge', 'Hedges', 'section:Default keybindings', 'Hedges'),
 (149143, 1219, '/index.php/Felled_tree', 'felled tree', 'Felled tree', 'section:Default keybindings', 'Felled_tree'),
 (149144, 1219, '/index.php/Nature', 'Nature', 'Nature', 'section:Default keybindings', 'Nature');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (149145, 1219, '/index.php/Forage', 'Forage', 'Forage', 'section:Default keybindings', 'Forage'),
 (149146, 1219, '/index.php/Vegetable', 'vegetables', 'Vegetable', 'section:Default keybindings', 'Vegetable'),
 (149147, 1219, '/index.php/Berries', 'berries', 'Berries', 'section:Default keybindings', 'Berries'),
@@ -36643,7 +36644,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (149811, 3804, '/index.php/Premium', 'premium', 'Premium', 'section:Procedure', 'Premium'),
 (149812, 3804, '/index.php/Kingdom', 'kingdom', 'Kingdom', 'section:Procedure', 'Kingdom'),
 (149813, 3804, '/index.php/Alignment', 'alignment', 'Alignment', 'section:Procedure', 'Alignment');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (149814, 3804, '/index.php/Faith', 'faith', 'Faith', 'section:Procedure', 'Faith'),
 (149815, 3804, '/index.php/Ritual_of_the_sun', 'Ritual of the sun', 'Ritual of the sun', 'section:Procedure', 'Ritual_of_the_sun'),
 (149816, 3804, '/index.php/Rite_of_spring', 'Rite of spring', 'Rite of spring', 'section:Procedure', 'Rite_of_spring'),
@@ -37142,7 +37143,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (150484, 993, '/index.php/Wind_of_ages', 'Wind of ages', 'Wind of ages', 'section:Description', 'Wind_of_ages'),
 (150485, 6018, '/index.php/Body_strength', 'body strength', 'Body strength', 'section:Description', 'Body_strength'),
 (150486, 6018, '/index.php/Soul_strength', 'soul strength', 'Soul strength', 'section:Description', 'Soul_strength');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (150487, 6018, '/index.php/Forest_giant_strength', 'Forest giant strength', 'Forest giant strength', 'section:Description', 'Forest_giant_strength'),
 (150488, 6018, '/index.php/Activate', 'Activate', 'Activate', 'section:Method', 'Activate'),
 (150489, 6018, '/index.php/Statuette', 'statuette', 'Statuette', 'section:Method', 'Statuette'),
@@ -37640,7 +37641,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (152093, 961, '/index.php/Rock_tile', 'rock', 'Rock tile', 'section:Bonus', 'Rock_tile'),
 (152094, 961, '/index.php/Cliff', 'cliff', 'Cliff', 'section:Bonus', 'Cliff'),
 (152095, 961, '/index.php/Lava', 'lava', 'Lava', 'section:Bonus', 'Lava');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (152096, 961, '/index.php/Altar', 'altar', 'Altar', 'section:Bonus', 'Altar'),
 (152097, 961, '/index.php/Slope', 'slope', 'Slope', 'section:Bonus', 'Slope'),
 (152098, 961, '/index.php/Cave_wall', 'Cave walls', 'Cave wall', 'section:Bonus', 'Cave_wall'),
@@ -38122,7 +38123,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (152743, 1108, '/index.php/Carpentry', 'carpentry', 'Carpentry', 'infobox:Skill and improvement', 'Carpentry'),
 (152744, 1108, '/index.php/Log', 'logs', 'Log', 'section:Description', 'Log'),
 (152745, 1108, '/index.php/Plank', 'planks', 'Plank', 'section:Description', 'Plank');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (152746, 1108, '/index.php/Ribbon', 'metal ribbons', 'Ribbon', 'section:Description', 'Ribbon'),
 (152747, 1108, '/index.php/Mine', 'mines', 'Mine', 'section:Description', 'Mine'),
 (152748, 1108, '/index.php/Reinforced_cave_wall', 'reinforced cave walls', 'Reinforced cave wall', 'section:Description', 'Reinforced_cave_wall'),
@@ -38611,7 +38612,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (153286, 2780, '/index.php/Iron_lump', 'iron lump', 'Iron lump', 'infobox:Creation', 'Iron_lump'),
 (153287, 2780, '/index.php/Large_anvil', 'large anvil', 'Large anvil', 'infobox:Creation', 'Large_anvil'),
 (153288, 2780, '/index.php/Construction_material', 'Construction material', 'Construction material', 'infobox:Creation', 'Construction_material');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (153289, 2780, '/index.php/Blacksmithing', 'blacksmithing', 'Blacksmithing', 'infobox:Skill and improvement', 'Blacksmithing'),
 (153290, 2780, '/index.php/Iron_fence', 'iron fences', 'Iron fence', 'section:Description', 'Iron_fence'),
 (153291, 2780, '/index.php/Iron_fence_gate', 'iron fence gates', 'Iron fence gate', 'section:Description', 'Iron_fence_gate'),
@@ -39105,7 +39106,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (154117, 2451, '/index.php/Blades_smithing', 'Blades smithing', 'Blades smithing', 'section:Skills & Characteristics', 'Blades_smithing'),
 (154118, 2451, '/index.php/Weapon_heads_smithing', 'Weapon heads smithing', 'Weapon heads smithing', 'section:Skills & Characteristics', 'Weapon_heads_smithing'),
 (154119, 2934, '/index.php/Armour', 'armour', 'Armour', 'section:Notes', 'Armour');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (154120, 2934, '/index.php/File:Armormetals-chain-iron.jpg', '', '', 'section:Chain Armour Variations', 'File:Armormetals-chain-iron.jpg'),
 (154121, 2934, '/index.php/File:Armormetals-chain-steel.jpg', '', '', 'section:Chain Armour Variations', 'File:Armormetals-chain-steel.jpg'),
 (154122, 2934, '/index.php/File:Armormetals-chain-brass.jpg', '', '', 'section:Chain Armour Variations', 'File:Armormetals-chain-brass.jpg'),
@@ -39565,7 +39566,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (154801, 2549, '/index.php/AstroResearch_2', 'AstroResearch 2', 'AstroResearch 2', 'section:Astronomical research archive', 'AstroResearch_2'),
 (154802, 2549, '/index.php/Moons', 'Moons', 'Moons', 'section:Astronomical research archive', 'Moons'),
 (154803, 2549, '/index.php/World_map', 'this article', 'World map', 'section:Miscellaneous', 'World_map');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (154808, 6231, '/index.php/Creatures', 'animal', 'Creatures', 'section:Description', 'Creatures'),
 (154809, 6231, '/index.php/Pet', 'pet', 'Pet', 'section:Description', 'Pet'),
 (154810, 6231, '/index.php/Activate', 'Activate', 'Activate', 'section:Method', 'Activate'),
@@ -40046,7 +40047,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (155415, 6258, '/index.php/Item_skin_token', 'Trident', 'Item skin token', 'section:Skins applicable', 'Item_skin_token'),
 (155416, 6258, '/index.php/Long_spear', 'long spear', 'Long spear', 'section:Notes', 'Long_spear'),
 (155417, 6258, '/index.php/Polearms', 'Polearms', 'Polearms', 'section:Skills & Characteristics', 'Polearms');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (155418, 6258, '/index.php/Long_spear', 'Long spear', 'Long spear', 'section:Skills & Characteristics', 'Long_spear'),
 (155419, 6258, '/index.php/Body', 'Body', 'Body', 'section:Skills & Characteristics', 'Body'),
 (155420, 6258, '/index.php/Body_strength', 'Body strength', 'Body strength', 'section:Skills & Characteristics', 'Body_strength'),
@@ -40518,7 +40519,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (155923, 2777, '/index.php/Ritual_of_the_sun', 'Ritual of the sun', 'Ritual of the sun', 'section:Table of Spells', 'Ritual_of_the_sun'),
 (155924, 2777, '/index.php/Rotting_touch', 'Rotting touch', 'Rotting touch', 'section:Table of Spells', 'Rotting_touch'),
 (155925, 2777, '/index.php/Rotting_gut', 'Rotting gut', 'Rotting gut', 'section:Table of Spells', 'Rotting_gut');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (155926, 2777, '/index.php/Scorn_of_Libila', 'Scorn of Libila', 'Scorn of Libila', 'section:Table of Spells', 'Scorn_of_Libila'),
 (155927, 2777, '/index.php/Second_Wind', 'Second Wind', 'Second Wind', 'section:Table of Spells', 'Second_Wind'),
 (155928, 2777, '/index.php/Shard_of_ice', 'Shard of ice', 'Shard of ice', 'section:Table of Spells', 'Shard_of_ice'),
@@ -41018,7 +41019,7 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (159348, 6331, '/index.php/Archer', 'Archer', 'Archer', 'section:Titles', 'Archer'),
 (159349, 6331, '/index.php/Longbowman', 'Longbowman', 'Longbowman', 'section:Titles', 'Longbowman'),
 (159350, 6331, '/index.php/Geologist', 'Geologist', 'Geologist', 'section:Titles', 'Geologist');
-INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
+INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (159351, 6331, '/index.php/Titles', 'Smelter', 'Titles', 'section:Titles', 'Titles'),
 (159352, 6331, '/index.php/Treehugger', 'Treehugger', 'Treehugger', 'section:Titles', 'Treehugger'),
 (159353, 6331, '/index.php/Goldsniffer', 'Goldsniffer', 'Goldsniffer', 'section:Titles', 'Goldsniffer'),
@@ -41410,3 +41411,4 @@ INSERT INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `c
 (162677, 913, '/index.php/Milking', 'Milking', 'Milking', 'section:See Also', 'Milking'),
 (162678, 913, '/index.php/Papyrusmaking', 'Papyrusmaking', 'Papyrusmaking', 'section:See Also', 'Papyrusmaking'),
 (162685, 837, '/index.php/Server_types', 'servers', 'Server types', 'section:Village information is unavailable', 'Server_types');
+SET FOREIGN_KEY_CHECKS=1;

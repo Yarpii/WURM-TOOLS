@@ -1,4 +1,5 @@
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+SET FOREIGN_KEY_CHECKS=0;
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (1, 7, 1, 'unknown', 'strange device', 'strange_device', NULL, NULL, NULL, 'Converted from a strange device via a spell.'),
 (2, 8, 1, 'unknown', 'Harvesting from Oak Trees when in season.', NULL, NULL, NULL, NULL, 'Harvesting from Oak Trees when in season.'),
 (3, 9, 1, 'unknown', 'Reward from Hota , Rift , Terraforming event (Epic)', NULL, NULL, NULL, NULL, 'Reward from Hota , Rift , Terraforming event (Epic)'),
@@ -461,7 +462,7 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (460, 286, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate hand'),
 (461, 286, 2, 'right-click', 'clay', 'clay', 0.30, 'kg', NULL, 'Right-click lump of clay (0.30 kg)'),
 (462, 286, 3, 'submenu', 'Pottery', 'pottery', NULL, NULL, 'Create > Pottery ', 'Open submenu \"Create > Pottery \"');
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (463, 287, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate hand'),
 (464, 287, 2, 'right-click', 'clay', 'clay', 0.30, 'kg', NULL, 'Right-click lump of clay (0.30 kg)'),
 (465, 287, 3, 'submenu', 'Pottery', 'pottery', NULL, NULL, 'Create > Pottery ', 'Open submenu \"Create > Pottery \"'),
@@ -919,7 +920,7 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (917, 625, 2, 'unknown', 'Uses Paving skill', NULL, NULL, NULL, NULL, 'Uses Paving skill'),
 (918, 626, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate stone chisel'),
 (919, 626, 2, 'right-click', 'shards', 'shards', 20.00, 'kg', NULL, 'Right-click shards (20.00kg)');
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (920, 626, 3, 'submenu', 'Decoration', 'decoration', NULL, NULL, 'Create > Decoration ', 'Open submenu \"Create > Decoration \"'),
 (921, 627, 1, 'activate', 'Activate', 'activate', 1.87, 'kg', NULL, 'Activate glowing lump (1.87 kg)'),
 (922, 627, 2, 'right-click', 'large anvil', 'large_anvil', NULL, NULL, NULL, 'Right-click large anvil'),
@@ -1370,7 +1371,7 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (1367, 889, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate Mallet or Hammer'),
 (1368, 889, 2, 'right-click', 'Wall plan', 'wall_plan', NULL, NULL, NULL, 'Right-click Wall plan'),
 (1369, 889, 3, 'unknown', 'menu', 'context_menu', NULL, NULL, NULL, 'Open menu > Build > Log arch');
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (1370, 890, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate Mallet or Hammer'),
 (1371, 890, 2, 'right-click', 'Wall plan', 'wall_plan', NULL, NULL, NULL, 'Right-click Wall plan'),
 (1372, 890, 3, 'unknown', 'menu', 'context_menu', NULL, NULL, NULL, 'Open menu > Build > Log balcony'),
@@ -1829,7 +1830,7 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (1825, 1175, 2, 'right-click', 'wall plan', 'wall_plan', NULL, NULL, NULL, 'Right-click wall plan'),
 (1826, 1175, 3, 'unknown', 'menu', 'context_menu', NULL, NULL, NULL, 'Open menu > Build > Plain stone wall'),
 (1827, 1176, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate trowel');
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (1828, 1176, 2, 'right-click', 'wall plan', 'wall_plan', NULL, NULL, NULL, 'Right-click wall plan'),
 (1829, 1176, 3, 'unknown', 'menu', 'context_menu', NULL, NULL, NULL, 'Open menu > Build > Plain stone window'),
 (1830, 1177, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate needle'),
@@ -2294,7 +2295,7 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (2289, 1412, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate Mallet or Hammer'),
 (2290, 1412, 2, 'right-click', 'Wall plan', 'wall_plan', NULL, NULL, NULL, 'Right-click Wall plan'),
 (2291, 1412, 3, 'unknown', 'menu', 'context_menu', NULL, NULL, NULL, 'Open menu > Build > Rustic log wide window');
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (2292, 1413, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate Mallet or Hammer'),
 (2293, 1413, 2, 'right-click', 'Wall plan', 'wall_plan', NULL, NULL, NULL, 'Right-click Wall plan'),
 (2294, 1413, 3, 'unknown', 'menu', 'context_menu', NULL, NULL, NULL, 'Open menu > Build > Rustic log window'),
@@ -2748,7 +2749,7 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (2742, 1633, 1, 'unknown', 'This item cannot be crafted.', NULL, NULL, NULL, NULL, 'This item cannot be crafted.'),
 (2743, 1636, 1, 'unknown', 'Available in the Silver shop', NULL, NULL, NULL, NULL, 'Available in the Silver shop'),
 (2744, 1638, 1, 'unknown', 'Mining and praying', NULL, NULL, NULL, NULL, 'Mining and praying');
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (2745, 1639, 1, 'unknown', 'source crystal', 'source_crystal', NULL, NULL, NULL, 'Crush source crystal with a hammer or mallet'),
 (2746, 1640, 1, 'unknown', 'Botanized', 'botanizing', NULL, NULL, NULL, 'Botanized from Wild grasses and Fairy garden'),
 (2747, 1641, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate carving knife'),
@@ -3205,7 +3206,7 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (3198, 1838, 3, 'submenu', 'Construction material', 'construction_material', NULL, NULL, 'Create > Construction material ', 'Open submenu \"Create > Construction material \"'),
 (3199, 1839, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate hammer'),
 (3200, 1839, 2, 'right-click', 'Roof plan', 'roof_plan', NULL, NULL, NULL, 'Right-click Roof plan');
-INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
+INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (3201, 1839, 3, 'unknown', 'menu', 'context_menu', NULL, NULL, NULL, 'Open menu > Build > Thatched roof'),
 (3202, 1852, 1, 'activate', 'Activate', 'activate', NULL, NULL, NULL, 'Activate rope tool'),
 (3203, 1852, 2, 'right-click', 'wemp fibre', 'wemp_fibre', 7.15, 'kg', NULL, 'Right-click wemp fibre (7.15 kg)'),
@@ -3538,3 +3539,4 @@ INSERT INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_nam
 (3530, 2062, 1, 'unknown', 'This item cannot be crafted.', NULL, NULL, NULL, NULL, 'This item cannot be crafted.'),
 (3531, 2063, 1, 'unknown', 'Smelting Zinc ore (20.00 kg)', NULL, 20.00, 'kg', NULL, 'Smelting Zinc ore (20.00 kg)'),
 (3532, 2064, 1, 'unknown', 'mine or foraging Rubble', NULL, NULL, NULL, NULL, 'mine or foraging Rubble');
+SET FOREIGN_KEY_CHECKS=1;
