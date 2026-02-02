@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Animal, Stable, AnimalType, AnimalGender, TraitCategory } from "@/lib/types";
-import { ANIMAL_TYPES, TRAIT_CATEGORIES, WURM_TRAITS, HORSE_COLORS } from "./constants";
+import { ANIMAL_TYPES, TRAIT_CATEGORIES, WURM_TRAITS, HORSE_COLORS, checkInbreeding } from "./constants";
 
 // ==================== STABLE MODAL ====================
 
@@ -145,6 +145,19 @@ export function AnimalModal({ mode, animal, stables, allAnimals, saving, onSave,
   const females = allAnimals.filter((a) => a.gender === "female" && a.id !== animal?.id);
   const males = allAnimals.filter((a) => a.gender === "male" && a.id !== animal?.id);
 
+  // Inbreeding check
+  const mother = motherId ? allAnimals.find((a) => a.id === motherId) : undefined;
+  const father = fatherId ? allAnimals.find((a) => a.id === fatherId) : undefined;
+  const inbreedingCheck = mother && father
+    ? checkInbreeding(mother.mother_id, mother.father_id, father.mother_id, father.father_id)
+    : { isInbred: false, reason: "" };
+
+  // Also check if mother/father are parent-child
+  const isParentChild = (motherId && fatherId) && (
+    mother?.mother_id === fatherId || mother?.father_id === fatherId ||
+    father?.mother_id === motherId || father?.father_id === motherId
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -248,6 +261,16 @@ export function AnimalModal({ mode, animal, stables, allAnimals, saving, onSave,
             </div>
           </div>
 
+          {/* Inbreeding warning */}
+          {(inbreedingCheck.isInbred || isParentChild) && (
+            <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg text-warning text-sm">
+              <span className="font-medium">Inbreeding Warning:</span>{" "}
+              {isParentChild
+                ? "Selected parents have a parent-child relationship. Inbreeding reduces max trait points by 1.5x."
+                : inbreedingCheck.reason}
+            </div>
+          )}
+
           {mode === "edit" && (
             <div className="flex items-center gap-2">
               <input
@@ -318,9 +341,14 @@ export function TraitModal({ animal, saving, onSave, onClose }: TraitModalProps)
   const [category, setCategory] = useState<TraitCategory>("misc");
   const [isInherited, setIsInherited] = useState(false);
   const [useCustom, setUseCustom] = useState(false);
+  const [filterCat, setFilterCat] = useState<string>("");
 
   const existingTraitNames = (animal.traits || []).map((t) => t.trait_name);
-  const availableTraits = WURM_TRAITS.filter((t) => !existingTraitNames.includes(t.name));
+  const availableTraits = WURM_TRAITS.filter((t) => {
+    if (existingTraitNames.includes(t.name)) return false;
+    if (filterCat && t.category !== filterCat) return false;
+    return true;
+  });
 
   const handleSelectPreset = (traitName: string) => {
     setSelectedTrait(traitName);
@@ -354,8 +382,27 @@ export function TraitModal({ animal, saving, onSave, onClose }: TraitModalProps)
 
           {!useCustom ? (
             <div>
+              {/* Category filter */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                <button
+                  onClick={() => setFilterCat("")}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${!filterCat ? "bg-accent text-white" : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"}`}
+                >
+                  All
+                </button>
+                {Object.entries(TRAIT_CATEGORIES).map(([key, val]) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilterCat(key)}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${filterCat === key ? val.color + " font-medium" : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"}`}
+                  >
+                    {val.label}
+                  </button>
+                ))}
+              </div>
+
               <label className="block text-sm text-text-secondary mb-1">Select Trait</label>
-              <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
+              <div className="max-h-56 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
                 {availableTraits.map((trait) => {
                   const catInfo = TRAIT_CATEGORIES[trait.category];
                   return (
@@ -366,18 +413,26 @@ export function TraitModal({ animal, saving, onSave, onClose }: TraitModalProps)
                         selectedTrait === trait.name ? "bg-accent/10 border border-accent" : "hover:bg-bg-hover border border-transparent"
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${catInfo.color}`}>
-                          {catInfo.label}
-                        </span>
-                        <span className="text-sm text-text-primary">{trait.name}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${catInfo.color}`}>
+                            {catInfo.label}
+                          </span>
+                          <span className="text-sm text-text-primary">{trait.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-text-muted" title="Trait points">{trait.points}pt</span>
+                          <span className="text-[10px] text-text-muted" title="AH skill required to see">AH{trait.ahRequired}</span>
+                        </div>
                       </div>
                       <div className="text-xs text-text-muted mt-0.5 ml-1">{trait.description}</div>
                     </div>
                   );
                 })}
                 {availableTraits.length === 0 && (
-                  <div className="text-sm text-text-muted text-center py-4">All preset traits already added</div>
+                  <div className="text-sm text-text-muted text-center py-4">
+                    {filterCat ? "No available traits in this category" : "All preset traits already added"}
+                  </div>
                 )}
               </div>
             </div>
