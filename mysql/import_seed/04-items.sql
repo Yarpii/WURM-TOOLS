@@ -1,4 +1,4 @@
-INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (1, 2107, 'Settlement:-Battle_Henge-', '-Battle Henge-', NULL, NULL, NULL, '', 0, '2026-01-22 04:31:42', '2026-01-22 04:31:42'),
 (2, 2108, 'Settlement:A_Strange_Place', 'A Strange Place', NULL, NULL, NULL, '', 0, '2026-01-22 04:31:42', '2026-01-22 04:31:42'),
 (3, 2068, 'Settlement:A_village', 'A village', NULL, NULL, NULL, '', 0, '2026-01-22 04:31:42', '2026-01-22 04:31:42'),
@@ -308,7 +308,7 @@ INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `ba
 (307, 3372, 'Cloth_shoe', 'Cloth shoe', 'cloth tailoring', NULL, NULL, '/images/thumb/1/1e/Cloth_shoe.jpg/400px-Cloth_shoe.jpg', 0, '2026-01-22 04:31:45', '2026-01-22 04:31:45'),
 (308, 2131, 'Settlement:Coast_of_Death', 'Coast of Death', NULL, NULL, NULL, '', 0, '2026-01-22 04:31:45', '2026-01-22 04:31:45'),
 (309, 5066, 'Cobblestone', 'Cobblestone', NULL, NULL, NULL, '/images/thumb/6/67/Cobblestone.png/360px-Cobblestone.png', 0, '2026-01-22 04:31:45', '2026-01-22 04:31:45');
-INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (310, 1311, 'Cobra_king', 'Cobra king', NULL, NULL, NULL, '/images/4/49/Cobra_king.jpg', 0, '2026-01-22 04:31:45', '2026-01-22 04:31:45'),
 (311, 4256, 'Cochineal', 'Cochineal', 'cannot be improved', NULL, NULL, '/index.php/File:Cochineal.jpg', 0, '2026-01-22 04:31:45', '2026-01-22 04:31:45'),
 (312, 3936, 'Coconut', 'Coconut', 'botanizing', NULL, NULL, '/images/thumb/2/2f/Coconut.png/400px-Coconut.png', 0, '2026-01-22 04:31:45', '2026-01-22 04:31:45'),
@@ -622,7 +622,7 @@ INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `ba
 (620, 3091, 'Grain_of_wheat', 'Grain of wheat', 'fishing', NULL, NULL, '/images/2/22/Grain_of_wheat.png', 1, '2026-01-22 04:31:47', '2026-01-22 04:31:47'),
 (621, 3314, 'Historical:Grape_seedling', 'Grape seedling', 'cannot be improved', NULL, NULL, '/index.php/File:Sprout.png', 0, '2026-01-22 04:31:47', '2026-01-22 04:31:47'),
 (622, 1547, 'Grape_trellis', 'Grape trellis', 'gardening', NULL, NULL, '/images/thumb/f/f9/Grape_trellis.jpg/400px-Grape_trellis.jpg', 0, '2026-01-22 04:31:47', '2026-01-22 04:31:47');
-INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (623, 4021, 'Grapes', 'Grapes', 'cannot be improved', NULL, NULL, '/images/6/6b/Grapes.jpg', 1, '2026-01-22 04:31:47', '2026-01-22 04:31:47'),
 (624, 3620, 'Grass_tile', 'Grass tile', NULL, NULL, NULL, '/images/thumb/c/c5/Grass.png/360px-Grass.png', 0, '2026-01-22 04:31:47', '2026-01-22 04:31:47'),
 (625, 4454, 'Gravel', 'Gravel', NULL, NULL, NULL, '/images/thumb/0/02/Gravel.jpg/360px-Gravel.jpg', 0, '2026-01-22 04:31:47', '2026-01-22 04:31:47'),
@@ -930,7 +930,7 @@ INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `ba
 (927, 4648, 'Maple_sap', 'Maple sap', 'forestry', NULL, NULL, '/images/thumb/5/5f/Liquid.jpg/400px-Liquid.jpg', 1, '2026-01-22 04:31:50', '2026-01-22 04:31:50'),
 (928, 2711, 'Marble_arch_left', 'Marble arch left', 'masonry', NULL, NULL, '/images/thumb/e/e6/Marble_left_arch.jpg/400px-Marble_left_arch.jpg', 0, '2026-01-22 04:31:50', '2026-01-22 04:31:50'),
 (929, 2709, 'Marble_arch_right', 'Marble arch right', 'masonry', NULL, NULL, '/images/thumb/4/4f/Marble_right_arch.jpg/400px-Marble_right_arch.jpg', 0, '2026-01-22 04:31:50', '2026-01-22 04:31:50');
-INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (930, 2614, 'Marble_arched_wall', 'Marble arched wall', 'masonry', NULL, NULL, '/images/thumb/0/05/Marble_arched_wall.jpg/400px-Marble_arched_wall.jpg', 0, '2026-01-22 04:31:50', '2026-01-22 04:31:50'),
 (931, 2617, 'Marble_barred_wall', 'Marble barred wall', 'masonry', NULL, NULL, '/images/thumb/7/76/Marble_barred_wall.jpg/400px-Marble_barred_wall.jpg', 0, '2026-01-22 04:31:50', '2026-01-22 04:31:50'),
 (932, 1206, 'Marble_brick', 'Marble brick', 'stone cutting', NULL, NULL, '/index.php/File:Marble_brick.png', 0, '2026-01-22 04:31:50', '2026-01-22 04:31:50'),
@@ -1233,7 +1233,7 @@ INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `ba
 (1229, 2658, 'Pottery_fence', 'Pottery fence', 'masonry', NULL, NULL, '/images/thumb/5/56/Pottery_fence.jpg/400px-Pottery_fence.jpg', 0, '2026-01-22 04:31:53', '2026-01-22 04:31:53'),
 (1230, 2691, 'Pottery_flask', 'Pottery flask', 'cannot be improved', NULL, NULL, '/images/5/57/Pottery_flask.jpg', 0, '2026-01-22 04:31:53', '2026-01-22 04:31:53'),
 (1231, 1294, 'Pottery_flowerpot', 'Pottery flowerpot', 'cannot be improved', NULL, NULL, '/images/e/ed/Pottery_flowerpot.jpg', 0, '2026-01-22 04:31:53', '2026-01-22 04:31:53');
-INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (1232, 2748, 'Pottery_high_iron_fence', 'Pottery high iron fence', 'masonry', NULL, NULL, '/images/thumb/8/85/Pottery_high_iron_fence.jpg/400px-Pottery_high_iron_fence.jpg', 0, '2026-01-22 04:31:53', '2026-01-22 04:31:53'),
 (1233, 2754, 'Pottery_high_iron_fence_gate', 'Pottery high iron fence gate', 'masonry', NULL, NULL, '/images/thumb/b/b0/Pottery_high_iron_fence_gate_1.jpg/400px-Pottery_high_iron_fence_gate_1.jpg', 0, '2026-01-22 04:31:53', '2026-01-22 04:31:53'),
 (1234, 2655, 'Pottery_iron_fence', 'Pottery iron fence', 'masonry', NULL, NULL, '/images/thumb/4/49/Pottery_iron_fence.jpg/400px-Pottery_iron_fence.jpg', 0, '2026-01-22 04:31:53', '2026-01-22 04:31:53'),
@@ -1515,7 +1515,7 @@ INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `ba
 (1510, 1357, 'Ship_transporter', 'Ship transporter', 'fine carpentry', NULL, NULL, '/images/thumb/0/0d/Ship_Transporter.jpg/400px-Ship_Transporter.jpg', 0, '2026-01-22 04:31:57', '2026-01-22 04:31:57'),
 (1511, 6041, 'Shop_sign', 'Shop sign', 'fine carpentry', NULL, NULL, '/images/thumb/1/12/Shop_sign.jpg/400px-Shop_sign.jpg', 0, '2026-01-22 04:31:57', '2026-01-22 04:31:57'),
 (1512, 2019, 'Settlement:Shore_haven', 'Shore haven', NULL, NULL, NULL, '', 0, '2026-01-22 04:31:57', '2026-01-22 04:31:57');
-INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (1513, 4025, 'Short_bow', 'Short bow', 'bowyery', NULL, NULL, '/images/thumb/c/c0/Shortbow.jpg/400px-Shortbow.jpg', 0, '2026-01-22 04:31:57', '2026-01-22 04:31:57'),
 (1514, 2459, 'Short_sword', 'Short sword', 'weapon smithing', NULL, NULL, '/images/5/58/Sword_Short.png', 0, '2026-01-22 04:31:57', '2026-01-22 04:31:57'),
 (1515, 2464, 'Short_sword_blade', 'Short sword blade', 'blades smithing', NULL, NULL, '/index.php/File:Short_sword_blade.jpg', 0, '2026-01-22 04:31:57', '2026-01-22 04:31:57'),
@@ -1791,7 +1791,7 @@ INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `ba
 (1785, 4428, 'Studded_leather_pants', 'Studded leather pants', 'leatherworking', NULL, NULL, '/images/thumb/6/61/Studded_leather_pants.jpg/400px-Studded_leather_pants.jpg', 1, '2026-01-22 04:32:00', '2026-01-22 04:32:00'),
 (1786, 4430, 'Studded_leather_sleeve', 'Studded leather sleeve', 'leatherworking', NULL, NULL, '/images/thumb/9/92/Studded_leather_sleeve.jpg/400px-Studded_leather_sleeve.jpg', 1, '2026-01-22 04:32:00', '2026-01-22 04:32:00'),
 (1787, 3841, 'Sturdy_large_chest_skin', 'Sturdy large chest skin', 'cannot be improved', NULL, NULL, '/images/thumb/3/3d/Sturdy_large_chest_skin.jpg/400px-Sturdy_large_chest_skin.jpg', 0, '2026-01-22 04:32:00', '2026-01-22 04:32:00');
-INSERT INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
+INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (1788, 2410, 'Stylish_shoulder_pad', 'Stylish shoulder pad', 'plate armour smithing', NULL, NULL, '/images/6/6d/Stylish_Shoulder_Pad.jpg', 0, '2026-01-22 04:32:00', '2026-01-22 04:32:00'),
 (1789, 2475, 'Sugar', 'Sugar', 'cannot be improved', NULL, NULL, '/images/4/47/Sugar.jpg', 0, '2026-01-22 04:32:00', '2026-01-22 04:32:00'),
 (1790, 2466, 'Sugar_beet', 'Sugar beet', 'farming', NULL, NULL, '/images/thumb/1/1d/Sugar_beet.jpg/400px-Sugar_beet.jpg', 0, '2026-01-22 04:32:00', '2026-01-22 04:32:00'),

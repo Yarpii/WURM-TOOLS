@@ -1,4 +1,4 @@
-INSERT INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
+INSERT IGNORE INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
 (867, 1559, 'infobox_main'),
 (867, 1560, 'section:Images'),
 (867, 1561, 'section:Images'),
@@ -1488,7 +1488,7 @@ INSERT INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
 (2576, 4146, 'infobox_main'),
 (2578, 4147, 'infobox_main'),
 (2579, 4148, 'infobox_main');
-INSERT INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
+INSERT IGNORE INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
 (2580, 4149, 'infobox_main'),
 (2581, 4150, 'infobox_main'),
 (2582, 4151, 'infobox_main'),
@@ -3058,7 +3058,7 @@ INSERT INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
 (5049, 4710, 'section:Pictures and Material Requirements'),
 (5049, 4711, 'section:Pictures and Material Requirements'),
 (5049, 4712, 'section:Pictures and Material Requirements');
-INSERT INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
+INSERT IGNORE INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
 (5049, 5815, 'section:Pictures and Material Requirements'),
 (5049, 9748, 'section:Pictures and Material Requirements'),
 (5049, 9749, 'section:Pictures and Material Requirements'),

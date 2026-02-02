@@ -1,4 +1,4 @@
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (1559, '/images/thumb/c/c6/Obelisk.jpg/200px-Obelisk.jpg', '/images/thumb/c/c6/Obelisk.jpg/400px-Obelisk.jpg', 'A Obelisk', 1024, 768),
 (1560, '/images/8/8b/Obelisk-night.jpg', '/index.php/File:Obelisk-night.jpg', 'Obelisk-night.jpg', 1024, 768),
 (1561, '/images/c/c6/Obelisk.jpg', '/index.php/File:Obelisk.jpg', 'Obelisk.jpg', 1024, 768),
@@ -335,7 +335,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (2367, '/images/thumb/4/4f/Curb.jpg/597px-Curb.jpg', '/images/thumb/4/4f/Curb.jpg/1193px-Curb.jpg', '', 1275, 481),
 (2368, '/images/thumb/9/94/Stone_and_iron_parapet.png/410px-Stone_and_iron_parapet.png', '/images/thumb/9/94/Stone_and_iron_parapet.png/819px-Stone_and_iron_parapet.png', '', 859, 472),
 (2369, '/images/thumb/8/8e/Stone_parapet.jpg/360px-Stone_parapet.jpg', '/images/thumb/8/8e/Stone_parapet.jpg/720px-Stone_parapet.jpg', '', 876, 548);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (2370, '/images/thumb/b/b2/Tall_stone_wall.png/263px-Tall_stone_wall.png', '/images/thumb/b/b2/Tall_stone_wall.png/526px-Tall_stone_wall.png', '', 1069, 915),
 (2371, '/images/thumb/5/57/Stone_fence.jpg/551px-Stone_fence.jpg', '/images/5/57/Stone_fence.jpg', '', 1062, 434),
 (2372, '/images/thumb/5/56/Pottery_fence.jpg/496px-Pottery_fence.jpg', '/images/thumb/5/56/Pottery_fence.jpg/992px-Pottery_fence.jpg', '', 1073, 487),
@@ -666,7 +666,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (2975, '/images/thumb/4/46/Dolphin.jpg/250px-Dolphin.jpg', '/images/thumb/4/46/Dolphin.jpg/500px-Dolphin.jpg', 'A Dolphin', 800, 641),
 (2976, '/images/thumb/d/d6/OctopusS.jpg/250px-OctopusS.jpg', '/images/d/d6/OctopusS.jpg', 'A Octopus', 400, 225),
 (2978, '/images/thumb/6/65/Protractor.png/200px-Protractor.png', '/images/thumb/6/65/Protractor.png/400px-Protractor.png', 'A Protractor', 600, 600);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (2979, '/images/thumb/5/53/Sight.png/200px-Sight.png', '/images/thumb/5/53/Sight.png/400px-Sight.png', 'A Sight', 600, 600),
 (2984, '/images/thumb/5/55/SpinningWheel.jpg/200px-SpinningWheel.jpg', '/images/thumb/5/55/SpinningWheel.jpg/400px-SpinningWheel.jpg', 'A Spinning Wheel', 800, 555),
 (2986, '/images/thumb/6/6d/Leather_adventurer_hat.png/200px-Leather_adventurer_hat.png', '/images/6/6d/Leather_adventurer_hat.png', 'A Leather adventurer hat', 266, 237),
@@ -989,7 +989,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (3520, 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20City%20Centres.jpg', 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20City%20Centres.jpg', 'RH%20City%20Centres.jpg', NULL, NULL),
 (3521, 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20Temple%201s.jpg', 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20Temple%201s.jpg', 'RH%20Temple%201s.jpg', NULL, NULL),
 (3522, 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20Temple%202s.jpg', 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20Temple%202s.jpg', 'RH%20Temple%202s.jpg', NULL, NULL);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (3523, 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20Wallbows.jpg', 'https://dl.dropboxusercontent.com/u/51077311/MR/Ravenholm%20Recruitment%20Shots/RH%20Wallbows.jpg', 'RH%20Wallbows.jpg', NULL, NULL),
 (3524, '/images/d/d9/Mallet_head.png', '/index.php/File:Mallet_head.png', 'A Mallet head', 130, 118),
 (3526, '/images/thumb/4/4f/Small_barrel.png/200px-Small_barrel.png', '/images/thumb/4/4f/Small_barrel.png/400px-Small_barrel.png', 'A Small barrel', 945, 673),
@@ -1298,7 +1298,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (4024, '/images/thumb/9/98/Winebarrelrack2.jpg/200px-Winebarrelrack2.jpg', '/images/thumb/9/98/Winebarrelrack2.jpg/400px-Winebarrelrack2.jpg', '', 1070, 1013),
 (4025, '/images/thumb/9/95/Paprika.jpg/200px-Paprika.jpg', '/images/thumb/9/95/Paprika.jpg/400px-Paprika.jpg', 'A Paprika', 500, 500),
 (4026, '/images/thumb/7/70/Paprika2.jpg/200px-Paprika2.jpg', '/images/7/70/Paprika2.jpg', '', 330, 419);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (4027, '/images/thumb/5/51/Paprika_Seeds.jpg/200px-Paprika_Seeds.jpg', '/images/thumb/5/51/Paprika_Seeds.jpg/400px-Paprika_Seeds.jpg', 'A Paprika seeds', 500, 500),
 (4028, '/images/thumb/7/70/Paprika2.jpg/94px-Paprika2.jpg', '/images/thumb/7/70/Paprika2.jpg/189px-Paprika2.jpg', '', 330, 419),
 (4029, '/images/thumb/0/06/Nutmeg.jpg/200px-Nutmeg.jpg', '/images/thumb/0/06/Nutmeg.jpg/400px-Nutmeg.jpg', 'A Nutmeg', 500, 500),
@@ -1598,7 +1598,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (4494, '/images/thumb/3/37/Wagoner_container_empty.png/200px-Wagoner_container_empty.png', '/images/thumb/3/37/Wagoner_container_empty.png/400px-Wagoner_container_empty.png', 'A Wagoner container', 1524, 995),
 (4495, '/images/thumb/4/4f/Setup_delivery_1.png/200px-Setup_delivery_1.png', '/images/thumb/4/4f/Setup_delivery_1.png/400px-Setup_delivery_1.png', 'Setup delivery 1.png', 414, 322),
 (4496, '/images/thumb/e/ef/Wagoner_container_full.png/200px-Wagoner_container_full.png', '/images/thumb/e/ef/Wagoner_container_full.png/400px-Wagoner_container_full.png', 'Wagoner container full.png', 732, 603);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (4497, '/images/thumb/4/4d/Tutorial_Inventory.jpg/250px-Tutorial_Inventory.jpg', '/images/4/4d/Tutorial_Inventory.jpg', '', 359, 544),
 (4498, '/images/thumb/0/03/Enlightenedmask.PNG/200px-Enlightenedmask.PNG', '/images/thumb/0/03/Enlightenedmask.PNG/400px-Enlightenedmask.PNG', 'A Mask of the enlightened', 494, 375),
 (4499, '/images/thumb/c/cb/Saddle_Bags.jpg/200px-Saddle_Bags.jpg', '/images/thumb/c/cb/Saddle_Bags.jpg/400px-Saddle_Bags.jpg', 'A Saddle bags', 500, 500),
@@ -1944,7 +1944,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (5422, '/images/9/92/Regal_bed.png', '/index.php/File:Regal_bed.png', '', 464, 285),
 (5423, '/images/2/2b/Dragon_lamp.png', '/index.php/File:Dragon_lamp.png', '', 472, 287),
 (5424, '/images/0/0d/Wooden_bench.png', '/index.php/File:Wooden_bench.png', '', 466, 288);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (5425, '/images/d/db/Drinking_horn.png', '/index.php/File:Drinking_horn.png', '', 470, 293),
 (5426, '/images/1/1e/Small_corbita.png', '/index.php/File:Small_corbita.png', '', 468, 285),
 (5427, '/images/e/e4/Hell_Horse_Rider_Statuette.png', '/index.php/File:Hell_Horse_Rider_Statuette.png', '', 469, 293),
@@ -2304,7 +2304,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (7370, '/images/thumb/8/8c/Everlasting_Love_Chest.png/200px-Everlasting_Love_Chest.png', '/images/8/8c/Everlasting_Love_Chest.png', 'A Everlasting Love chest skin', 307, 215),
 (7476, '/images/thumb/6/69/Guidance.png/250px-Guidance.png', '/images/thumb/6/69/Guidance.png/500px-Guidance.png', 'A Guidance', 1840, 1240),
 (7478, '/images/thumb/4/4d/Greenish_potion.png/200px-Greenish_potion.png', '/images/thumb/4/4d/Greenish_potion.png/400px-Greenish_potion.png', 'A Greenish potion', 1024, 900);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (7565, '/images/thumb/6/65/Arachnid_necklace.png/200px-Arachnid_necklace.png', '/images/6/65/Arachnid_necklace.png', 'A Arachnid necklace', 201, 145),
 (7566, '/images/3/39/Goat_head_necklace.png', '/index.php/File:Goat_head_necklace.png', 'A Goat head necklace', 200, 141),
 (7567, '/images/thumb/f/f1/Figurine_of_Grimbleat.png/200px-Figurine_of_Grimbleat.png', '/images/f/f1/Figurine_of_Grimbleat.png', 'A Figurine of Grimbleat', 241, 382),
@@ -2651,7 +2651,7 @@ INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VAL
 (8979, '/images/thumb/c/ce/Carving-knife-iron.png/200px-Carving-knife-iron.png', '/images/c/ce/Carving-knife-iron.png', 'A Carving knife', 320, 161),
 (8993, '/images/thumb/0/01/Torch.jpg/200px-Torch.jpg', '/images/thumb/0/01/Torch.jpg/400px-Torch.jpg', 'A Torch', 672, 150),
 (9078, '/images/3/3d/Scissor_blade.jpg', '/index.php/File:Scissor_blade.jpg', 'A Scissor blade', 191, 69);
-INSERT INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
+INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (9082, '/images/thumb/f/fb/Cave_bug.png/250px-Cave_bug.png', '/images/thumb/f/fb/Cave_bug.png/500px-Cave_bug.png', 'A Cave bug', 547, 409),
 (9133, '/images/thumb/6/6a/Chain_coif.jpg/200px-Chain_coif.jpg', '/images/thumb/6/6a/Chain_coif.jpg/400px-Chain_coif.jpg', 'A Chain coif', 666, 720),
 (9138, '/images/thumb/c/c4/Chain_boot.jpg/200px-Chain_boot.jpg', '/images/thumb/c/c4/Chain_boot.jpg/400px-Chain_boot.jpg', 'A Chain boot', 666, 720),

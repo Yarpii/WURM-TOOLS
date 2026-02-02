@@ -1,4 +1,4 @@
-INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
+INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
 (464, 867, 'Obelisk', '/images/thumb/c/c6/Obelisk.jpg/200px-Obelisk.jpg', 'A Obelisk', '/images/thumb/c/c6/Obelisk.jpg/400px-Obelisk.jpg'),
 (465, 873, 'Place:Austrialis Gardens \"Oh, okay.\"', '', '', ''),
 (466, 898, 'Frantic charge', '/images/0/0b/Frantic_charge.png', 'A Frantic charge', '/index.php/File:Frantic_charge.png'),
@@ -316,7 +316,7 @@ INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `im
 (878, 1611, 'Siege shield', '/images/thumb/9/9d/Siege_shield.jpg/200px-Siege_shield.jpg', 'A Siege shield', '/images/thumb/9/9d/Siege_shield.jpg/400px-Siege_shield.jpg'),
 (879, 1612, 'Machine mount', '/images/thumb/6/63/Machine_mount.jpg/200px-Machine_mount.jpg', 'A Machine mount', '/images/thumb/6/63/Machine_mount.jpg/400px-Machine_mount.jpg'),
 (880, 1613, 'Strange device', '/images/thumb/6/60/Strange_device.png/200px-Strange_device.png', 'A Strange device', '/images/6/60/Strange_device.png');
-INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
+INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
 (881, 1614, 'Ballista', '/images/thumb/e/e3/Ballista.jpg/200px-Ballista.jpg', 'A Ballista', '/images/thumb/e/e3/Ballista.jpg/400px-Ballista.jpg'),
 (882, 1615, 'Ballista dart', '/images/thumb/4/45/Ballista_dart.jpg/200px-Ballista_dart.jpg', 'A Ballista dart', '/images/thumb/4/45/Ballista_dart.jpg/400px-Ballista_dart.jpg'),
 (883, 1616, 'Ballista dart head', '/images/thumb/c/c6/Ballista_dart_head.jpg/200px-Ballista_dart_head.jpg', 'A Ballista dart head', '/images/thumb/c/c6/Ballista_dart_head.jpg/400px-Ballista_dart_head.jpg'),
@@ -809,7 +809,7 @@ INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `im
 (1405, 2419, 'Elaborate shoulder pad', '/images/thumb/8/8b/Elaborate_Shoulder_Pad.jpg/200px-Elaborate_Shoulder_Pad.jpg', 'A Elaborate shoulder pad', '/images/8/8b/Elaborate_Shoulder_Pad.jpg'),
 (1406, 2420, 'Double shoulder pad', '/images/thumb/5/5d/Doubled_Shoulder_Pad.jpg/200px-Doubled_Shoulder_Pad.jpg', 'A Double shoulder pad', '/images/5/5d/Doubled_Shoulder_Pad.jpg'),
 (1407, 2421, 'Curved shoulder pad', '/images/thumb/8/85/Curved_Shoulder_Pad.jpg/200px-Curved_Shoulder_Pad.jpg', 'A Curved shoulder pad', '/images/8/85/Curved_Shoulder_Pad.jpg');
-INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
+INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
 (1408, 2423, 'Skull shoulder pad', '/images/thumb/b/b8/Skull_Shoulder_Pad.jpg/200px-Skull_Shoulder_Pad.jpg', 'A Skull shoulder pad', '/images/thumb/b/b8/Skull_Shoulder_Pad.jpg/400px-Skull_Shoulder_Pad.jpg'),
 (1409, 2424, 'Boar shoulder pad', '/images/thumb/3/31/Boar_Shoulder_Pad.jpg/200px-Boar_Shoulder_Pad.jpg', 'A Boar shoulder pad', '/images/3/31/Boar_Shoulder_Pad.jpg'),
 (1410, 2425, 'Human skull shoulder pad', '/images/thumb/3/34/Human_Skull_Shoulder_Pad.jpg/200px-Human_Skull_Shoulder_Pad.jpg', 'A Human skull shoulder pad', '/images/3/34/Human_Skull_Shoulder_Pad.jpg'),
@@ -1087,7 +1087,7 @@ INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `im
 (1713, 2801, 'Oven', '/images/thumb/0/0f/Oven.jpg/200px-Oven.jpg', 'A Oven', '/images/thumb/0/0f/Oven.jpg/400px-Oven.jpg'),
 (1714, 2802, 'Clay', '/images/thumb/3/39/Clay_lump.png/200px-Clay_lump.png', 'A Clay', '/images/3/39/Clay_lump.png'),
 (1715, 2803, 'Stone shards', '/images/thumb/0/01/Rock_shards.jpg/200px-Rock_shards.jpg', 'A Stone shards', '/images/thumb/0/01/Rock_shards.jpg/400px-Rock_shards.jpg');
-INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
+INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
 (1716, 2804, 'Felled Tree', '/images/thumb/d/dc/Felled_Tree.jpg/200px-Felled_Tree.jpg', 'A Felled Tree', '/images/thumb/d/dc/Felled_Tree.jpg/400px-Felled_Tree.jpg'),
 (1717, 2806, 'Wagoner container', '/images/thumb/3/37/Wagoner_container_empty.png/200px-Wagoner_container_empty.png', 'A Wagoner container', '/images/thumb/3/37/Wagoner_container_empty.png/400px-Wagoner_container_empty.png'),
 (1718, 2808, 'Mask of the enlightened', '/images/thumb/0/03/Enlightenedmask.PNG/200px-Enlightenedmask.PNG', 'A Mask of the enlightened', '/images/thumb/0/03/Enlightenedmask.PNG/400px-Enlightenedmask.PNG'),
@@ -1417,7 +1417,7 @@ INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `im
 (2228, 3682, 'File blade', '/images/4/45/File_blade.jpg', 'A File blade', '/index.php/File:File_blade.jpg'),
 (2229, 3684, 'Bjarne the bear', '/images/a/a0/Bjarne.png', 'A Bjarne the bear', '/index.php/File:Bjarne.png'),
 (2230, 3687, 'Jackal', '/images/thumb/7/70/Jackal.png/250px-Jackal.png', 'A Jackal', '/images/thumb/7/70/Jackal.png/500px-Jackal.png');
-INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
+INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
 (2232, 3701, 'Chess board', '/images/thumb/b/b2/Chess_board2.png/200px-Chess_board2.png', 'A Chess board', '/images/thumb/b/b2/Chess_board2.png/400px-Chess_board2.png'),
 (2234, 3703, 'Ruby necklace', '/images/6/68/Ruby_necklace.jpeg', 'A Ruby necklace', '/index.php/File:Ruby_necklace.jpeg'),
 (2235, 3705, 'Coin purse', '/images/thumb/d/da/Coin_purse.jpeg/200px-Coin_purse.jpeg', 'A Coin purse', '/images/d/da/Coin_purse.jpeg'),
@@ -1733,7 +1733,7 @@ INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `im
 (2662, 4404, 'Leather jacket', '/images/thumb/9/93/Leather_jacket.jpg/200px-Leather_jacket.jpg', 'A Leather jacket', '/images/thumb/9/93/Leather_jacket.jpg/400px-Leather_jacket.jpg'),
 (2663, 4405, 'Leather pants', '/images/thumb/1/1e/Leather_pants.jpg/200px-Leather_pants.jpg', 'A Leather pants', '/images/thumb/1/1e/Leather_pants.jpg/400px-Leather_pants.jpg'),
 (2664, 4406, 'Leather boot', '/images/thumb/c/cc/Leather_boot.jpg/200px-Leather_boot.jpg', 'A Leather boot', '/images/thumb/c/cc/Leather_boot.jpg/400px-Leather_boot.jpg');
-INSERT INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
+INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
 (2665, 4407, 'Leather sleeve', '/images/thumb/2/23/Leather_sleeve.jpg/200px-Leather_sleeve.jpg', 'A Leather sleeve', '/images/thumb/2/23/Leather_sleeve.jpg/400px-Leather_sleeve.jpg'),
 (2666, 4408, 'Leather cap', '/images/thumb/a/a5/Leather_cap.jpg/200px-Leather_cap.jpg', 'A Leather cap', '/images/thumb/a/a5/Leather_cap.jpg/400px-Leather_cap.jpg'),
 (2667, 4411, 'Small square table', '/images/thumb/2/2d/Small_square_table.jpg/200px-Small_square_table.jpg', 'A Small square table', '/images/thumb/2/2d/Small_square_table.jpg/400px-Small_square_table.jpg'),

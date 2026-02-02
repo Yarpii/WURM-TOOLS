@@ -1,4 +1,4 @@
-INSERT INTO `categories` (`id`, `name`) VALUES
+INSERT IGNORE INTO `categories` (`id`, `name`) VALUES
 (5971, 'Abandoned settlements'),
 (9822, 'Adamantine products'),
 (3532, 'Alcohol'),
