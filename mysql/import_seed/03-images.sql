@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `height`) VALUES
 (1559, '/images/thumb/c/c6/Obelisk.jpg/200px-Obelisk.jpg', '/images/thumb/c/c6/Obelisk.jpg/400px-Obelisk.jpg', 'A Obelisk', 1024, 768),
 (1560, '/images/8/8b/Obelisk-night.jpg', '/index.php/File:Obelisk-night.jpg', 'Obelisk-night.jpg', 1024, 768),
@@ -2935,3 +2936,4 @@ INSERT IGNORE INTO `images` (`id`, `src`, `original_src`, `alt`, `width`, `heigh
 (13332, '/images/thumb/8/85/Polearms_rack.png/200px-Polearms_rack.png', '/images/8/85/Polearms_rack.png', 'A Polearms rack', 360, 625),
 (13335, '/images/thumb/2/26/Peat.png/180px-Peat.png', '/images/thumb/2/26/Peat.png/360px-Peat.png', 'A Peat', 512, 512),
 (13357, '/images/thumb/7/7c/Tar.png/180px-Tar.png', '/images/thumb/7/7c/Tar.png/360px-Tar.png', 'A Tar', 512, 512);
+SET FOREIGN_KEY_CHECKS=1;

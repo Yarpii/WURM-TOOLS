@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficulty`, `base_time_seconds`, `image_url`, `is_base_material`, `created_at`, `updated_at`) VALUES
 (1, 2107, 'Settlement:-Battle_Henge-', '-Battle Henge-', NULL, NULL, NULL, '', 0, '2026-01-22 04:31:42', '2026-01-22 04:31:42'),
 (2, 2108, 'Settlement:A_Strange_Place', 'A Strange Place', NULL, NULL, NULL, '', 0, '2026-01-22 04:31:42', '2026-01-22 04:31:42'),
@@ -2072,3 +2073,5 @@ INSERT IGNORE INTO `items` (`id`, `page_id`, `slug`, `name`, `skill`, `difficult
 (2065, 4271, 'Zombie', 'Zombie', NULL, NULL, NULL, '/images/thumb/8/8d/ZombieRender.jpg/500px-ZombieRender.jpg', 0, '2026-01-22 04:32:03', '2026-01-22 04:32:03'),
 (2066, 6015, 'Zombie_infestation', 'Zombie infestation', NULL, NULL, NULL, '/index.php/File:No_logo.png', 0, '2026-01-22 04:32:03', '2026-01-22 04:32:03'),
 (2067, 2101, 'Settlement:Zwergenbucht', 'Zwergenbucht', NULL, NULL, NULL, '', 0, '2026-01-22 04:32:03', '2026-01-22 04:32:03');
+
+SET FOREIGN_KEY_CHECKS=1;

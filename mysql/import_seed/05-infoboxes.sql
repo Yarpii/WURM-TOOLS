@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_alt`, `image_original`) VALUES
 (464, 867, 'Obelisk', '/images/thumb/c/c6/Obelisk.jpg/200px-Obelisk.jpg', 'A Obelisk', '/images/thumb/c/c6/Obelisk.jpg/400px-Obelisk.jpg'),
 (465, 873, 'Place:Austrialis Gardens \"Oh, okay.\"', '', '', ''),
@@ -2071,3 +2072,4 @@ INSERT IGNORE INTO `infoboxes` (`id`, `page_id`, `title`, `image_src`, `image_al
 (3535, 6290, 'Polearms rack', '/images/thumb/8/85/Polearms_rack.png/200px-Polearms_rack.png', 'A Polearms rack', '/images/8/85/Polearms_rack.png'),
 (3538, 6296, 'Peat', '/images/thumb/2/26/Peat.png/180px-Peat.png', 'A Peat', '/images/thumb/2/26/Peat.png/360px-Peat.png'),
 (3539, 6298, 'Tar', '/images/thumb/7/7c/Tar.png/180px-Tar.png', 'A Tar', '/images/thumb/7/7c/Tar.png/360px-Tar.png');
+SET FOREIGN_KEY_CHECKS=1;

@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material_name`, `material_slug`, `quantity`, `unit`, `sort_order`) VALUES
 (1, 20, 1601, 'small nails', 'small_nails', 3.00, 'piece', 0),
 (2, 20, 1179, 'plank', 'plank', 6.00, 'piece', 1),
@@ -1689,3 +1690,4 @@ INSERT IGNORE INTO `recipe_materials` (`id`, `item_id`, `material_id`, `material
 (1686, 2041, 1179, 'Plank', 'plank', 20.00, 'piece', 0),
 (1687, 2041, 829, 'Large nails', 'large_nails', 1.00, 'piece', 1),
 (1688, 2046, 2006, 'Wood scrap (min. 1.50 kg)', 'wood_scrap', 10.00, 'piece', 0);
+SET FOREIGN_KEY_CHECKS=1;

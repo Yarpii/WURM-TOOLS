@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
 (867, 1559, 'infobox_main'),
 (867, 1560, 'section:Images'),
@@ -3393,3 +3394,4 @@ INSERT IGNORE INTO `page_images` (`page_id`, `image_id`, `context`) VALUES
 (6290, 13332, 'infobox_main'),
 (6296, 13335, 'infobox_main'),
 (6298, 13357, 'infobox_main');
+SET FOREIGN_KEY_CHECKS=1;

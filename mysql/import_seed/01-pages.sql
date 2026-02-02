@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, `page_type`, `breadcrumbs_json`, `source`, `html_hash`, `created_at`, `updated_at`) VALUES
 (835, 'Undefined_settlement', 'Undefined settlement', 9610, 75245, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:46', '2026-01-21 05:30:46'),
 (837, 'Undefined_historical_settlement', 'Undefined historical settlement', 9941, 72094, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:30:46', '2026-01-21 05:30:46'),
@@ -3176,3 +3177,5 @@ INSERT IGNORE INTO `pages` (`id`, `slug`, `title`, `article_id`, `revision_id`, 
 (6351, 'Player:Cryoses', 'Cryoses', 8612, 99192, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:33:19', '2026-01-21 05:33:19'),
 (6362, 'Player:Mthec', 'Mthec', 9432, 97954, 'skill', '[\"Kelron\", \"Golden Valley\", \"Colossus of Zephyr\", \"Zephyr\"]', 'wurmpedia', NULL, '2026-01-21 05:33:19', '2026-01-21 05:33:19'),
 (6363, 'Player:Coheed', 'Coheed', 9631, 115121, 'article', '[]', 'wurmpedia', NULL, '2026-01-21 05:33:19', '2026-01-21 05:33:19');
+
+SET FOREIGN_KEY_CHECKS=1;

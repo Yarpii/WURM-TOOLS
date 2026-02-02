@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `target_name`, `target_slug`, `target_quantity`, `target_unit`, `submenu_path`, `raw_text`) VALUES
 (1, 7, 1, 'unknown', 'strange device', 'strange_device', NULL, NULL, NULL, 'Converted from a strange device via a spell.'),
 (2, 8, 1, 'unknown', 'Harvesting from Oak Trees when in season.', NULL, NULL, NULL, NULL, 'Harvesting from Oak Trees when in season.'),
@@ -3538,3 +3539,4 @@ INSERT IGNORE INTO `recipe_steps` (`id`, `item_id`, `step_order`, `action`, `tar
 (3530, 2062, 1, 'unknown', 'This item cannot be crafted.', NULL, NULL, NULL, NULL, 'This item cannot be crafted.'),
 (3531, 2063, 1, 'unknown', 'Smelting Zinc ore (20.00 kg)', NULL, 20.00, 'kg', NULL, 'Smelting Zinc ore (20.00 kg)'),
 (3532, 2064, 1, 'unknown', 'mine or foraging Rubble', NULL, NULL, NULL, NULL, 'mine or foraging Rubble');
+SET FOREIGN_KEY_CHECKS=1;

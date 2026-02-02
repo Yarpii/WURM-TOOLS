@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `page_categories` (`page_id`, `category_id`) VALUES
 (835, 2851),
 (835, 2852),
@@ -10115,3 +10116,4 @@ INSERT IGNORE INTO `page_categories` (`page_id`, `category_id`) VALUES
 (6362, 3462),
 (6363, 3462),
 (6363, 4256);
+SET FOREIGN_KEY_CHECKS=1;

@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_title`, `context`, `to_slug`) VALUES
 (18839, 867, '/index.php/Activate', 'Activate', 'Activate', 'infobox:Creation', 'Activate'),
 (18840, 867, '/index.php/Stone_brick', 'stone brick', 'Stone brick', 'infobox:Creation', 'Stone_brick'),
@@ -41410,3 +41411,4 @@ INSERT IGNORE INTO `page_links` (`id`, `page_id`, `href`, `link_text`, `link_tit
 (162677, 913, '/index.php/Milking', 'Milking', 'Milking', 'section:See Also', 'Milking'),
 (162678, 913, '/index.php/Papyrusmaking', 'Papyrusmaking', 'Papyrusmaking', 'section:See Also', 'Papyrusmaking'),
 (162685, 837, '/index.php/Server_types', 'servers', 'Server types', 'section:Village information is unavailable', 'Server_types');
+SET FOREIGN_KEY_CHECKS=1;

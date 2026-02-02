@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0;
 INSERT IGNORE INTO `item_categories` (`item_id`, `category`) VALUES
 (1, 'freedom settlements'),
 (2, 'freedom settlements'),
@@ -8143,3 +8144,4 @@ INSERT IGNORE INTO `item_categories` (`item_id`, `category`) VALUES
 (2066, 'spells'),
 (2066, 'stub'),
 (2067, 'mol-rehan epic settlements');
+SET FOREIGN_KEY_CHECKS=1;
