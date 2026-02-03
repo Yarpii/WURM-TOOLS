@@ -74,18 +74,22 @@ export async function POST(request: NextRequest) {
         const sent = await send2FACode(user.email, code, user.username);
 
         if (!sent) {
-          // If email fails, log user in anyway (fallback)
-          console.error("Failed to send 2FA code, allowing login");
-        } else {
-          // Return 2FA required response
-          return NextResponse.json({
-            success: false,
-            requires2FA: true,
-            tempToken,
-            message: "Verification code sent to your email",
-            expiresIn: EMAIL_2FA_CODE_EXPIRY_MINUTES,
-          });
+          // SECURITY: If email fails, do NOT bypass 2FA - return an error
+          console.error("Failed to send 2FA code for user:", user.username);
+          return NextResponse.json(
+            { error: "Failed to send verification code. Please try again later." },
+            { status: 503 }
+          );
         }
+
+        // Return 2FA required response
+        return NextResponse.json({
+          success: false,
+          requires2FA: true,
+          tempToken,
+          message: "Verification code sent to your email",
+          expiresIn: EMAIL_2FA_CODE_EXPIRY_MINUTES,
+        });
       }
     }
 
