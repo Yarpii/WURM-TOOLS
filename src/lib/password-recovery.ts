@@ -223,9 +223,10 @@ export async function resetPassword(
     return { success: false, error: "Password is too long" };
   }
 
-  // Generate new password hash
+  // SECURITY: Generate new password hash with OWASP-recommended iterations
+  const PBKDF2_ITERATIONS = 210000;
   const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.pbkdf2Sync(newPassword, salt, 10000, 64, "sha512").toString("hex");
+  const hash = crypto.pbkdf2Sync(newPassword, salt, PBKDF2_ITERATIONS, 64, "sha512").toString("hex");
 
   // Update password
   await query(

@@ -9,6 +9,12 @@ import { getStaticUrl } from "@/lib/static-url";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+// SECURITY: Whitelist of allowed file extensions to prevent executable uploads
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
+
+// SECURITY: Whitelist of allowed upload categories to prevent path traversal
+const ALLOWED_CATEGORIES = ["screenshots", "avatars", "banners", "items", "general"];
+
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -20,7 +26,10 @@ export async function POST(request: NextRequest) {
     // Parse form data
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const category = (formData.get("category") as string) || "screenshots";
+    const requestedCategory = (formData.get("category") as string) || "screenshots";
+
+    // SECURITY: Validate category against whitelist to prevent path traversal
+    const category = ALLOWED_CATEGORIES.includes(requestedCategory) ? requestedCategory : "general";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -42,10 +51,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create unique filename
+    // SECURITY: Extract and validate file extension against whitelist
+    const originalExtension = file.name.split(".").pop()?.toLowerCase() || "";
+    const extension = ALLOWED_EXTENSIONS.includes(originalExtension) ? originalExtension : "jpg";
+
+    // Create unique filename with validated extension
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const filename = `${session.userId}_${timestamp}_${randomString}.${extension}`;
 
     // Ensure upload directory exists

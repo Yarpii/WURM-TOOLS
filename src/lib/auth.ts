@@ -4,13 +4,37 @@ import { initializeUserRoles, getUserRoles, getUserPermissions, hasPermission, t
 
 // ========== PASSWORD UTILITIES ==========
 
-function hashPassword(password: string, salt: string): string {
-  return crypto.pbkdf2Sync(password, salt, 10000, 64, "sha512").toString("hex");
+// SECURITY: OWASP recommends minimum 210,000 iterations for PBKDF2-SHA512 (as of 2023)
+// See: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+const PBKDF2_ITERATIONS = 210000;
+
+// Legacy iteration count for verifying old passwords during migration
+const LEGACY_PBKDF2_ITERATIONS = 10000;
+
+function hashPassword(password: string, salt: string, iterations: number = PBKDF2_ITERATIONS): string {
+  return crypto.pbkdf2Sync(password, salt, iterations, 64, "sha512").toString("hex");
 }
 
 function verifyPassword(password: string, hash: string, salt: string): boolean {
-  const newHash = hashPassword(password, salt);
-  return newHash === hash;
+  // SECURITY: Try new iteration count first, then fall back to legacy for migration
+  const newHash = hashPassword(password, salt, PBKDF2_ITERATIONS);
+
+  // SECURITY: Use timing-safe comparison to prevent timing attacks
+  try {
+    if (crypto.timingSafeEqual(Buffer.from(newHash, 'hex'), Buffer.from(hash, 'hex'))) {
+      return true;
+    }
+  } catch {
+    // If buffers are different lengths, timingSafeEqual throws - password is wrong
+  }
+
+  // Try legacy iteration count for users who haven't updated their password yet
+  const legacyHash = hashPassword(password, salt, LEGACY_PBKDF2_ITERATIONS);
+  try {
+    return crypto.timingSafeEqual(Buffer.from(legacyHash, 'hex'), Buffer.from(hash, 'hex'));
+  } catch {
+    return false;
+  }
 }
 
 function generateSessionId(): string {

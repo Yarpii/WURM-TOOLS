@@ -77,6 +77,15 @@ export async function PUT(request: NextRequest) {
     const validateImageUrl = (url: string, fieldName: string): string | null => {
       // Allow local uploads (start with /uploads/)
       if (url.startsWith("/uploads/")) {
+        // SECURITY: Prevent path traversal attacks
+        if (url.includes("..") || url.includes("//") || url.includes("\\")) {
+          return `Invalid ${fieldName} URL: path traversal not allowed`;
+        }
+        // SECURITY: Only allow alphanumeric, dash, underscore, slash, and dot
+        const safePathRegex = /^\/uploads\/[a-zA-Z0-9/_.-]+$/;
+        if (!safePathRegex.test(url)) {
+          return `Invalid ${fieldName} URL: contains invalid characters`;
+        }
         if (url.length > 500) {
           return `${fieldName} URL is too long (max 500 characters)`;
         }
