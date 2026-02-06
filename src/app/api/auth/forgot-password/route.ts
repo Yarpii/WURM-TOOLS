@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requestPasswordReset } from "@/lib/password-recovery";
+import {
+  checkRateLimit,
+  getClientIp,
+  addRateLimitHeaders,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Get client IP for rate limiting
+    const clientIp = getClientIp(request);
+
+    // SECURITY: Apply strict rate limiting to password reset requests
+    const rateLimitResult = await checkRateLimit(clientIp, "passwordReset");
+    if (!rateLimitResult.allowed) {
+      const response = NextResponse.json(
+        { error: "Too many password reset requests. Please try again later." },
+        { status: 429 }
+      );
+      addRateLimitHeaders(response.headers, rateLimitResult, RATE_LIMITS.passwordReset);
+      return response;
+    }
+
     const body = await request.json();
     const { email } = body;
 

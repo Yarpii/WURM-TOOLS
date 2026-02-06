@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import * as argon2 from "argon2";
 import { query } from "./db/core";
 import { getUserByEmail } from "./auth";
 import {
@@ -7,6 +8,15 @@ import {
   sendAccountLockedEmail,
   isEmailConfigured,
 } from "./email";
+
+// Argon2 configuration (OWASP recommended settings)
+const ARGON2_OPTIONS: argon2.Options = {
+  type: argon2.argon2id,
+  memoryCost: 65536, // 64 MiB
+  timeCost: 3,       // 3 iterations
+  parallelism: 4,    // 4 parallel threads
+  hashLength: 64,    // 64 bytes output
+};
 
 // ========== CONFIGURATION ==========
 
@@ -223,15 +233,13 @@ export async function resetPassword(
     return { success: false, error: "Password is too long" };
   }
 
-  // SECURITY: Generate new password hash with OWASP-recommended iterations
-  const PBKDF2_ITERATIONS = 210000;
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.pbkdf2Sync(newPassword, salt, PBKDF2_ITERATIONS, 64, "sha512").toString("hex");
+  // SECURITY: Generate new password hash using Argon2id (strongest algorithm)
+  const hash = await argon2.hash(newPassword, ARGON2_OPTIONS);
 
-  // Update password
+  // Update password (salt is null for Argon2 as it's embedded in the hash)
   await query(
-    `UPDATE users SET password_hash = ?, salt = ? WHERE id = ?`,
-    [hash, salt, tokenValidation.userId]
+    `UPDATE users SET password_hash = ?, salt = NULL WHERE id = ?`,
+    [hash, tokenValidation.userId]
   );
 
   // Mark token as used
