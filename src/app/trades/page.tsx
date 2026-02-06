@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import type { TradeMatch, UserReputation, BarterSuggestion, MatchStatus } from "@/lib/types";
+import InfoSection from "@/components/InfoSection";
 
 type TabType = "matches" | "suggestions" | "reputation";
 
@@ -687,6 +688,7 @@ export default function TradesPage() {
         </div>
       </section>
 
+      <InfoSection>
       {/* CTA Section */}
       <section className="mt-16 pt-16 border-t border-border pb-8">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500/10 to-rose-600/10 border border-pink-500/20 p-8 md:p-12">
@@ -720,6 +722,7 @@ export default function TradesPage() {
           </div>
         </div>
       </section>
+      </InfoSection>
 
       {/* Rating Modal */}
       {ratingMatch && (

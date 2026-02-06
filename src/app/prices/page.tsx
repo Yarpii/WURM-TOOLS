@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import InfoSection from "@/components/InfoSection";
 
 interface PriceGuideItem {
   item_name: string;
@@ -865,6 +866,7 @@ export default function PriceGuidePage() {
           </div>
         </section>
 
+        <InfoSection>
         {/* CTA Section */}
         <section className="mt-16 pt-16 border-t border-border pb-8">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/20 p-8 md:p-12">
@@ -910,6 +912,7 @@ export default function PriceGuidePage() {
             </div>
           </div>
         </section>
+        </InfoSection>
       </div>
     </div>
   );

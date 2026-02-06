@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import InfoSection from "@/components/InfoSection";
 
 interface Stats {
   items: number;
@@ -598,6 +599,7 @@ export default function Home() {
         </div>
       </section>
 
+      <InfoSection>
       {/* Player Tools Section */}
       <section className="py-20 px-4 bg-bg-secondary border-y border-border relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -873,6 +875,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </InfoSection>
     </div>
   );
 }

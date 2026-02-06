@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import type { Merchant, MerchantCategory } from "@/lib/types";
+import InfoSection from "@/components/InfoSection";
 
 type TabType = "browse" | "add" | "my-merchants";
 
@@ -885,6 +886,7 @@ export default function MerchantsPage() {
         </div>
       </section>
 
+      <InfoSection>
       {/* CTA Section */}
       <section className="mt-16 pt-16 border-t border-border pb-8">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-600/10 border border-blue-500/20 p-8 md:p-12">
@@ -930,6 +932,7 @@ export default function MerchantsPage() {
           </div>
         </div>
       </section>
+      </InfoSection>
 
       {/* Edit Modal */}
       {editingMerchant && (

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import type { Alliance, AllianceInvite } from "@/lib/types";
+import InfoSection from "@/components/InfoSection";
 
 type TabType = "browse" | "create" | "my-alliance" | "invites";
 
@@ -494,6 +495,7 @@ export default function AlliancesPage() {
         </div>
       )}
 
+      <InfoSection>
       {/* Feature Sections */}
       {/* Stronger Together */}
       <div className="mt-16 mb-12">
@@ -666,6 +668,7 @@ export default function AlliancesPage() {
           </Link>
         )}
       </div>
+      </InfoSection>
     </div>
   );
 }
