@@ -127,15 +127,20 @@ export async function PUT(request: NextRequest) {
     }
 
     // SECURITY: Sanitize text inputs - remove potential XSS vectors
+    // Strips all HTML tags and encodes special characters for safe storage/display
     const sanitizeText = (text: string | undefined): string | undefined => {
       if (text === undefined) return undefined;
-      // Basic HTML entity encoding for < > & " '
       return text
+        // Strip any HTML tags completely
+        .replace(/<[^>]*>/g, "")
+        // Encode remaining special characters
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#x27;");
+        .replace(/'/g, "&#x27;")
+        // Remove null bytes and other control characters
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
     };
 
     const success = await updateUserProfile(session.user.id, {

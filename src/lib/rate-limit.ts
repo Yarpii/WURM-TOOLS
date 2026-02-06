@@ -108,6 +108,7 @@ interface InMemoryEntry {
 }
 
 const inMemoryStore = new Map<string, InMemoryEntry>();
+const MAX_STORE_SIZE = 10000;
 
 // Cleanup old entries periodically (every 5 minutes)
 setInterval(() => {
@@ -118,6 +119,18 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+
+// On-demand cleanup when store grows too large
+function cleanupIfNeeded(): void {
+  if (inMemoryStore.size > MAX_STORE_SIZE) {
+    const now = Date.now();
+    for (const [key, entry] of inMemoryStore.entries()) {
+      if (entry.resetAt < now) {
+        inMemoryStore.delete(key);
+      }
+    }
+  }
+}
 
 // ==================== RATE LIMIT CHECK ====================
 
@@ -202,6 +215,7 @@ async function checkRateLimitRedis(
 }
 
 function checkRateLimitInMemory(key: string, config: RateLimitConfig): RateLimitResult {
+  cleanupIfNeeded();
   const now = Date.now();
   const entry = inMemoryStore.get(key);
 

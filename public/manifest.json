@@ -3,6 +3,7 @@
   "short_name": "Wurm Tools",
   "description": "Community-driven toolkit for Wurm Online - crafting calculator, marketplace, and more",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f1a",
   "theme_color": "#6366f1",
@@ -12,7 +13,13 @@
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
   "categories": ["games", "utilities"],
