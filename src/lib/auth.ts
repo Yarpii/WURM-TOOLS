@@ -93,9 +93,11 @@ function isArgon2Hash(hash: string): boolean {
 /**
  * Hash a new password (always uses Argon2)
  */
-async function hashPassword(password: string): Promise<{ hash: string; salt: string | null }> {
+async function hashPassword(password: string): Promise<{ hash: string; salt: string }> {
   const hash = await hashPasswordArgon2(password);
-  return { hash, salt: null }; // Argon2 includes salt in the hash
+  // Argon2 includes salt in the hash, but we use empty string for DB compatibility
+  // (legacy schema may have NOT NULL constraint on salt column)
+  return { hash, salt: "" };
 }
 
 /**
@@ -103,14 +105,15 @@ async function hashPassword(password: string): Promise<{ hash: string; salt: str
  * Returns: { valid: boolean, needsUpgrade: boolean }
  */
 async function verifyPassword(password: string, hash: string, salt: string | null): Promise<{ valid: boolean; needsUpgrade: boolean }> {
-  // Check if this is an Argon2 hash
+  // Check if this is an Argon2 hash (starts with $argon2)
   if (isArgon2Hash(hash)) {
     const valid = await verifyPasswordArgon2(password, hash);
     return { valid, needsUpgrade: false };
   }
 
   // Legacy PBKDF2 hash - verify and flag for upgrade
-  if (salt) {
+  // Salt must exist and not be empty for PBKDF2
+  if (salt && salt.length > 0) {
     const valid = verifyPasswordPBKDF2(password, hash, salt);
     return { valid, needsUpgrade: valid }; // Only upgrade if password is correct
   }
@@ -126,7 +129,7 @@ async function upgradePasswordHash(userId: number, password: string): Promise<vo
   try {
     const { hash } = await hashPassword(password);
     await query(
-      "UPDATE users SET password_hash = ?, salt = NULL WHERE id = ?",
+      "UPDATE users SET password_hash = ?, salt = '' WHERE id = ?",
       [hash, userId]
     );
     console.log(`[Auth] Upgraded password hash to Argon2 for user ${userId}`);

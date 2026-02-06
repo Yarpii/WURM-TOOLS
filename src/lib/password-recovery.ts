@@ -236,9 +236,9 @@ export async function resetPassword(
   // SECURITY: Generate new password hash using Argon2id (strongest algorithm)
   const hash = await argon2.hash(newPassword, ARGON2_OPTIONS);
 
-  // Update password (salt is null for Argon2 as it's embedded in the hash)
+  // Update password (salt is empty for Argon2 as it's embedded in the hash)
   await query(
-    `UPDATE users SET password_hash = ?, salt = NULL WHERE id = ?`,
+    `UPDATE users SET password_hash = ?, salt = '' WHERE id = ?`,
     [hash, tokenValidation.userId]
   );
 
