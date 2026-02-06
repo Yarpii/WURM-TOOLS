@@ -52,7 +52,7 @@ export default function ProjectsPage() {
     try {
       const res = await fetch("/api/items");
       const data = await res.json();
-      if (Array.isArray(data)) setItems(data);
+      if (Array.isArray(data?.data)) setItems(data.data);
     } catch (err) {
       console.error("Failed to fetch items:", err);
     }

@@ -18,18 +18,18 @@ export async function GET(request: Request) {
     // Get uncategorized items
     if (uncategorized) {
       const items = await getUncategorizedItems();
-      return NextResponse.json(items);
+      return NextResponse.json({ data: items });
     }
 
     // Get categories with counts
     if (withCounts) {
       const categories = await getCategoriesWithCounts();
-      return NextResponse.json(categories);
+      return NextResponse.json({ data: categories });
     }
 
     // Get just category names
     const categories = await getCategories();
-    return NextResponse.json(categories);
+    return NextResponse.json({ data: categories });
   } catch (error) {
     return NextResponse.json(
       { error: sanitizeError(error, "Get categories") },

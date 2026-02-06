@@ -75,9 +75,9 @@ export default function RecipesTab({ items, onDataChange, showMessage }: Recipes
     try {
       const res = await fetch("/api/admin/recipe-counts");
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
         const counts: Record<number, number> = {};
-        data.forEach((row: { item_id: number; count: number }) => {
+        (json?.data || []).forEach((row: { item_id: number; count: number }) => {
           counts[row.item_id] = row.count;
         });
         setMaterialCounts(counts);

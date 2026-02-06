@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
        GROUP BY item_id`
     );
 
-    return NextResponse.json(result.rows);
+    return NextResponse.json({ data: result.rows });
   } catch (error) {
     return NextResponse.json(
       { error: sanitizeError(error, "Get recipe counts") },

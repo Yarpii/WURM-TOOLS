@@ -66,7 +66,7 @@ export default function Home() {
       fetch("/api/orders?stats=1").then(r => r.json()),
     ]).then(([items, recipeStats, members, orderStats]) => {
       setStats({
-        items: Array.isArray(items) ? items.length : 0,
+        items: Array.isArray(items?.data) ? items.data.length : 0,
         recipes: recipeStats?.items_with_recipes || recipeStats?.total_items || 0,
         members: Array.isArray(members?.members) ? members.members.length : 0,
         orders: orderStats?.active || 0,
