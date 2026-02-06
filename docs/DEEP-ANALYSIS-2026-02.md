@@ -312,30 +312,35 @@ Some routes return `{ success: true, profile: {...} }`, others `{ members: [...]
 
 ---
 
-## Recommended Implementation Order
+## Implementation Status
 
 ### Sprint 1 - Quick Wins (security + data integrity)
-- [ ] #1 - Add JSON parse error handling to all POST/PUT routes
-- [ ] #3 - Add magic byte validation to upload route
-- [ ] #4 - Rate limit webhook test endpoint
-- [ ] #6 - Hide timing data in production health check
-- [ ] #7 - Add field validation to admin member update
-- [ ] #12 - Log password upgrade failures
+- [x] #1 - JSON parse error handling: Already covered by outer try-catch (verified)
+- [x] #3 - Add magic byte validation to upload route
+- [x] #4 - Rate limit webhook test endpoint
+- [x] #6 - Hide timing data in production health check
+- [x] #7 - Add field validation to admin member update
+- [x] #12 - Password upgrade: removed redundant `.catch(() => {})` (function has internal error handling)
 
 ### Sprint 2 - Core Quality
-- [ ] #2 - Add transaction support to import/export
-- [ ] #5 - Fix members N+1 query with JOIN
-- [ ] #9 - Add account deletion audit logging
-- [ ] #10 - Validate boolean types in settings
-- [ ] #11 - Validate pool config bounds
-- [ ] #13 - Improve getSessionAsync error logging
+- [x] #2 - Add transaction support to import/export (clearAllData)
+- [x] #5 - Fix members N+1 query with single batch JOIN
+- [x] #9 - Add account deletion audit logging
+- [x] #10 - Validate boolean types in settings
+- [x] #11 - Validate pool config bounds
+- [x] #13 - Improve getSessionAsync error logging
 
 ### Sprint 3 - Polish
-- [ ] #8 - Implement proper service worker cache invalidation
-- [ ] #14 - Improve HTML sanitization
-- [ ] #15 - Handle session refresh race condition
-- [ ] #16 - Standardize API response format
-- [ ] #17-20 - Remaining low-priority items
+- [x] #8 - Implement versioned service worker cache invalidation
+- [x] #14 - Improve HTML sanitization (strip tags, remove control chars)
+- [x] #15 - Handle session refresh race condition
+- [ ] #16 - Standardize API response format (deferred - high risk, touches 100+ routes)
+- [x] #17 - Fix BetaBanner hydration pattern (useEffect instead of useState initializer)
+- [x] #18 - Add scope and split icon purposes in PWA manifest
+- [x] #19 - Add size-based cleanup to in-memory rate limiter
+- [x] #20 - Enable noFallthroughCasesInSwitch and forceConsistentCasingInFileNames
+
+**19 of 20 issues resolved. #16 (API response standardization) deferred as it requires a coordinated effort across 100+ endpoints.**
 
 ---
 
