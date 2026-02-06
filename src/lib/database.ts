@@ -157,6 +157,8 @@ export {
 // Achievements
 export {
   getAllAchievements,
+  getAchievements,
+  getUserAchievements,
   checkAndUpdateAchievements,
   getCompletedAchievements,
   getUserXP,

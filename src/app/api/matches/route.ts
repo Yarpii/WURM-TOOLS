@@ -92,10 +92,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(myRatings);
 
       case "find":
-        // Find new matches (can be called periodically)
-        const matchCount = await findMatches();
+        // Find new matches for current user
+        const foundMatches = await findMatches(result.user.id);
         return NextResponse.json({
-          found: matchCount,
+          found: foundMatches.length,
+          matches: foundMatches,
         });
 
       default:
@@ -198,10 +199,11 @@ export async function POST(request: NextRequest) {
       }
 
       case "find-matches": {
-        // Trigger match finding
-        const foundCount = await findMatches();
+        // Trigger match finding for current user
+        const newMatches = await findMatches(result.user.id);
         return NextResponse.json({
-          found: foundCount,
+          found: newMatches.length,
+          matches: newMatches,
         });
       }
 

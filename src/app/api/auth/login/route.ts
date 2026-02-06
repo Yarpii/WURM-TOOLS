@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { login } from "@/lib/auth";
 import { sanitizeError } from "@/lib/security";
 import {
+  checkRateLimit,
+  getClientIp,
+  addRateLimitHeaders,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
+import {
   hasUser2FAEnabled,
   createPending2FASession,
   getUserById,
@@ -17,6 +23,20 @@ import { randomBytes } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
+    // Get client IP for rate limiting
+    const clientIp = getClientIp(request);
+
+    // SECURITY: Apply strict rate limiting to login attempts
+    const rateLimitResult = await checkRateLimit(clientIp, "login");
+    if (!rateLimitResult.allowed) {
+      const response = NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429 }
+      );
+      addRateLimitHeaders(response.headers, rateLimitResult, RATE_LIMITS.login);
+      return response;
+    }
+
     const body = await request.json();
     const { username, password, rememberMe } = body;
 

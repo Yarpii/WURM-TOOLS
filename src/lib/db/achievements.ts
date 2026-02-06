@@ -174,6 +174,18 @@ export async function getCompletedAchievements(userId: number): Promise<UserAchi
   return result.rows;
 }
 
+// Get all achievements for a user (including incomplete with progress)
+export async function getUserAchievements(userId: number): Promise<UserAchievement[]> {
+  const result = await query<UserAchievement>(
+    "SELECT * FROM user_achievements WHERE user_id = ? ORDER BY completed DESC, progress DESC",
+    [userId]
+  );
+  return result.rows;
+}
+
+// Alias for backwards compatibility
+export const getAchievements = getAllAchievements;
+
 export async function getUserXP(userId: number): Promise<UserXP | null> {
   const xpResult = await query<{ total_xp: number }>(
     "SELECT total_xp FROM user_xp WHERE user_id = ?",

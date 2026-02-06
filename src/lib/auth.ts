@@ -1,39 +1,138 @@
 import crypto from "crypto";
+import * as argon2 from "argon2";
 import { query, withTransaction } from "./db/core";
 import { initializeUserRoles, getUserRoles, getUserPermissions, hasPermission, type UserRole } from "./roles";
 
 // ========== PASSWORD UTILITIES ==========
 
-// SECURITY: OWASP recommends minimum 210,000 iterations for PBKDF2-SHA512 (as of 2023)
-// See: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
-const PBKDF2_ITERATIONS = 210000;
+/**
+ * SECURITY: Password hashing strategy
+ *
+ * We use Argon2id (winner of the Password Hashing Competition) as the primary algorithm.
+ * PBKDF2-SHA512 is kept as a fallback for verifying existing passwords during migration.
+ *
+ * Argon2id parameters (OWASP recommendations):
+ * - Memory: 64 MiB (65536 KiB)
+ * - Iterations: 3
+ * - Parallelism: 4
+ *
+ * When users log in with old PBKDF2 passwords, they are automatically upgraded to Argon2.
+ */
 
-// Legacy iteration count for verifying old passwords during migration
+// Argon2 configuration (OWASP recommended settings)
+const ARGON2_OPTIONS: argon2.Options = {
+  type: argon2.argon2id,
+  memoryCost: 65536, // 64 MiB
+  timeCost: 3,       // 3 iterations
+  parallelism: 4,    // 4 parallel threads
+  hashLength: 64,    // 64 bytes output
+};
+
+// PBKDF2 legacy configuration (for existing password verification)
+const PBKDF2_ITERATIONS = 210000;
 const LEGACY_PBKDF2_ITERATIONS = 10000;
 
-function hashPassword(password: string, salt: string, iterations: number = PBKDF2_ITERATIONS): string {
+// Argon2 hashes start with $argon2
+const ARGON2_PREFIX = "$argon2";
+
+/**
+ * Hash a password using Argon2id (recommended)
+ */
+async function hashPasswordArgon2(password: string): Promise<string> {
+  return argon2.hash(password, ARGON2_OPTIONS);
+}
+
+/**
+ * Verify a password against an Argon2 hash
+ */
+async function verifyPasswordArgon2(password: string, hash: string): Promise<boolean> {
+  try {
+    return await argon2.verify(hash, password);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Hash a password using PBKDF2 (legacy, for backward compatibility)
+ */
+function hashPasswordPBKDF2(password: string, salt: string, iterations: number = PBKDF2_ITERATIONS): string {
   return crypto.pbkdf2Sync(password, salt, iterations, 64, "sha512").toString("hex");
 }
 
-function verifyPassword(password: string, hash: string, salt: string): boolean {
-  // SECURITY: Try new iteration count first, then fall back to legacy for migration
-  const newHash = hashPassword(password, salt, PBKDF2_ITERATIONS);
-
-  // SECURITY: Use timing-safe comparison to prevent timing attacks
+/**
+ * Verify a password against a PBKDF2 hash (legacy)
+ */
+function verifyPasswordPBKDF2(password: string, hash: string, salt: string): boolean {
+  // Try current iteration count first
+  const newHash = hashPasswordPBKDF2(password, salt, PBKDF2_ITERATIONS);
   try {
     if (crypto.timingSafeEqual(Buffer.from(newHash, 'hex'), Buffer.from(hash, 'hex'))) {
       return true;
     }
   } catch {
-    // If buffers are different lengths, timingSafeEqual throws - password is wrong
+    // Buffer length mismatch - password is wrong
   }
 
-  // Try legacy iteration count for users who haven't updated their password yet
-  const legacyHash = hashPassword(password, salt, LEGACY_PBKDF2_ITERATIONS);
+  // Try legacy iteration count for very old passwords
+  const legacyHash = hashPasswordPBKDF2(password, salt, LEGACY_PBKDF2_ITERATIONS);
   try {
     return crypto.timingSafeEqual(Buffer.from(legacyHash, 'hex'), Buffer.from(hash, 'hex'));
   } catch {
     return false;
+  }
+}
+
+/**
+ * Check if a hash is Argon2 format
+ */
+function isArgon2Hash(hash: string): boolean {
+  return hash.startsWith(ARGON2_PREFIX);
+}
+
+/**
+ * Hash a new password (always uses Argon2)
+ */
+async function hashPassword(password: string): Promise<{ hash: string; salt: string | null }> {
+  const hash = await hashPasswordArgon2(password);
+  return { hash, salt: null }; // Argon2 includes salt in the hash
+}
+
+/**
+ * Verify a password and check if it needs upgrade to Argon2
+ * Returns: { valid: boolean, needsUpgrade: boolean }
+ */
+async function verifyPassword(password: string, hash: string, salt: string | null): Promise<{ valid: boolean; needsUpgrade: boolean }> {
+  // Check if this is an Argon2 hash
+  if (isArgon2Hash(hash)) {
+    const valid = await verifyPasswordArgon2(password, hash);
+    return { valid, needsUpgrade: false };
+  }
+
+  // Legacy PBKDF2 hash - verify and flag for upgrade
+  if (salt) {
+    const valid = verifyPasswordPBKDF2(password, hash, salt);
+    return { valid, needsUpgrade: valid }; // Only upgrade if password is correct
+  }
+
+  return { valid: false, needsUpgrade: false };
+}
+
+/**
+ * Upgrade a user's password hash from PBKDF2 to Argon2
+ * Called automatically on successful login with legacy hash
+ */
+async function upgradePasswordHash(userId: number, password: string): Promise<void> {
+  try {
+    const { hash } = await hashPassword(password);
+    await query(
+      "UPDATE users SET password_hash = ?, salt = NULL WHERE id = ?",
+      [hash, userId]
+    );
+    console.log(`[Auth] Upgraded password hash to Argon2 for user ${userId}`);
+  } catch (error) {
+    console.error(`[Auth] Failed to upgrade password hash for user ${userId}:`, error);
+    // Don't throw - user can still log in with old hash
   }
 }
 
@@ -176,9 +275,8 @@ export async function createUser(
   const isFirstUser = (userCount.rows[0]?.count || 0) === 0;
   const role = isFirstUser ? "admin" : "user";
 
-  // Create user
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = hashPassword(password, salt);
+  // Create user with Argon2 password hash
+  const { hash, salt } = await hashPassword(password);
 
   try {
     await query(
@@ -458,8 +556,10 @@ export async function login(
       };
     }
 
-    // Verify password
-    if (!verifyPassword(password, row.password_hash!, row.salt!)) {
+    // Verify password (async for Argon2 support)
+    const passwordResult = await verifyPassword(password, row.password_hash!, row.salt || null);
+
+    if (!passwordResult.valid) {
       // Track failed attempt
       const failResult = await incrementFailedAttempts(row.id, row.email, row.username);
 
@@ -477,13 +577,23 @@ export async function login(
       };
     }
 
+    // Upgrade password hash to Argon2 if using legacy PBKDF2
+    if (passwordResult.needsUpgrade) {
+      upgradePasswordHash(row.id, password).catch(() => {}); // Fire and forget
+    }
+
     // Clear failed attempts on successful login
     await clearFailedAttempts(row.id);
   } catch (error) {
     // If password-recovery module fails, fall back to basic password check
     console.warn("Password recovery module not available:", error);
-    if (!verifyPassword(password, row.password_hash!, row.salt!)) {
+    const passwordResult = await verifyPassword(password, row.password_hash!, row.salt || null);
+    if (!passwordResult.valid) {
       return { success: false, error: "Invalid credentials" };
+    }
+    // Upgrade password hash to Argon2 if using legacy PBKDF2
+    if (passwordResult.needsUpgrade) {
+      upgradePasswordHash(row.id, password).catch(() => {});
     }
   }
 
@@ -906,7 +1016,8 @@ export async function changePassword(
   const user = result.rows[0];
 
   // Verify current password
-  if (!verifyPassword(currentPassword, user.password_hash, user.salt)) {
+  const passwordResult = await verifyPassword(currentPassword, user.password_hash, user.salt || null);
+  if (!passwordResult.valid) {
     return { success: false, error: "Current password is incorrect" };
   }
 
@@ -919,9 +1030,8 @@ export async function changePassword(
     return { success: false, error: "New password is too long" };
   }
 
-  // Generate new salt and hash
-  const newSalt = crypto.randomBytes(16).toString("hex");
-  const newHash = hashPassword(newPassword, newSalt);
+  // Generate new Argon2 hash (no separate salt needed)
+  const { hash: newHash, salt: newSalt } = await hashPassword(newPassword);
 
   // Update password
   const updateResult = await query(
@@ -958,7 +1068,8 @@ export async function deleteAccount(userId: number, password: string): Promise<C
   }
 
   // Verify password
-  if (!verifyPassword(password, user.password_hash, user.salt)) {
+  const passwordResult = await verifyPassword(password, user.password_hash, user.salt || null);
+  if (!passwordResult.valid) {
     return { success: false, error: "Password is incorrect" };
   }
 

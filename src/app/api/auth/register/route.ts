@@ -2,9 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { createUser, login } from "@/lib/auth";
 import { createCharacter } from "@/lib/database";
 import { sanitizeError } from "@/lib/security";
+import {
+  checkRateLimit,
+  getClientIp,
+  addRateLimitHeaders,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Get client IP for rate limiting
+    const clientIp = getClientIp(request);
+
+    // SECURITY: Apply rate limiting to registration attempts
+    const rateLimitResult = await checkRateLimit(clientIp, "auth");
+    if (!rateLimitResult.allowed) {
+      const response = NextResponse.json(
+        { error: "Too many registration attempts. Please try again later." },
+        { status: 429 }
+      );
+      addRateLimitHeaders(response.headers, rateLimitResult, RATE_LIMITS.auth);
+      return response;
+    }
+
     const body = await request.json();
     const { username, email, password } = body;
 
