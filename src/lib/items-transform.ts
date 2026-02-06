@@ -826,12 +826,17 @@ export class ItemsTransformService {
       const items = response.items.map(dbItem => ({
         id: dbItem.id,
         name: dbItem.name,
+        slug: dbItem.slug,
+        skill: dbItem.skill,
         category: "misc", // Will be enriched when full item is fetched
         is_base_material: dbItem.is_base_material ? 1 : 0,
+        visible: dbItem.visible ?? false,
         description: null,
         difficulty: dbItem.difficulty,
         skill_type: mapSkillType(dbItem.skill),
         base_time: dbItem.base_time_seconds,
+        base_time_seconds: dbItem.base_time_seconds,
+        image_url: dbItem.image_url,
         tool_type: null,
       } as Item));
 
