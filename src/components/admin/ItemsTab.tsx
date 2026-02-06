@@ -42,12 +42,30 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
   const [newCategory, setNewCategory] = useState("");
   const [editingCategories, setEditingCategories] = useState<number | null>(null);
   const [uncategorizedCount, setUncategorizedCount] = useState(0);
+  const [recipeCounts, setRecipeCounts] = useState<Record<number, number>>({});
 
-  // Load categories with counts
+  // Load categories with counts and recipe counts
   useEffect(() => {
     loadCategoriesWithCounts();
     loadUncategorizedCount();
+    loadRecipeCounts();
   }, []);
+
+  const loadRecipeCounts = async () => {
+    try {
+      const res = await fetch("/api/admin/recipe-counts");
+      if (res.ok) {
+        const data = await res.json();
+        const counts: Record<number, number> = {};
+        data.forEach((row: { item_id: number; count: number }) => {
+          counts[row.item_id] = row.count;
+        });
+        setRecipeCounts(counts);
+      }
+    } catch (error) {
+      console.error("Failed to load recipe counts:", error);
+    }
+  };
 
   const loadCategoriesWithCounts = async () => {
     try {
@@ -651,6 +669,7 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                   <th className="pb-2">Skill</th>
                   <th className="pb-2 text-center">Diff</th>
                   <th className="pb-2 text-center">Type</th>
+                  <th className="pb-2 text-center">Recipe</th>
                   <th className="pb-2 text-right">Actions</th>
                 </tr>
               </thead>
@@ -707,6 +726,19 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
                       >
                         {item.is_base_material ? "Base" : "Crafted"}
                       </span>
+                    </td>
+                    <td className="py-2 text-center">
+                      {(recipeCounts[item.id] || 0) > 0 ? (
+                        <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">
+                          {recipeCounts[item.id]}
+                        </span>
+                      ) : item.is_base_material ? (
+                        <span className="text-xs text-text-muted">-</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400" title="Crafted item without recipe">
+                          !
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-1">

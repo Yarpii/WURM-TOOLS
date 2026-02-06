@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Item } from "@/lib/types";
 import AdminGuard from "@/components/AdminGuard";
-import { ItemsTab, MembersTab } from "@/components/admin";
+import { ItemsTab, MembersTab, RecipesTab } from "@/components/admin";
 
-type TabType = "items" | "members";
+type TabType = "items" | "recipes" | "members";
 
 function AdminContent() {
   const [items, setItems] = useState<Item[]>([]);
@@ -41,7 +41,7 @@ function AdminContent() {
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-text-primary mb-2">Admin Panel</h1>
-        <p className="text-text-secondary">Manage items and members</p>
+        <p className="text-text-secondary">Manage items, recipes, and members</p>
       </div>
 
       {/* Message */}
@@ -66,6 +66,12 @@ function AdminContent() {
           Items ({items.length})
         </TabButton>
         <TabButton
+          active={activeTab === "recipes"}
+          onClick={() => setActiveTab("recipes")}
+        >
+          Recipes
+        </TabButton>
+        <TabButton
           active={activeTab === "members"}
           onClick={() => setActiveTab("members")}
         >
@@ -84,6 +90,14 @@ function AdminContent() {
         <ItemsTab
           items={items}
           categories={categories}
+          onDataChange={loadData}
+          showMessage={showMessage}
+        />
+      )}
+
+      {activeTab === "recipes" && (
+        <RecipesTab
+          items={items}
           onDataChange={loadData}
           showMessage={showMessage}
         />
