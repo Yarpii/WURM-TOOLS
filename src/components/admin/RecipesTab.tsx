@@ -392,6 +392,9 @@ function RecipeEditor({
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState("piece");
   const [saving, setSaving] = useState(false);
+  const [copySearch, setCopySearch] = useState("");
+  const [showCopyResults, setShowCopyResults] = useState(false);
+  const [showCopySection, setShowCopySection] = useState(false);
 
   const searchResults = useMemo(() => {
     if (!ingredientSearch || ingredientSearch.length < 2) return [];
@@ -400,6 +403,45 @@ function RecipeEditor({
       .filter(i => i.id !== itemId && i.name.toLowerCase().includes(query))
       .slice(0, 15);
   }, [ingredientSearch, allItems, itemId]);
+
+  const copySearchResults = useMemo(() => {
+    if (!copySearch || copySearch.length < 2) return [];
+    const q = copySearch.toLowerCase();
+    return allItems
+      .filter(i => i.id !== itemId && !i.is_base_material && i.name.toLowerCase().includes(q))
+      .slice(0, 10);
+  }, [copySearch, allItems, itemId]);
+
+  const copyRecipeFrom = async (sourceItem: Item) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/items/${itemId}/recipes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ copy_from: sourceItem.id }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        showMessage("success", `Copied ${data.copied} ingredient${data.copied !== 1 ? "s" : ""} from ${data.source}${data.skipped ? ` (${data.skipped} skipped, already existed)` : ""}`);
+        setCopySearch("");
+        setShowCopyResults(false);
+        setShowCopySection(false);
+        // Reload materials
+        const reloadRes = await fetch(`/api/items/${itemId}/recipes`);
+        if (reloadRes.ok) {
+          const reloadData = await reloadRes.json();
+          onMaterialsChange(reloadData.materials);
+        }
+      } else {
+        const data = await res.json();
+        showMessage("error", data.error || "Failed to copy recipe");
+      }
+    } catch {
+      showMessage("error", "Failed to copy recipe");
+    }
+    setSaving(false);
+  };
 
   const addIngredient = async (materialItem: Item) => {
     setSaving(true);
@@ -504,10 +546,63 @@ function RecipeEditor({
           <h3 className="text-sm font-semibold text-accent">
             Recipe for {itemName}
           </h3>
-          <span className="text-xs text-text-muted">
-            {materials.length} ingredient{materials.length !== 1 ? "s" : ""}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-text-muted">
+              {materials.length} ingredient{materials.length !== 1 ? "s" : ""}
+            </span>
+            <button
+              onClick={() => setShowCopySection(!showCopySection)}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                showCopySection
+                  ? "bg-purple-500/30 text-purple-300"
+                  : "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+              }`}
+            >
+              Copy from...
+            </button>
+          </div>
         </div>
+
+        {/* Copy Recipe From Another Item */}
+        {showCopySection && (
+          <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 space-y-2">
+            <div className="text-xs text-purple-300 font-medium">Copy recipe from another item</div>
+            <p className="text-xs text-text-muted">
+              Search for a similar item and copy all its ingredients. Duplicates are automatically skipped.
+            </p>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search for an item to copy from..."
+                value={copySearch}
+                onChange={(e) => {
+                  setCopySearch(e.target.value);
+                  setShowCopyResults(true);
+                }}
+                onFocus={() => setShowCopyResults(true)}
+                className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              {showCopyResults && copySearchResults.length > 0 && (
+                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-bg-secondary border border-purple-500/30 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  {copySearchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      onClick={() => copyRecipeFrom(result)}
+                      disabled={saving}
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-purple-500/20 transition-colors flex items-center justify-between disabled:opacity-50"
+                    >
+                      <span>{result.name}</span>
+                      <span className="text-xs text-text-muted">{result.skill || "Crafted"}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {copySearch.length > 0 && copySearch.length < 2 && (
+              <p className="text-xs text-text-muted">Type at least 2 characters to search...</p>
+            )}
+          </div>
+        )}
 
         {/* Current Ingredients */}
         {materials.length > 0 ? (

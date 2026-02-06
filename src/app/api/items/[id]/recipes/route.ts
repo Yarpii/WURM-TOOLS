@@ -89,6 +89,73 @@ export async function POST(
     }
 
     const body = await request.json();
+
+    // Handle "copy from" action - bulk copy recipe from another item
+    if (body.copy_from) {
+      const sourceId = parseInt(body.copy_from);
+      if (isNaN(sourceId) || sourceId < 1) {
+        return NextResponse.json({ error: "Invalid source item ID" }, { status: 400 });
+      }
+
+      const sourceItem = await getItem(sourceId);
+      if (!sourceItem) {
+        return NextResponse.json({ error: "Source item not found" }, { status: 404 });
+      }
+
+      // Get source item's recipe materials
+      const sourceMaterials = await query<{
+        material_id: number | null;
+        material_name: string;
+        material_slug: string | null;
+        quantity: number;
+        unit: string;
+        sort_order: number;
+      }>(
+        "SELECT material_id, material_name, material_slug, quantity, unit, sort_order FROM recipe_materials WHERE item_id = ? ORDER BY sort_order",
+        [sourceId]
+      );
+
+      if (sourceMaterials.rows.length === 0) {
+        return NextResponse.json({ error: "Source item has no recipe to copy" }, { status: 400 });
+      }
+
+      let copied = 0;
+      let skipped = 0;
+
+      for (const mat of sourceMaterials.rows) {
+        // Check if this ingredient already exists
+        const existing = await query<{ id: number }>(
+          "SELECT id FROM recipe_materials WHERE item_id = ? AND (material_name = ? OR (material_id IS NOT NULL AND material_id = ?))",
+          [itemId, mat.material_name, mat.material_id ?? -1]
+        );
+
+        if (existing.rows.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        // Get max sort_order for target
+        const maxSort = await query<{ max_sort: number }>(
+          "SELECT COALESCE(MAX(sort_order), -1) as max_sort FROM recipe_materials WHERE item_id = ?",
+          [itemId]
+        );
+
+        await query(
+          `INSERT INTO recipe_materials (item_id, material_id, material_name, material_slug, quantity, unit, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [itemId, mat.material_id, mat.material_name, mat.material_slug, mat.quantity, mat.unit, (maxSort.rows[0]?.max_sort ?? -1) + 1]
+        );
+        copied++;
+      }
+
+      return NextResponse.json({
+        success: true,
+        copied,
+        skipped,
+        source: sourceItem.name,
+      }, { status: 201 });
+    }
+
     const { material_id, material_name, material_slug, quantity, unit } = body;
 
     if (!quantity || quantity <= 0) {
