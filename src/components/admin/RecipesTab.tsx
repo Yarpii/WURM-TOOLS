@@ -41,10 +41,11 @@ interface RecipeData {
 }
 
 /** Format quantity: 12.00 -> "12", 1.50 -> "1.5", 0.20 -> "0.2" */
-function formatQty(qty: number): string {
-  if (Number.isInteger(qty)) return String(qty);
-  // Remove trailing zeros after decimal
-  return parseFloat(qty.toFixed(2)).toString();
+function formatQty(qty: number | string): string {
+  const n = typeof qty === "string" ? parseFloat(qty) : qty;
+  if (isNaN(n)) return "0";
+  if (Number.isInteger(n)) return String(n);
+  return parseFloat(n.toFixed(2)).toString();
 }
 
 interface RecipesTabProps {

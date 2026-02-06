@@ -826,12 +826,17 @@ export class ItemsTransformService {
       const items = response.items.map(dbItem => ({
         id: dbItem.id,
         name: dbItem.name,
+        slug: dbItem.slug,
+        skill: dbItem.skill,
         category: "misc", // Will be enriched when full item is fetched
         is_base_material: dbItem.is_base_material ? 1 : 0,
+        visible: dbItem.visible ?? false,
         description: null,
         difficulty: dbItem.difficulty,
         skill_type: mapSkillType(dbItem.skill),
         base_time: dbItem.base_time_seconds,
+        base_time_seconds: dbItem.base_time_seconds,
+        image_url: dbItem.image_url,
         tool_type: null,
       } as Item));
 
@@ -863,16 +868,34 @@ export class ItemsTransformService {
     item: Item | null;
     materials: MaterialResult[];
     tree: CraftingNode | null;
+    steps: { action: string; target: string; quantity?: number; unit?: string; submenu?: string; raw_text?: string }[];
+    tools: { name: string; slug?: string; is_workstation: boolean }[];
   }> {
     try {
       // Use local database
       const recipe = await getRecipeItemBySlug(slug);
       if (!recipe) {
-        return { item: null, materials: [], tree: null };
+        return { item: null, materials: [], tree: null, steps: [], tools: [] };
       }
 
       const item = transformRecipeDBItemLocal(recipe);
       registerIdSlug(recipe.id, recipe.slug);
+
+      // Extract steps and tools from recipe
+      const steps = recipe.steps.map(step => ({
+        action: step.action,
+        target: step.target_name,
+        quantity: step.target_quantity ?? undefined,
+        unit: step.target_unit ?? undefined,
+        submenu: step.submenu_path ?? undefined,
+        raw_text: step.raw_text ?? undefined,
+      }));
+
+      const tools = recipe.tools.map(tool => ({
+        name: tool.tool_name,
+        slug: tool.tool_slug || undefined,
+        is_workstation: tool.is_workstation,
+      }));
 
       if (mode === "easy") {
         // "Easy" mode: just return direct ingredients from recipe
@@ -897,20 +920,20 @@ export class ItemsTransformService {
           })),
         };
 
-        return { item, materials, tree };
+        return { item, materials, tree, steps, tools };
       } else {
         // "Full" mode: recursively calculate all base materials
         const tree = await buildCraftingTreeFromDBLocal(slug, quantity);
         if (!tree) {
-          return { item, materials: [], tree: null };
+          return { item, materials: [], tree: null, steps, tools };
         }
 
         const materials = collectBaseMaterials(tree);
-        return { item, materials, tree };
+        return { item, materials, tree, steps, tools };
       }
     } catch (error) {
       console.error("Failed to calculate materials from local recipe DB:", error);
-      return { item: null, materials: [], tree: null };
+      return { item: null, materials: [], tree: null, steps: [], tools: [] };
     }
   }
 
