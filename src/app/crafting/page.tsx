@@ -43,7 +43,7 @@ export default function CraftingPage() {
         const res = await fetch("/api/items?source=wurmpedia&visibleOnly=true");
         if (res.ok) {
           const data = await res.json();
-          setItems(data);
+          setItems(data?.data || []);
         }
       } catch (err) {
         console.error("Failed to load items:", err);
@@ -259,7 +259,7 @@ function BasicCalculator() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/items?source=wurmpedia&visibleOnly=true").then((r) => r.json()).then(setItems);
+    fetch("/api/items?source=wurmpedia&visibleOnly=true").then((r) => r.json()).then((json) => setItems(json?.data || []));
   }, []);
 
   useEffect(() => {
@@ -834,8 +834,8 @@ function AdvancedCalculator() {
   useEffect(() => {
     fetch("/api/items?source=wurmpedia&visibleOnly=true")
       .then((r) => r.json())
-      .then((data) => {
-        const craftable = data.filter((i: Item & { is_base_material: number }) => !i.is_base_material);
+      .then((json) => {
+        const craftable = (json?.data || []).filter((i: Item & { is_base_material: number }) => !i.is_base_material);
         setItems(craftable);
       });
   }, []);
@@ -1118,7 +1118,7 @@ function SkillOptimizer() {
   useEffect(() => {
     fetch("/api/items?categories=true&source=wurmpedia")
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setCategories(data); });
+      .then((json) => { if (Array.isArray(json?.data)) setCategories(json.data); });
   }, []);
 
   const optimize = useCallback(async () => {

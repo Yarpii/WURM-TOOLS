@@ -27,8 +27,10 @@ function AdminContent() {
       fetch("/api/items?source=wurmpedia"),
       fetch("/api/items?categories=1&source=wurmpedia"),
     ]);
-    setItems(await itemsRes.json());
-    setCategories(await categoriesRes.json());
+    const itemsData = await itemsRes.json();
+    const categoriesData = await categoriesRes.json();
+    setItems(itemsData?.data || []);
+    setCategories(categoriesData?.data || []);
   };
 
   const showMessage = (type: "success" | "error", text: string) => {

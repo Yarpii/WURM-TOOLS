@@ -55,9 +55,9 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     try {
       const res = await fetch("/api/admin/recipe-counts");
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
         const counts: Record<number, number> = {};
-        data.forEach((row: { item_id: number; count: number }) => {
+        (json?.data || []).forEach((row: { item_id: number; count: number }) => {
           counts[row.item_id] = row.count;
         });
         setRecipeCounts(counts);
@@ -71,8 +71,8 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     try {
       const res = await fetch("/api/categories?counts=1");
       if (res.ok) {
-        const data = await res.json();
-        setCategoriesWithCounts(data);
+        const json = await res.json();
+        setCategoriesWithCounts(json?.data || []);
       }
     } catch (error) {
       console.error("Failed to load categories:", error);
@@ -83,8 +83,8 @@ export default function ItemsTab({ items, categories, onDataChange, showMessage 
     try {
       const res = await fetch("/api/categories?uncategorized=1");
       if (res.ok) {
-        const data = await res.json();
-        setUncategorizedCount(data.length);
+        const json = await res.json();
+        setUncategorizedCount((json?.data || []).length);
       }
     } catch (error) {
       console.error("Failed to load uncategorized count:", error);

@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     if (source === "wurmpedia") {
       if (categoriesOnly) {
         const categories = await itemsTransformService.getCategories();
-        return NextResponse.json(categories);
+        return NextResponse.json({ data: categories });
       }
 
       if (query) {
@@ -39,26 +39,26 @@ export async function GET(request: Request) {
         if (visibleOnly) {
           const allVisible = await itemsTransformService.getAllItemsFromDB({ visibleOnly: true });
           const visibleIds = new Set(allVisible.map(i => i.id));
-          return NextResponse.json(items.filter(i => visibleIds.has(i.id)));
+          return NextResponse.json({ data: items.filter(i => visibleIds.has(i.id)) });
         }
-        return NextResponse.json(items);
+        return NextResponse.json({ data: items });
       }
 
       // Use recipe database as primary source (has better structured data)
       const items = await itemsTransformService.getAllItemsFromDB({ visibleOnly });
-      return NextResponse.json(items);
+      return NextResponse.json({ data: items });
     }
 
     // Default: use local database
     if (categoriesOnly) {
       const categories = await getCategories();
-      return NextResponse.json(categories);
+      return NextResponse.json({ data: categories });
     }
 
     if (query) {
       // Search results are typically smaller, no pagination needed
       const items = await searchItems(query);
-      return NextResponse.json(items);
+      return NextResponse.json({ data: items });
     }
 
     // SECURITY: Use paginated version for large datasets
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
 
     // Backwards compatible: return all items (but getAllItems is still bounded by database size)
     const items = await getAllItems();
-    return NextResponse.json(items);
+    return NextResponse.json({ data: items });
   } catch (error) {
     return NextResponse.json(
       { error: sanitizeError(error, "Fetch items") },

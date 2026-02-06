@@ -190,7 +190,8 @@ class ItemsAPI {
   }
 
   async getCategories(): Promise<Category[]> {
-    return this.fetch("/api/categories");
+    const result = await this.fetch<{ data: Category[] }>("/api/categories");
+    return result.data;
   }
 
   async search(query: string, type?: string): Promise<ItemSearchResult[]> {
