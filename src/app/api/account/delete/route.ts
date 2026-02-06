@@ -43,6 +43,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // COMPLIANCE: Log account deletion for audit trail
+    console.log(
+      `[AUDIT] Account deleted: user_id=${session.user.id}, username=${session.user.username}, timestamp=${new Date().toISOString()}`
+    );
+
     // Clear the session cookie
     const response = NextResponse.json({
       success: true,

@@ -7,7 +7,7 @@ import {
   unbanUser,
   deleteUser,
 } from "@/lib/auth";
-import { sanitizeError } from "@/lib/security";
+import { sanitizeError, INPUT_LIMITS } from "@/lib/security";
 
 // GET /api/admin/members/[id] - Get user details (admin only)
 export async function GET(
@@ -86,6 +86,32 @@ export async function PUT(
     // Validate role
     if (role !== undefined && !["user", "admin"].includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
+    // Validate string field lengths (match profile route validation)
+    if (display_name !== undefined && display_name.length > INPUT_LIMITS.displayName.max) {
+      return NextResponse.json(
+        { error: `Display name must be ${INPUT_LIMITS.displayName.max} characters or less` },
+        { status: 400 }
+      );
+    }
+    if (bio !== undefined && bio.length > INPUT_LIMITS.bio.max) {
+      return NextResponse.json(
+        { error: `Bio must be ${INPUT_LIMITS.bio.max} characters or less` },
+        { status: 400 }
+      );
+    }
+    if (location !== undefined && location.length > INPUT_LIMITS.location.max) {
+      return NextResponse.json(
+        { error: `Location must be ${INPUT_LIMITS.location.max} characters or less` },
+        { status: 400 }
+      );
+    }
+    if (wurm_server !== undefined && wurm_server.length > INPUT_LIMITS.server.max) {
+      return NextResponse.json(
+        { error: `Wurm server must be ${INPUT_LIMITS.server.max} characters or less` },
+        { status: 400 }
+      );
     }
 
     // Prevent removing admin from self

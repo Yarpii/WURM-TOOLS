@@ -53,6 +53,17 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { show_in_members_list, show_email, show_location } = body;
 
+    // Validate boolean types to prevent type coercion issues
+    const booleanFields = { show_in_members_list, show_email, show_location };
+    for (const [key, value] of Object.entries(booleanFields)) {
+      if (value !== undefined && typeof value !== "boolean") {
+        return NextResponse.json(
+          { error: `${key} must be a boolean` },
+          { status: 400 }
+        );
+      }
+    }
+
     const success = await updateUserSettings(session.user.id, {
       show_in_members_list,
       show_email,

@@ -582,7 +582,7 @@ export async function login(
 
     // Upgrade password hash to Argon2 if using legacy PBKDF2
     if (passwordResult.needsUpgrade) {
-      upgradePasswordHash(row.id, password).catch(() => {}); // Fire and forget
+      upgradePasswordHash(row.id, password); // Fire and forget (function has internal error handling)
     }
 
     // Clear failed attempts on successful login
@@ -596,7 +596,7 @@ export async function login(
     }
     // Upgrade password hash to Argon2 if using legacy PBKDF2
     if (passwordResult.needsUpgrade) {
-      upgradePasswordHash(row.id, password).catch(() => {});
+      upgradePasswordHash(row.id, password); // Fire and forget (function has internal error handling)
     }
   }
 
@@ -1165,8 +1165,14 @@ export async function getSessionAsync(): Promise<AsyncSessionResult | null> {
       username: result.user.username,
       role: result.user.role,
     };
-  } catch {
-    // If cookies() is not available (e.g., during build), return null
+  } catch (error) {
+    // Log unexpected errors for debugging (but not build-time cookies() errors)
+    if (error instanceof Error) {
+      const isBuildTimeError = error.message.includes("cookies") || error.message.includes("headers");
+      if (!isBuildTimeError) {
+        console.error("[Auth] Unexpected error in getSessionAsync:", error.message);
+      }
+    }
     return null;
   }
 }

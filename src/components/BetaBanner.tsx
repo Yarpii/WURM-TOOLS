@@ -1,21 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function BetaBanner() {
-  const [isVisible, setIsVisible] = useState(() => {
-    // Check if user has dismissed the banner (stored in localStorage)
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('betaBannerDismissed') !== 'true';
-    }
-    return true;
-  });
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // Only check localStorage on client after hydration
+    const dismissed = localStorage.getItem('betaBannerDismissed') === 'true';
+    setIsVisible(!dismissed);
+  }, []);
 
   const handleDismiss = () => {
     setIsVisible(false);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('betaBannerDismissed', 'true');
-    }
+    localStorage.setItem('betaBannerDismissed', 'true');
   };
 
   if (!isVisible) return null;

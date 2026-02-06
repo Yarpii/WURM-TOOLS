@@ -1,4 +1,6 @@
-const CACHE_NAME = 'wurm-tools-v1';
+// Cache version - update this when deploying new code to invalidate old caches
+const CACHE_VERSION = 2;
+const CACHE_NAME = `wurm-tools-v${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
   '/crafting',
@@ -24,7 +26,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name.startsWith('wurm-tools-') && name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })

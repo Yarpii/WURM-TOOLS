@@ -8,6 +8,7 @@ import {
   deleteWebhook,
 } from "@/lib/database";
 import { sanitizeError } from "@/lib/security";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { CreateWebhookInput } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -184,6 +185,18 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             { error: "Webhook ID is required" },
             { status: 400 }
+          );
+        }
+
+        // Rate limit webhook tests to prevent abuse/DoS of external services
+        const testLimit = await checkRateLimit(
+          `webhook-test:${result.user.id}:${webhook_id}`,
+          "expensive"
+        );
+        if (!testLimit.allowed) {
+          return NextResponse.json(
+            { error: "Too many test attempts. Please try again later." },
+            { status: 429, headers: { "Retry-After": testLimit.retryAfter?.toString() || "60" } }
           );
         }
 

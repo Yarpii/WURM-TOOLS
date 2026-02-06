@@ -25,8 +25,12 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    // Refresh session expiry
-    await refreshSession(sessionId);
+    // Refresh session expiry (non-blocking - session could expire between check and refresh)
+    try {
+      await refreshSession(sessionId);
+    } catch {
+      // Session may have expired right after validation - safe to ignore
+    }
 
     return NextResponse.json({
       authenticated: true,

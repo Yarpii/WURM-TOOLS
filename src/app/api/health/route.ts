@@ -38,10 +38,20 @@ export async function GET() {
 
   const responseTime = Date.now() - startTime;
 
+  // SECURITY: Only expose timing data in non-production environments
+  const isProduction = process.env.NODE_ENV === "production";
+
   return NextResponse.json(
     {
-      ...health,
-      responseTime,
+      status: health.status,
+      timestamp: health.timestamp,
+      environment: health.environment,
+      version: health.version,
+      database: {
+        connected: health.database.connected,
+        ...(!isProduction && { responseTime: health.database.responseTime }),
+      },
+      ...(!isProduction && { uptime: health.uptime, responseTime }),
     },
     {
       status: health.status === "ok" ? 200 : 503,
