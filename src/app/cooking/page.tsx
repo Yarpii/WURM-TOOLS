@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import InfoSection from "@/components/InfoSection";
 import type {
   CookingCooker,
   CookingContainer,
@@ -824,6 +825,7 @@ export default function CookingPage() {
         </div>
 
         {/* Feature Sections */}
+        <InfoSection>
         <div className="mt-16 space-y-16">
           {/* Master Wurm Cooking */}
           <div>
@@ -962,6 +964,7 @@ export default function CookingPage() {
             )}
           </div>
         </div>
+        </InfoSection>
       </div>
     </div>
   );

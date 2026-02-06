@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import type { CommunityResource, ResourceType } from "@/lib/types";
 import Link from "next/link";
+import InfoSection from "@/components/InfoSection";
 
 const RESOURCE_TYPES: { value: ResourceType; label: string; icon: string; color: string }[] = [
   { value: "guide", label: "Guides", icon: "📖", color: "#3b82f6" },
@@ -567,6 +568,7 @@ export default function ResourcesPage() {
         </div>
       )}
 
+      <InfoSection>
       {/* ============================================ */}
       {/* Feature Sections - Resources Theme */}
       {/* ============================================ */}
@@ -809,6 +811,7 @@ export default function ResourcesPage() {
           </div>
         </div>
       </div>
+      </InfoSection>
     </div>
   );
 }

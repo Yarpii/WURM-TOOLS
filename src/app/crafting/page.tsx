@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 import { SliderInput, StatBox } from "@/components/crafting";
+import InfoSection from "@/components/InfoSection";
 import type {
   Tab,
   CalcMode,
@@ -104,6 +105,7 @@ export default function CraftingPage() {
         {activeTab === "session" && <SessionPlanner items={items} />}
 
         {/* Feature Sections */}
+        <InfoSection>
         <div className="mt-16 space-y-16">
           {/* Master Your Craft */}
           <div>
@@ -228,6 +230,7 @@ export default function CraftingPage() {
             </Link>
           </div>
         </div>
+        </InfoSection>
       </div>
     </div>
   );

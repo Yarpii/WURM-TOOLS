@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import InfoSection from "@/components/InfoSection";
 import type { MarketOrder, OrderType, OrderStatus } from "@/lib/types";
 
 type TabType = "browse" | "create" | "my-orders";
@@ -757,6 +758,7 @@ export default function MarketPage() {
       {/* ========== FEATURE SECTIONS BELOW MAIN CONTENT ========== */}
 
       {/* How It Works Section */}
+      <InfoSection>
       <section className="mt-16 pt-16 border-t border-border">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium mb-4">
@@ -1055,6 +1057,7 @@ export default function MarketPage() {
           </div>
         </div>
       </section>
+      </InfoSection>
     </div>
   );
 }

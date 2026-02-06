@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import type { TrendingItem, PriceHistory, PriceAnalytics, PriceAlert, MarketOrder } from "@/lib/types";
+import InfoSection from "@/components/InfoSection";
 
 type TabType = "overview" | "search" | "alerts";
 
@@ -771,6 +772,7 @@ export default function AnalyticsPage() {
         </div>
       </section>
 
+      <InfoSection>
       {/* CTA Section */}
       <section className="mt-16 pt-16 border-t border-border pb-8">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500/10 to-pink-600/10 border border-rose-500/20 p-8 md:p-12">
@@ -816,6 +818,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </section>
+      </InfoSection>
     </div>
   );
 }

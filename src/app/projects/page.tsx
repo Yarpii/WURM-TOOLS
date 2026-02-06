@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import type { Project, ProjectItem, ProjectMaterial, Item, ProjectStatus } from "@/lib/types";
+import InfoSection from "@/components/InfoSection";
 
 type TabType = "my-projects" | "create" | "shared";
 
@@ -652,6 +653,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      <InfoSection>
       {/* Feature Sections */}
       {/* Plan Your Builds */}
       <div className="mt-16 mb-12">
@@ -800,6 +802,7 @@ export default function ProjectsPage() {
           Create a Project
         </button>
       </div>
+      </InfoSection>
     </div>
   );
 }

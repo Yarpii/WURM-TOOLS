@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { RoleBadge } from "@/components/RoleBadge";
+import InfoSection from "@/components/InfoSection";
 
 interface UserRole {
   role_name: string;
@@ -198,6 +199,7 @@ export default function MembersPage() {
       )}
 
       {/* Feature Sections */}
+      <InfoSection>
       {/* Meet the Community */}
       <div className="mt-16 mb-12">
         <h2 className="text-2xl font-bold text-text-primary mb-6 text-center">
@@ -346,6 +348,7 @@ export default function MembersPage() {
           Update Profile Settings
         </Link>
       </div>
+      </InfoSection>
     </div>
   );
 }

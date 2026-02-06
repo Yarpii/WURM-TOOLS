@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import type { WurmEvent, EventType, AttendeeStatus, WurmServer } from "@/lib/types";
+import InfoSection from "@/components/InfoSection";
 
 const EVENT_TYPES: { value: EventType; label: string; icon: string; color: string }[] = [
   { value: "impalong", label: "Impalong", icon: "🔨", color: "#f59e0b" },
@@ -637,6 +638,7 @@ export default function EventsPage() {
           </div>
         )}
 
+        <InfoSection>
         {/* ============================================ */}
         {/* Feature Sections - Events Theme */}
         {/* ============================================ */}
@@ -879,6 +881,7 @@ export default function EventsPage() {
             </div>
           </div>
         </div>
+        </InfoSection>
       </div>
     </div>
   );

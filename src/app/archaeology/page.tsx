@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import type { ArchaeologyPinpoint, ArchaeologySiteType } from "@/lib/types";
+import InfoSection from "@/components/InfoSection";
 
 // Site types for dropdown
 const SITE_TYPES: { value: ArchaeologySiteType; label: string; icon: string }[] = [
@@ -857,6 +858,7 @@ export default function ArchaeologyPage() {
           </div>
         )}
 
+        <InfoSection>
         {/* ============================================ */}
         {/* Feature Sections - Archaeology Theme */}
         {/* ============================================ */}
@@ -1103,6 +1105,7 @@ export default function ArchaeologyPage() {
             </div>
           </div>
         </div>
+        </InfoSection>
       </div>
     </div>
   );
