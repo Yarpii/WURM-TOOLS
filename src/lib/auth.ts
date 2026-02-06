@@ -582,7 +582,7 @@ export async function login(
 
     // Upgrade password hash to Argon2 if using legacy PBKDF2
     if (passwordResult.needsUpgrade) {
-      upgradePasswordHash(row.id, password).catch(() => {}); // Fire and forget
+      upgradePasswordHash(row.id, password); // Fire and forget (function has internal error handling)
     }
 
     // Clear failed attempts on successful login
@@ -596,7 +596,7 @@ export async function login(
     }
     // Upgrade password hash to Argon2 if using legacy PBKDF2
     if (passwordResult.needsUpgrade) {
-      upgradePasswordHash(row.id, password).catch(() => {});
+      upgradePasswordHash(row.id, password); // Fire and forget (function has internal error handling)
     }
   }
 
