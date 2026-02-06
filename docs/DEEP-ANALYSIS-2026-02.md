@@ -334,13 +334,13 @@ Some routes return `{ success: true, profile: {...} }`, others `{ members: [...]
 - [x] #8 - Implement versioned service worker cache invalidation
 - [x] #14 - Improve HTML sanitization (strip tags, remove control chars)
 - [x] #15 - Handle session refresh race condition
-- [ ] #16 - Standardize API response format (deferred - high risk, touches 100+ routes)
+- [x] #16 - Standardize API response format: created `api-response.ts` helper, wrapped raw array endpoints in `{ data: [...] }`, updated all frontend consumers
 - [x] #17 - Fix BetaBanner hydration pattern (useEffect instead of useState initializer)
 - [x] #18 - Add scope and split icon purposes in PWA manifest
 - [x] #19 - Add size-based cleanup to in-memory rate limiter
 - [x] #20 - Enable noFallthroughCasesInSwitch and forceConsistentCasingInFileNames
 
-**19 of 20 issues resolved. #16 (API response standardization) deferred as it requires a coordinated effort across 100+ endpoints.**
+**All 20 issues resolved.**
 
 ---
 
