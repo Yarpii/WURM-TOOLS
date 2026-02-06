@@ -1,4 +1,4 @@
-import { query } from "./core";
+import { query, withTransaction } from "./core";
 import { getAllItems, getAllRecipes, getItemByName, updateItem, addItem, addRecipeIngredient } from "./items";
 import type { Item, RecipeWithNames, ImportStats } from "../types";
 
@@ -92,8 +92,10 @@ export async function importFromJson(data: {
 }
 
 export async function clearAllData(): Promise<void> {
-  await query("DELETE FROM recipe_materials");
-  await query("DELETE FROM items");
+  await withTransaction(async (client) => {
+    await client.query("DELETE FROM recipe_materials");
+    await client.query("DELETE FROM items");
+  });
 }
 
 export async function getStats(): Promise<{

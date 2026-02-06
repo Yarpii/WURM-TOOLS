@@ -76,14 +76,29 @@ export function getDatabaseConfig(): DatabaseConfig {
   }
 
   const parsed = parseMySQLConnectionString(databaseUrl);
+
+  // Validate pool configuration bounds
+  const poolMin = parseInt(process.env.DATABASE_POOL_MIN || '2', 10);
+  const poolMax = parseInt(process.env.DATABASE_POOL_MAX || '10', 10);
+
+  if (isNaN(poolMin) || poolMin < 1 || poolMin > 50) {
+    throw new Error('DATABASE_POOL_MIN must be a number between 1 and 50');
+  }
+  if (isNaN(poolMax) || poolMax < 1 || poolMax > 100) {
+    throw new Error('DATABASE_POOL_MAX must be a number between 1 and 100');
+  }
+  if (poolMin > poolMax) {
+    throw new Error(`DATABASE_POOL_MIN (${poolMin}) cannot be greater than DATABASE_POOL_MAX (${poolMax})`);
+  }
+
   return {
     connectionString: databaseUrl,
     ...parsed,
     ssl: process.env.DATABASE_SSL === 'true'
       ? { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' }
       : false,
-    poolMin: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),
-    poolMax: parseInt(process.env.DATABASE_POOL_MAX || '10', 10),
+    poolMin,
+    poolMax,
   };
 }
 
