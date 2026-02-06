@@ -14,6 +14,39 @@ interface RecipeMaterial {
   sort_order: number;
 }
 
+interface RecipeStep {
+  id: number;
+  step_order: number;
+  action: string;
+  target_name: string;
+  target_slug: string | null;
+  target_quantity: number | null;
+  target_unit: string | null;
+  submenu_path: string | null;
+  raw_text: string | null;
+}
+
+interface RecipeTool {
+  id: number;
+  tool_id: number | null;
+  tool_name: string;
+  tool_slug: string | null;
+  is_workstation: boolean;
+}
+
+interface RecipeData {
+  materials: RecipeMaterial[];
+  steps: RecipeStep[];
+  tools: RecipeTool[];
+}
+
+/** Format quantity: 12.00 -> "12", 1.50 -> "1.5", 0.20 -> "0.2" */
+function formatQty(qty: number): string {
+  if (Number.isInteger(qty)) return String(qty);
+  // Remove trailing zeros after decimal
+  return parseFloat(qty.toFixed(2)).toString();
+}
+
 interface RecipesTabProps {
   items: Item[];
   onDataChange: () => void;
@@ -28,7 +61,7 @@ export default function RecipesTab({ items, onDataChange, showMessage }: Recipes
   const [filterType, setFilterType] = useState<"all" | "base" | "crafted" | "no-recipe" | "has-recipe">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
-  const [recipeMaterials, setRecipeMaterials] = useState<Record<number, RecipeMaterial[]>>({});
+  const [recipeData, setRecipeData] = useState<Record<number, RecipeData>>({});
   const [materialCounts, setMaterialCounts] = useState<Record<number, number>>({});
   const [loadingRecipe, setLoadingRecipe] = useState<number | null>(null);
 
@@ -85,16 +118,20 @@ export default function RecipesTab({ items, onDataChange, showMessage }: Recipes
     setCurrentPage(1);
   }, [searchQuery, filterSkill, filterType]);
 
-  const loadRecipeMaterials = useCallback(async (itemId: number) => {
+  const loadRecipeData = useCallback(async (itemId: number) => {
     setLoadingRecipe(itemId);
     try {
       const res = await fetch(`/api/items/${itemId}/recipes`);
       if (res.ok) {
         const data = await res.json();
-        setRecipeMaterials(prev => ({ ...prev, [itemId]: data.materials }));
+        setRecipeData(prev => ({ ...prev, [itemId]: {
+          materials: data.materials || [],
+          steps: data.steps || [],
+          tools: data.tools || [],
+        }}));
       }
     } catch {
-      showMessage("error", "Failed to load recipe materials");
+      showMessage("error", "Failed to load recipe data");
     }
     setLoadingRecipe(null);
   }, [showMessage]);
@@ -104,11 +141,11 @@ export default function RecipesTab({ items, onDataChange, showMessage }: Recipes
       setExpandedItem(null);
     } else {
       setExpandedItem(itemId);
-      if (!recipeMaterials[itemId]) {
-        loadRecipeMaterials(itemId);
+      if (!recipeData[itemId]) {
+        loadRecipeData(itemId);
       }
     }
-  }, [expandedItem, recipeMaterials, loadRecipeMaterials]);
+  }, [expandedItem, recipeData, loadRecipeData]);
 
   const craftedWithoutRecipe = useMemo(() => {
     return items.filter(i => !i.is_base_material && (materialCounts[i.id] || 0) === 0).length;
@@ -219,12 +256,12 @@ export default function RecipesTab({ items, onDataChange, showMessage }: Recipes
                   materialCount={materialCounts[item.id] || 0}
                   isExpanded={expandedItem === item.id}
                   isLoading={loadingRecipe === item.id}
-                  materials={recipeMaterials[item.id]}
+                  recipe={recipeData[item.id]}
                   allItems={items}
                   onToggle={() => toggleExpand(item.id)}
-                  onMaterialsChange={(materials) => {
-                    setRecipeMaterials(prev => ({ ...prev, [item.id]: materials }));
-                    setMaterialCounts(prev => ({ ...prev, [item.id]: materials.length }));
+                  onRecipeChange={(recipe) => {
+                    setRecipeData(prev => ({ ...prev, [item.id]: recipe }));
+                    setMaterialCounts(prev => ({ ...prev, [item.id]: recipe.materials.length }));
                   }}
                   showMessage={showMessage}
                 />
@@ -285,20 +322,20 @@ function ItemRow({
   materialCount,
   isExpanded,
   isLoading,
-  materials,
+  recipe,
   allItems,
   onToggle,
-  onMaterialsChange,
+  onRecipeChange,
   showMessage,
 }: {
   item: Item;
   materialCount: number;
   isExpanded: boolean;
   isLoading: boolean;
-  materials: RecipeMaterial[] | undefined;
+  recipe: RecipeData | undefined;
   allItems: Item[];
   onToggle: () => void;
-  onMaterialsChange: (materials: RecipeMaterial[]) => void;
+  onRecipeChange: (recipe: RecipeData) => void;
   showMessage: (type: "success" | "error", text: string) => void;
 }) {
   return (
@@ -353,10 +390,11 @@ function ItemRow({
             <RecipeEditor
               itemId={item.id}
               itemName={item.name}
+              itemSkill={item.skill}
               isLoading={isLoading}
-              materials={materials || []}
+              recipe={recipe || { materials: [], steps: [], tools: [] }}
               allItems={allItems}
-              onMaterialsChange={onMaterialsChange}
+              onRecipeChange={onRecipeChange}
               showMessage={showMessage}
             />
           </td>
@@ -366,24 +404,27 @@ function ItemRow({
   );
 }
 
-// Recipe Editor - inline editor for an item's ingredients
+// Recipe Editor - inline editor for an item's ingredients, steps, and tools
 function RecipeEditor({
   itemId,
   itemName,
+  itemSkill,
   isLoading,
-  materials,
+  recipe,
   allItems,
-  onMaterialsChange,
+  onRecipeChange,
   showMessage,
 }: {
   itemId: number;
   itemName: string;
+  itemSkill?: string | null;
   isLoading: boolean;
-  materials: RecipeMaterial[];
+  recipe: RecipeData;
   allItems: Item[];
-  onMaterialsChange: (materials: RecipeMaterial[]) => void;
+  onRecipeChange: (recipe: RecipeData) => void;
   showMessage: (type: "success" | "error", text: string) => void;
 }) {
+  const { materials, steps, tools } = recipe;
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [newQuantity, setNewQuantity] = useState("1");
@@ -395,6 +436,26 @@ function RecipeEditor({
   const [copySearch, setCopySearch] = useState("");
   const [showCopyResults, setShowCopyResults] = useState(false);
   const [showCopySection, setShowCopySection] = useState(false);
+  // Step form
+  const [newStepAction, setNewStepAction] = useState("activate");
+  const [newStepTarget, setNewStepTarget] = useState("");
+  const [newStepSubmenu, setNewStepSubmenu] = useState("");
+  // Tool form
+  const [newToolSearch, setNewToolSearch] = useState("");
+  const [showToolResults, setShowToolResults] = useState(false);
+  const [newToolIsWorkstation, setNewToolIsWorkstation] = useState(false);
+
+  const reloadRecipe = async () => {
+    const res = await fetch(`/api/items/${itemId}/recipes`);
+    if (res.ok) {
+      const data = await res.json();
+      onRecipeChange({
+        materials: data.materials || [],
+        steps: data.steps || [],
+        tools: data.tools || [],
+      });
+    }
+  };
 
   const searchResults = useMemo(() => {
     if (!ingredientSearch || ingredientSearch.length < 2) return [];
@@ -412,6 +473,14 @@ function RecipeEditor({
       .slice(0, 10);
   }, [copySearch, allItems, itemId]);
 
+  const toolSearchResults = useMemo(() => {
+    if (!newToolSearch || newToolSearch.length < 2) return [];
+    const q = newToolSearch.toLowerCase();
+    return allItems
+      .filter(i => i.name.toLowerCase().includes(q))
+      .slice(0, 10);
+  }, [newToolSearch, allItems]);
+
   const copyRecipeFrom = async (sourceItem: Item) => {
     setSaving(true);
     try {
@@ -427,12 +496,7 @@ function RecipeEditor({
         setCopySearch("");
         setShowCopyResults(false);
         setShowCopySection(false);
-        // Reload materials
-        const reloadRes = await fetch(`/api/items/${itemId}/recipes`);
-        if (reloadRes.ok) {
-          const reloadData = await reloadRes.json();
-          onMaterialsChange(reloadData.materials);
-        }
+        await reloadRecipe();
       } else {
         const data = await res.json();
         showMessage("error", data.error || "Failed to copy recipe");
@@ -463,12 +527,7 @@ function RecipeEditor({
         setIngredientSearch("");
         setShowSearchResults(false);
         setNewQuantity("1");
-        // Reload materials
-        const reloadRes = await fetch(`/api/items/${itemId}/recipes`);
-        if (reloadRes.ok) {
-          const data = await reloadRes.json();
-          onMaterialsChange(data.materials);
-        }
+        await reloadRecipe();
       } else {
         const data = await res.json();
         showMessage("error", data.error || "Failed to add ingredient");
@@ -495,12 +554,7 @@ function RecipeEditor({
       if (res.ok) {
         showMessage("success", "Ingredient updated");
         setEditingMaterial(null);
-        // Reload materials
-        const reloadRes = await fetch(`/api/items/${itemId}/recipes`);
-        if (reloadRes.ok) {
-          const data = await reloadRes.json();
-          onMaterialsChange(data.materials);
-        }
+        await reloadRecipe();
       } else {
         const data = await res.json();
         showMessage("error", data.error || "Failed to update ingredient");
@@ -521,7 +575,7 @@ function RecipeEditor({
 
       if (res.ok) {
         showMessage("success", `Removed ${materialName}`);
-        onMaterialsChange(materials.filter(m => m.id !== recipeId));
+        onRecipeChange({ ...recipe, materials: materials.filter(m => m.id !== recipeId) });
       } else {
         const data = await res.json();
         showMessage("error", data.error || "Failed to remove ingredient");
@@ -652,7 +706,7 @@ function RecipeEditor({
                     />
                     <span className="text-sm text-white flex-1">{mat.material_name}</span>
                     <span className="text-sm text-text-secondary">
-                      {mat.quantity} {mat.unit}
+                      {formatQty(mat.quantity)}x {mat.unit === "kg" ? "kg" : ""}
                     </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
@@ -739,7 +793,249 @@ function RecipeEditor({
             <p className="text-xs text-text-muted mt-1">Type at least 2 characters to search...</p>
           )}
         </div>
+
+        {/* ========== CREATION STEPS ========== */}
+        <div className="border-t border-border/50 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-text-secondary font-medium">Creation Steps</div>
+            <span className="text-xs text-text-muted">{steps.length} step{steps.length !== 1 ? "s" : ""}</span>
+          </div>
+
+          {steps.length > 0 ? (
+            <div className="space-y-1 mb-3">
+              {steps.map((step) => (
+                <div
+                  key={step.id}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-bg-secondary/50 hover:bg-bg-secondary group"
+                >
+                  <span className="text-xs font-mono text-text-muted w-5 text-right flex-shrink-0">{step.step_order}.</span>
+                  <StepDisplay step={step} />
+                  <button
+                    onClick={async () => {
+                      const res = await fetch(`/api/items/${itemId}/recipes?step_id=${step.id}`, { method: "DELETE" });
+                      if (res.ok) {
+                        onRecipeChange({ ...recipe, steps: steps.filter(s => s.id !== step.id) });
+                        showMessage("success", "Step removed");
+                      }
+                    }}
+                    className="px-2 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-3 text-text-muted text-xs border border-dashed border-border rounded-lg mb-3">
+              No creation steps defined.
+            </div>
+          )}
+
+          {/* Add Step */}
+          <div className="flex gap-2 items-center">
+            <select
+              value={newStepAction}
+              onChange={(e) => setNewStepAction(e.target.value)}
+              className="px-2 py-1.5 bg-bg-tertiary border border-border rounded-lg text-xs text-white"
+            >
+              <option value="activate">Activate</option>
+              <option value="right-click">Right-click</option>
+              <option value="submenu">Open submenu</option>
+              <option value="unknown">Other/Unknown</option>
+            </select>
+            <input
+              type="text"
+              value={newStepTarget}
+              onChange={(e) => setNewStepTarget(e.target.value)}
+              placeholder={newStepAction === "submenu" ? "e.g. Create > Carts" : "e.g. plank, anvil..."}
+              className="flex-1 px-2 py-1.5 bg-bg-tertiary border border-border rounded-lg text-xs text-white"
+            />
+            {newStepAction === "submenu" && (
+              <input
+                type="text"
+                value={newStepSubmenu}
+                onChange={(e) => setNewStepSubmenu(e.target.value)}
+                placeholder="Submenu path"
+                className="w-40 px-2 py-1.5 bg-bg-tertiary border border-border rounded-lg text-xs text-white"
+              />
+            )}
+            <button
+              onClick={async () => {
+                if (!newStepTarget.trim()) return;
+                setSaving(true);
+                const res = await fetch(`/api/items/${itemId}/recipes`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    type: "step",
+                    action: newStepAction,
+                    target_name: newStepTarget.trim(),
+                    submenu_path: newStepAction === "submenu" ? (newStepSubmenu.trim() || newStepTarget.trim()) : null,
+                    raw_text: newStepAction === "activate" ? `Activate ${newStepTarget.trim()}`
+                      : newStepAction === "right-click" ? `Right-click ${newStepTarget.trim()}`
+                      : newStepAction === "submenu" ? `Open submenu "${newStepSubmenu.trim() || newStepTarget.trim()}"`
+                      : newStepTarget.trim(),
+                  }),
+                });
+                if (res.ok) {
+                  setNewStepTarget("");
+                  setNewStepSubmenu("");
+                  await reloadRecipe();
+                  showMessage("success", "Step added");
+                }
+                setSaving(false);
+              }}
+              disabled={saving || !newStepTarget.trim()}
+              className="px-3 py-1.5 bg-accent/20 text-accent hover:bg-accent/30 rounded-lg text-xs disabled:opacity-50 flex-shrink-0"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        {/* ========== TOOLS ========== */}
+        <div className="border-t border-border/50 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-text-secondary font-medium">Required Tools</div>
+            <span className="text-xs text-text-muted">{tools.length} tool{tools.length !== 1 ? "s" : ""}</span>
+          </div>
+
+          {tools.length > 0 ? (
+            <div className="space-y-1 mb-3">
+              {tools.map((tool) => (
+                <div
+                  key={tool.id}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-bg-secondary/50 hover:bg-bg-secondary group"
+                >
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${tool.is_workstation ? "bg-yellow-500" : "bg-blue-500"}`}
+                    title={tool.is_workstation ? "Workstation" : "Hand tool"}
+                  />
+                  <span className="text-sm text-white flex-1">{tool.tool_name}</span>
+                  <span className="text-xs text-text-muted">
+                    {tool.is_workstation ? "Workstation" : "Tool"}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      const res = await fetch(`/api/items/${itemId}/recipes?tool_id=${tool.id}`, { method: "DELETE" });
+                      if (res.ok) {
+                        onRecipeChange({ ...recipe, tools: tools.filter(t => t.id !== tool.id) });
+                        showMessage("success", `Removed ${tool.tool_name}`);
+                      }
+                    }}
+                    className="px-2 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-3 text-text-muted text-xs border border-dashed border-border rounded-lg mb-3">
+              No tools defined.
+            </div>
+          )}
+
+          {/* Add Tool */}
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={newToolSearch}
+                onChange={(e) => {
+                  setNewToolSearch(e.target.value);
+                  setShowToolResults(true);
+                }}
+                onFocus={() => setShowToolResults(true)}
+                placeholder="Search for a tool..."
+                className="w-full px-2 py-1.5 bg-bg-tertiary border border-border rounded-lg text-xs text-white"
+              />
+              {showToolResults && toolSearchResults.length > 0 && (
+                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-bg-secondary border border-border rounded-lg shadow-xl max-h-36 overflow-y-auto">
+                  {toolSearchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      onClick={async () => {
+                        setSaving(true);
+                        const res = await fetch(`/api/items/${itemId}/recipes`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            type: "tool",
+                            tool_id: result.id,
+                            tool_name: result.name,
+                            tool_slug: result.slug,
+                            is_workstation: newToolIsWorkstation,
+                          }),
+                        });
+                        if (res.ok) {
+                          setNewToolSearch("");
+                          setShowToolResults(false);
+                          await reloadRecipe();
+                          showMessage("success", `Added tool: ${result.name}`);
+                        } else {
+                          const data = await res.json();
+                          showMessage("error", data.error || "Failed to add tool");
+                        }
+                        setSaving(false);
+                      }}
+                      disabled={saving}
+                      className="w-full text-left px-3 py-1.5 text-xs text-white hover:bg-accent/20 transition-colors disabled:opacity-50"
+                    >
+                      {result.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <label className="flex items-center gap-1 text-xs text-text-secondary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newToolIsWorkstation}
+                onChange={(e) => setNewToolIsWorkstation(e.target.checked)}
+                className="rounded"
+              />
+              Workstation
+            </label>
+          </div>
+        </div>
+
+        {/* ========== SKILL INFO ========== */}
+        {itemSkill && (
+          <div className="border-t border-border/50 pt-3">
+            <div className="text-xs text-text-muted">
+              Uses <span className="text-accent font-medium">{itemSkill}</span> skill
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+/** Display a creation step in human-readable format */
+function StepDisplay({ step }: { step: RecipeStep }) {
+  let text = "";
+  let colorClass = "text-text-secondary";
+
+  switch (step.action) {
+    case "activate":
+      text = `Activate ${step.target_name}`;
+      colorClass = "text-green-400";
+      if (step.target_quantity) text += ` (${formatQty(step.target_quantity)} ${step.target_unit || "kg"})`;
+      break;
+    case "right-click":
+      text = `Right-click ${step.target_name}`;
+      colorClass = "text-blue-400";
+      if (step.target_quantity) text += ` (${formatQty(step.target_quantity)} ${step.target_unit || "kg"})`;
+      break;
+    case "submenu":
+      text = `Open submenu "${step.submenu_path || step.target_name}"`;
+      colorClass = "text-yellow-400";
+      break;
+    default:
+      text = step.raw_text || step.target_name;
+      colorClass = "text-text-muted";
+  }
+
+  return <span className={`text-sm flex-1 ${colorClass}`}>{text}</span>;
 }
