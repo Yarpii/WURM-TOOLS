@@ -251,6 +251,8 @@ function BasicCalculator() {
   const [includeIndirect, setIncludeIndirect] = useState(false);
   const [selectedTreeNodes, setSelectedTreeNodes] = useState<Map<string, { id: number; name: string; quantity: number; category: string; is_base: boolean }>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
+  const [recipeSteps, setRecipeSteps] = useState<{ action: string; target: string; quantity?: number; unit?: string; submenu?: string; raw_text?: string }[]>([]);
+  const [recipeTools, setRecipeTools] = useState<{ name: string; slug?: string; is_workstation: boolean }[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -290,6 +292,8 @@ function BasicCalculator() {
         const data = await res.json();
         setMaterials(data.materials || []);
         setTree(data.tree || null);
+        setRecipeSteps(data.steps || []);
+        setRecipeTools(data.tools || []);
       } else {
         const res = await fetch(`/api/reverse?item=${item.id}&all=${includeIndirect ? "1" : "0"}&source=wurmpedia`);
         const data = await res.json();
@@ -568,6 +572,54 @@ function BasicCalculator() {
                   {selectedItem.tool_type?.replace(/_/g, ' ') ?? 'Unknown'}
                 </span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Creation Steps */}
+        {selectedItem && mode === "calculate" && recipeSteps.length > 0 && (
+          <div className="bg-bg-secondary rounded-xl border border-border p-4">
+            <h3 className="text-sm font-medium text-text-primary mb-3">Creation</h3>
+            <div className="space-y-2">
+              {recipeSteps.map((step, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-text-muted font-mono w-5 flex-shrink-0 text-right">{i + 1}.</span>
+                  {step.action === "activate" ? (
+                    <span className="text-text-primary">
+                      Activate <span className="text-green-400 font-medium">{step.target}</span>
+                      {step.quantity ? <span className="text-text-muted"> ({step.quantity} {step.unit || "kg"})</span> : null}
+                    </span>
+                  ) : step.action === "right-click" ? (
+                    <span className="text-text-primary">
+                      Right-click <span className="text-blue-400 font-medium">{step.target}</span>
+                      {step.quantity ? <span className="text-text-muted"> ({step.quantity} {step.unit || "kg"})</span> : null}
+                    </span>
+                  ) : step.action === "submenu" ? (
+                    <span className="text-text-primary">
+                      Open submenu <span className="text-yellow-400 font-medium">&quot;{step.submenu || step.target}&quot;</span>
+                    </span>
+                  ) : (
+                    <span className="text-text-muted">{step.raw_text || step.target}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Required Tools */}
+        {selectedItem && mode === "calculate" && recipeTools.length > 0 && (
+          <div className="bg-bg-secondary rounded-xl border border-border p-4">
+            <h3 className="text-sm font-medium text-text-primary mb-3">Required Tools</h3>
+            <div className="space-y-2">
+              {recipeTools.map((tool, i) => (
+                <div key={i} className="flex items-center justify-between p-2 bg-bg-tertiary rounded-lg text-sm">
+                  <span className="text-text-primary capitalize">{tool.name}</span>
+                  {tool.is_workstation && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">Workstation</span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

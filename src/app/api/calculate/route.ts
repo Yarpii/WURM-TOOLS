@@ -66,6 +66,8 @@ export async function GET(request: Request) {
         item: result.item,
         materials: result.materials,
         tree: result.tree,
+        steps: result.steps,
+        tools: result.tools,
         mode: materialMode,
         description: materialMode === "easy"
           ? "Direct recipe ingredients from database"
