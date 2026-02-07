@@ -5,7 +5,7 @@ import { useSiteSettings } from "./SiteSettingsProvider";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-  const { settings } = useSiteSettings();
+  const { settings, footerIcon } = useSiteSettings();
 
   return (
     <footer className="bg-bg-secondary border-t border-border mt-auto">
@@ -15,10 +15,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              {settings.logo_url && settings.logo_url !== "/icon.svg" ? (
+              {footerIcon ? (
                 <div className="w-8 h-8 rounded overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={settings.logo_url} alt={settings.site_name} className="w-full h-full object-contain" />
+                  <img src={footerIcon} alt={settings.site_name} className="w-full h-full object-contain" />
                 </div>
               ) : (
                 <div className="w-8 h-8 rounded bg-accent flex items-center justify-center">

@@ -1,13 +1,18 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { useTheme } from "./ThemeProvider";
 
 export interface SiteSettings {
   // Branding
   site_name: string;
   site_tagline: string;
-  logo_url: string;
-  favicon_url: string;
+  header_logo_dark: string;
+  header_logo_light: string;
+  footer_icon_dark: string;
+  footer_icon_light: string;
+  favicon_dark: string;
+  favicon_light: string;
   og_image_url: string;
   // Colors
   color_accent: string;
@@ -28,8 +33,12 @@ export interface SiteSettings {
 const DEFAULT_SETTINGS: SiteSettings = {
   site_name: "Wurm Tools",
   site_tagline: "Community Hub for Wurm Online",
-  logo_url: "/icon.svg",
-  favicon_url: "/icon.svg",
+  header_logo_dark: "",
+  header_logo_light: "",
+  footer_icon_dark: "",
+  footer_icon_light: "",
+  favicon_dark: "/icon.svg",
+  favicon_light: "/icon.svg",
   og_image_url: "/og-image.svg",
   color_accent: "#3b82f6",
   color_accent_hover: "#60a5fa",
@@ -48,12 +57,18 @@ interface SiteSettingsContextType {
   settings: SiteSettings;
   loading: boolean;
   refresh: () => Promise<void>;
+  /** The header logo URL for the current theme (empty string = use default SVG) */
+  headerLogo: string;
+  /** The footer icon URL for the current theme (empty string = use default SVG) */
+  footerIcon: string;
 }
 
 const SiteSettingsContext = createContext<SiteSettingsContextType>({
   settings: DEFAULT_SETTINGS,
   loading: true,
   refresh: async () => {},
+  headerLogo: "",
+  footerIcon: "",
 });
 
 export function useSiteSettings() {
@@ -63,6 +78,7 @@ export function useSiteSettings() {
 export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
+  const { theme } = useTheme();
 
   const fetchSettings = async () => {
     try {
@@ -83,6 +99,11 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // Compute theme-aware logo/icon values
+  const headerLogo = theme === "dark" ? settings.header_logo_dark : settings.header_logo_light;
+  const footerIcon = theme === "dark" ? settings.footer_icon_dark : settings.footer_icon_light;
+  const favicon = theme === "dark" ? settings.favicon_dark : settings.favicon_light;
 
   // Apply color CSS variables whenever settings change
   useEffect(() => {
@@ -112,18 +133,24 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       const b = parseInt(settings.color_accent.slice(5, 7), 16);
       root.style.setProperty("--accent-muted", `rgba(${r}, ${g}, ${b}, 0.1)`);
     }
-
-    // Update favicon dynamically
-    if (settings.favicon_url !== DEFAULT_SETTINGS.favicon_url) {
-      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-      if (link) {
-        link.href = settings.favicon_url;
-      }
-    }
   }, [settings]);
 
+  // Update favicon dynamically based on theme
+  useEffect(() => {
+    if (favicon) {
+      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (link) {
+        link.href = favicon;
+      }
+      const appleLink = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+      if (appleLink) {
+        appleLink.href = favicon;
+      }
+    }
+  }, [favicon]);
+
   return (
-    <SiteSettingsContext.Provider value={{ settings, loading, refresh: fetchSettings }}>
+    <SiteSettingsContext.Provider value={{ settings, loading, refresh: fetchSettings, headerLogo, footerIcon }}>
       {children}
     </SiteSettingsContext.Provider>
   );

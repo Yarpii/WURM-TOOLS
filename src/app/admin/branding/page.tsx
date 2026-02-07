@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, RotateCcw, Palette, Globe, Share2, Search, Loader2, CheckCircle2 } from "lucide-react";
+import { Save, RotateCcw, Palette, Globe, Share2, Search, Loader2, CheckCircle2, Sun, Moon, Image } from "lucide-react";
 import AdminGuard from "@/components/AdminGuard";
 import type { SiteSetting } from "@/lib/db/site-settings";
 
@@ -11,19 +11,52 @@ interface SettingField {
   type: "text" | "color" | "url" | "textarea";
   placeholder?: string;
   description?: string;
+  preview?: boolean;
 }
 
-const SECTIONS: { label: string; icon: React.ReactNode; category: string; fields: SettingField[] }[] = [
+interface Section {
+  label: string;
+  icon: React.ReactNode;
+  category: string;
+  fields: SettingField[];
+}
+
+const SECTIONS: Section[] = [
   {
-    label: "Branding",
+    label: "General",
     icon: <Globe className="w-5 h-5" />,
-    category: "branding",
+    category: "branding-general",
     fields: [
       { key: "site_name", label: "Site Name", type: "text", placeholder: "Wurm Tools", description: "Displayed in header, footer, and browser tab" },
-      { key: "site_tagline", label: "Tagline", type: "text", placeholder: "Community Hub for Wurm Online", description: "Short tagline shown in header/footer" },
-      { key: "logo_url", label: "Logo URL", type: "url", placeholder: "/icon.svg", description: "Logo image (SVG, PNG, or external URL)" },
-      { key: "favicon_url", label: "Favicon URL", type: "url", placeholder: "/icon.svg", description: "Browser tab icon" },
-      { key: "og_image_url", label: "OG Image URL", type: "url", placeholder: "/og-image.svg", description: "Default social sharing image" },
+      { key: "site_tagline", label: "Tagline", type: "text", placeholder: "Community Hub for Wurm Online", description: "Short tagline shown in footer" },
+      { key: "og_image_url", label: "OG Image URL", type: "url", placeholder: "/og-image.svg", description: "Default social sharing image", preview: true },
+    ],
+  },
+  {
+    label: "Header Logo",
+    icon: <Image className="w-5 h-5" />,
+    category: "branding-header",
+    fields: [
+      { key: "header_logo_dark", label: "Dark Theme", type: "url", placeholder: "/logo-dark.svg", description: "Logo shown in header when using dark theme", preview: true },
+      { key: "header_logo_light", label: "Light Theme", type: "url", placeholder: "/logo-light.svg", description: "Logo shown in header when using light theme", preview: true },
+    ],
+  },
+  {
+    label: "Footer Icon",
+    icon: <Image className="w-5 h-5" />,
+    category: "branding-footer",
+    fields: [
+      { key: "footer_icon_dark", label: "Dark Theme", type: "url", placeholder: "/icon-dark.svg", description: "Icon shown in footer when using dark theme", preview: true },
+      { key: "footer_icon_light", label: "Light Theme", type: "url", placeholder: "/icon-light.svg", description: "Icon shown in footer when using light theme", preview: true },
+    ],
+  },
+  {
+    label: "Favicon",
+    icon: <Globe className="w-5 h-5" />,
+    category: "branding-favicon",
+    fields: [
+      { key: "favicon_dark", label: "Dark Theme", type: "url", placeholder: "/icon.svg", description: "Browser tab icon for dark theme", preview: true },
+      { key: "favicon_light", label: "Light Theme", type: "url", placeholder: "/icon.svg", description: "Browser tab icon for light theme", preview: true },
     ],
   },
   {
@@ -59,6 +92,20 @@ const SECTIONS: { label: string; icon: React.ReactNode; category: string; fields
     ],
   },
 ];
+
+/** Small theme badge shown next to dark/light fields */
+function ThemeBadge({ variant }: { variant: "dark" | "light" }) {
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+      variant === "dark"
+        ? "bg-neutral-800 text-neutral-300"
+        : "bg-amber-100 text-amber-800"
+    }`}>
+      {variant === "dark" ? <Moon className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
+      {variant === "dark" ? "Dark" : "Light"}
+    </span>
+  );
+}
 
 function BrandingContent() {
   const [values, setValues] = useState<Record<string, string>>({});
@@ -133,7 +180,6 @@ function BrandingContent() {
       }
 
       const data = await res.json();
-      // Update originals
       const settingsMap: Record<string, string> = {};
       const detailsMap: Record<string, SiteSetting> = {};
       for (const s of data.settings as SiteSetting[]) {
@@ -170,7 +216,7 @@ function BrandingContent() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-text-primary mb-1">Branding & Style</h1>
-          <p className="text-text-secondary">Customize logo, colors, social links, and SEO settings</p>
+          <p className="text-text-secondary">Customize logos, icons, colors, social links, and SEO settings</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -257,6 +303,56 @@ function BrandingContent() {
                     );
                   })}
                 </div>
+              ) : section.category.startsWith("branding-") && section.category !== "branding-general" ? (
+                /* Dark/Light paired fields with side-by-side preview */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {section.fields.map((field) => {
+                    const isChanged = values[field.key] !== original[field.key];
+                    const isDark = field.key.endsWith("_dark");
+                    return (
+                      <div key={field.key} className="space-y-2">
+                        <label htmlFor={field.key} className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                          <ThemeBadge variant={isDark ? "dark" : "light"} />
+                          {isChanged && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
+                        </label>
+                        <input
+                          type="url"
+                          id={field.key}
+                          value={values[field.key] || ""}
+                          onChange={(e) => handleChange(field.key, e.target.value)}
+                          placeholder={field.placeholder}
+                          className="w-full px-3 py-2 rounded-lg bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                        />
+                        {field.description && (
+                          <p className="text-xs text-text-muted">{field.description}</p>
+                        )}
+                        {/* Preview */}
+                        {values[field.key] && (
+                          <div className={`mt-2 p-3 rounded-lg border border-border flex items-center justify-center ${
+                            isDark ? "bg-neutral-900" : "bg-white"
+                          }`}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={values[field.key]}
+                              alt={`${field.label} preview`}
+                              className="max-h-12 max-w-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                              }}
+                            />
+                          </div>
+                        )}
+                        {!values[field.key] && (
+                          <div className={`mt-2 p-3 rounded-lg border border-dashed border-border flex items-center justify-center ${
+                            isDark ? "bg-neutral-900/50" : "bg-neutral-100/50"
+                          }`}>
+                            <span className="text-xs text-text-muted">No image set — default icon will be used</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
                 /* Standard field layout */
                 section.fields.map((field) => {
@@ -297,8 +393,7 @@ function BrandingContent() {
                       {field.description && (
                         <p className="text-xs text-text-muted">{field.description}</p>
                       )}
-                      {/* Preview for logo/favicon URLs */}
-                      {(field.key === "logo_url" || field.key === "favicon_url" || field.key === "og_image_url") && values[field.key] && (
+                      {field.preview && values[field.key] && (
                         <div className="mt-2 flex items-center gap-3">
                           <span className="text-xs text-text-muted">Preview:</span>
                           <div className="w-8 h-8 rounded border border-border bg-bg-primary flex items-center justify-center overflow-hidden">
