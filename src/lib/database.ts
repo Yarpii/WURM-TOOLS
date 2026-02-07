@@ -372,3 +372,15 @@ export {
   removeAnimalTrait,
   getAnimalFamilyTree,
 } from "./db/animals";
+
+// Site Settings
+export {
+  getAllSiteSettings,
+  getAllSiteSettingsDetailed,
+  getSiteSettingsByCategory,
+  getSiteSetting,
+  updateSiteSetting,
+  updateSiteSettings,
+  invalidateSettingsCache,
+} from "./db/site-settings";
+export type { SiteSetting, SiteSettings } from "./db/site-settings";

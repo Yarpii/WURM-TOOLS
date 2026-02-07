@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
+import { useSiteSettings } from "./SiteSettingsProvider";
 
 // Navigation item type
 interface NavItem {
@@ -281,6 +282,7 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, loading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { settings } = useSiteSettings();
   const pathname = usePathname();
 
   // Handle scroll for header styling
@@ -310,16 +312,27 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                </svg>
-              </div>
+              {settings.logo_url !== "/icon.svg" ? (
+                <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={settings.logo_url} alt={settings.site_name} className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                  </svg>
+                </div>
+              )}
               <div className="absolute inset-0 rounded-xl bg-accent/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold text-text-primary leading-tight">
-                WURM<span className="text-accent">.tools</span>
+                {settings.site_name !== "Wurm Tools" ? (
+                  settings.site_name
+                ) : (
+                  <>WURM<span className="text-accent">.tools</span></>
+                )}
               </span>
             </div>
           </Link>
