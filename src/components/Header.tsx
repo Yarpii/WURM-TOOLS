@@ -312,7 +312,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="relative">
-              {settings.logo_url !== "/icon.svg" ? (
+              {settings.logo_url && settings.logo_url !== "/icon.svg" ? (
                 <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={settings.logo_url} alt={settings.site_name} className="w-full h-full object-contain" />
