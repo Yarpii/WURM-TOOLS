@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { InfoSectionsProvider } from "@/components/InfoSectionsProvider";
+import { SiteSettingsProvider } from "@/components/SiteSettingsProvider";
 import PWAInstall from "@/components/PWAInstall";
 import JsonLd from "@/components/JsonLd";
 import {
@@ -105,13 +106,15 @@ export default function RootLayout({
       <body className="antialiased min-h-screen flex flex-col bg-bg-primary text-text-primary">
         <ThemeProvider>
           <AuthProvider>
-            <InfoSectionsProvider>
-              <Header />
-              <BetaBanner />
-              <main className="flex-1">{children}</main>
-              <Footer />
-              <PWAInstall />
-            </InfoSectionsProvider>
+            <SiteSettingsProvider>
+              <InfoSectionsProvider>
+                <Header />
+                <BetaBanner />
+                <main className="flex-1">{children}</main>
+                <Footer />
+                <PWAInstall />
+              </InfoSectionsProvider>
+            </SiteSettingsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

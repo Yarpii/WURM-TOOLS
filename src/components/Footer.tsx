@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useSiteSettings } from "./SiteSettingsProvider";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { settings } = useSiteSettings();
 
   return (
     <footer className="bg-bg-secondary border-t border-border mt-auto">
@@ -16,7 +20,7 @@ export default function Footer() {
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                 </svg>
               </div>
-              <span className="text-lg font-semibold text-text-primary">Wurm Tools</span>
+              <span className="text-lg font-semibold text-text-primary">{settings.site_name}</span>
             </div>
             <p className="text-sm text-text-muted">
               Community tools for Wurm Online players. Track crafting, find merchants, and connect with alliances.
@@ -127,7 +131,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://github.com/Yarpii/WURM-TOOLS"
+                  href={settings.social_github || "https://github.com/Yarpii/WURM-TOOLS"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
@@ -146,7 +150,7 @@ export default function Footer() {
         <div className="pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-text-muted">
-              &copy; {currentYear} Wurm Tools. Made with care for the Wurm community.
+              &copy; {currentYear} {settings.site_name}. Made with care for the Wurm community.
             </p>
             <div className="flex items-center gap-4 text-sm">
               <Link href="/about" className="text-text-muted hover:text-text-primary transition-colors">

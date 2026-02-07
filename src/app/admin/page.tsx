@@ -85,6 +85,12 @@ function AdminContent() {
         >
           Roles & Permissions
         </Link>
+        <Link
+          href="/admin/branding"
+          className="px-5 py-2.5 rounded-lg border-2 transition-all border-transparent bg-bg-tertiary border border-border text-text-secondary hover:text-white hover:border-accent"
+        >
+          Branding & Style
+        </Link>
       </div>
 
       {/* Tab Content */}
