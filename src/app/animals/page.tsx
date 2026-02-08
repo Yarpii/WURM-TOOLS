@@ -37,6 +37,7 @@ export default function AnimalsPage() {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [breedingTypeFilter, setBreedingTypeFilter] = useState<string>("");
 
   // Fetch stables
   const fetchStables = useCallback(async () => {
@@ -174,7 +175,10 @@ export default function AnimalsPage() {
 
   // Breeding pair suggestions
   const breedingPairs = useMemo(() => {
-    const alive = animals.filter((a) => a.is_alive);
+    let alive = animals.filter((a) => a.is_alive);
+    if (breedingTypeFilter) {
+      alive = alive.filter((a) => a.animal_type === breedingTypeFilter);
+    }
     const females = alive.filter((a) => a.gender === "female");
     const males = alive.filter((a) => a.gender === "male");
     const pairs: Array<{
@@ -228,7 +232,7 @@ export default function AnimalsPage() {
     }
 
     return pairs.sort((a, b) => b.score - a.score).slice(0, 10);
-  }, [animals]);
+  }, [animals, breedingTypeFilter]);
 
   // --- API handlers ---
 
@@ -567,7 +571,7 @@ export default function AnimalsPage() {
                 >
                   <option value="">All types</option>
                   {Object.entries(ANIMAL_TYPES).map(([key, val]) => (
-                    <option key={key} value={key}>{val.label}</option>
+                    <option key={key} value={key}>{val.emoji} {val.label}</option>
                   ))}
                 </select>
               </div>
@@ -862,7 +866,7 @@ export default function AnimalsPage() {
                           {animal.name}
                           {!animal.is_alive && <span className="ml-1 text-xs text-danger">(dead)</span>}
                         </td>
-                        <td className="px-3 py-2 text-sm text-text-secondary">{typeInfo.label}</td>
+                        <td className="px-3 py-2 text-sm text-text-secondary">{typeInfo.emoji && <span className="mr-1">{typeInfo.emoji}</span>}{typeInfo.label}</td>
                         <td className="px-3 py-2 text-sm text-text-secondary">{animal.gender === "male" ? "M" : "F"}</td>
                         <td className="px-3 py-2 text-sm text-text-muted">{animal.color || "-"}</td>
                         <td className="px-3 py-2 text-sm text-text-muted">{animal.stable_name || "-"}</td>
@@ -989,7 +993,7 @@ export default function AnimalsPage() {
                     const pct = herdStats.totalAlive > 0 ? (count / herdStats.totalAlive) * 100 : 0;
                     return (
                       <div key={type} className="flex items-center gap-3">
-                        <span className="text-sm text-text-primary w-24 shrink-0">{info.label}</span>
+                        <span className="text-sm text-text-primary w-28 shrink-0">{info.emoji && <span className="mr-1">{info.emoji}</span>}{info.label}</span>
                         <div className="flex-1 h-5 bg-bg-tertiary rounded-full overflow-hidden">
                           <div className="h-full bg-accent/40 rounded-full" style={{ width: `${pct}%` }} />
                         </div>
@@ -1058,7 +1062,19 @@ export default function AnimalsPage() {
 
             {/* Breeding pair suggestions */}
             <div className="p-4 bg-bg-secondary rounded-lg border border-border">
-              <h3 className="text-sm font-medium text-text-secondary mb-1">Breeding Suggestions</h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-medium text-text-secondary">Breeding Suggestions</h3>
+                <select
+                  value={breedingTypeFilter}
+                  onChange={(e) => setBreedingTypeFilter(e.target.value)}
+                  className="px-2 py-1 text-xs bg-bg-tertiary border border-border rounded-lg text-text-primary"
+                >
+                  <option value="">All types</option>
+                  {Object.entries(ANIMAL_TYPES).map(([key, val]) => (
+                    <option key={key} value={key}>{val.emoji} {val.label}</option>
+                  ))}
+                </select>
+              </div>
               <p className="text-xs text-text-muted mb-3">Top pairs ranked by shared good traits, breed points, and no inbreeding</p>
               <div className="space-y-2">
                 {breedingPairs.map((pair, i) => (
