@@ -25,6 +25,7 @@ export function SliderInput({ label, value, onChange, min, max, color = "accent"
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
+        aria-label={label}
         className={`w-full h-2 bg-bg-tertiary rounded-lg appearance-none cursor-pointer ${accentClass}`}
       />
     </div>

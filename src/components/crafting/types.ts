@@ -1,5 +1,8 @@
 import type { MaterialResult } from "@/lib/types";
 
+// Shared constants
+export const DROPDOWN_MAX_ITEMS = 10;
+
 export type Tab = "calculator" | "advanced" | "optimizer" | "tree" | "session";
 export type CalcMode = "calculate" | "reverse";
 export type MaterialMode = "easy" | "full";
