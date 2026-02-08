@@ -47,7 +47,9 @@ export async function PUT(request: NextRequest) {
 
     // Validate: only allow known setting keys (prevent injection of new keys)
     const allowedKeys = [
-      "site_name", "site_tagline", "logo_url", "favicon_url", "og_image_url",
+      "site_name", "site_tagline",
+      "header_logo_dark", "header_logo_light", "footer_icon_dark", "footer_icon_light",
+      "favicon_dark", "favicon_light", "og_image_url",
       "color_accent", "color_accent_hover", "color_success", "color_warning", "color_danger", "color_info",
       "social_twitter", "social_github", "social_discord",
       "seo_description", "seo_keywords",

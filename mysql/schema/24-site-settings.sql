@@ -19,11 +19,15 @@ CREATE INDEX idx_site_settings_category ON site_settings(category);
 
 -- Default branding settings
 INSERT INTO site_settings (setting_key, setting_value, setting_type, category, description) VALUES
-    ('site_name',     'Wurm Tools',                                      'string', 'branding', 'Site display name'),
-    ('site_tagline',  'Community Hub for Wurm Online',                    'string', 'branding', 'Short tagline shown in header/footer'),
-    ('logo_url',      '/icon.svg',                                       'url',    'branding', 'Logo image URL (SVG, PNG, or external URL)'),
-    ('favicon_url',   '/icon.svg',                                       'url',    'branding', 'Favicon URL'),
-    ('og_image_url',  '/og-image.svg',                                   'url',    'branding', 'Default Open Graph image URL')
+    ('site_name',           'Wurm Tools',                                      'string', 'branding', 'Site display name'),
+    ('site_tagline',        'Community Hub for Wurm Online',                    'string', 'branding', 'Short tagline shown in header/footer'),
+    ('header_logo_dark',    '',                                                'url',    'branding', 'Header logo for dark theme (with site name text)'),
+    ('header_logo_light',   '',                                                'url',    'branding', 'Header logo for light theme (with site name text)'),
+    ('footer_icon_dark',    '',                                                'url',    'branding', 'Footer icon for dark theme (icon only)'),
+    ('footer_icon_light',   '',                                                'url',    'branding', 'Footer icon for light theme (icon only)'),
+    ('favicon_dark',        '/icon.svg',                                       'url',    'branding', 'Favicon for dark theme'),
+    ('favicon_light',       '/icon.svg',                                       'url',    'branding', 'Favicon for light theme'),
+    ('og_image_url',        '/og-image.svg',                                   'url',    'branding', 'Default Open Graph image URL')
 ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- Default color settings
