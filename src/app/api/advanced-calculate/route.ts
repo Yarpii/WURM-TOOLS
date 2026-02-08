@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
   });
   const successCategory = getSuccessCategory(successChance);
 
-  // Quality prediction using effective skill (weighted: 50% skill, 30% tool, 20% material)
-  const quality = predictCraftingQuality(playerSkill, toolQL, materialQL);
+  // Quality prediction using Gaussian skill check model
+  const quality = predictCraftingQuality(playerSkill, toolQL, materialQL, difficulty);
 
   // Time calculation with skill, tool QL, and WoA modifiers
   const totalActions = result.totalCraftingSteps * quantity;

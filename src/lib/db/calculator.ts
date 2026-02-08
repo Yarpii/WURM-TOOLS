@@ -251,8 +251,8 @@ export async function calculateAdvancedMaterials(
           materialQL: settings.materialQL,
         });
 
-        // Use proper quality prediction (effective skill weighted average)
-        const nodeQuality = predictCraftingQuality(settings.playerSkill, settings.toolQL, settings.materialQL);
+        // Use proper quality prediction with item-specific difficulty
+        const nodeQuality = predictCraftingQuality(settings.playerSkill, settings.toolQL, settings.materialQL, nodeDifficulty);
 
         const successRate = Math.max(0.01, nodeSuccessChance / 100);
 
