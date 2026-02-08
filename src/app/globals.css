@@ -235,12 +235,12 @@ button {
 /* Subtle pulse glow */
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3),
-                0 0 40px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 30%, transparent),
+                0 0 40px color-mix(in srgb, var(--accent) 10%, transparent);
   }
   50% {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5),
-                0 0 60px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 50%, transparent),
+                0 0 60px color-mix(in srgb, var(--accent) 20%, transparent);
   }
 }
 
@@ -382,7 +382,7 @@ button {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.15), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--accent) 15%, transparent), transparent),
     radial-gradient(ellipse 60% 40% at 80% 50%, rgba(249, 115, 22, 0.1), transparent),
     radial-gradient(ellipse 60% 40% at 20% 80%, rgba(139, 92, 246, 0.1), transparent);
   animation: fadeIn 1s ease-out;
@@ -390,12 +390,12 @@ button {
 
 /* Stats number glow */
 .stat-number {
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent);
   transition: all 0.3s ease;
 }
 
 .stat-number:hover {
-  text-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--accent) 80%, transparent);
   transform: scale(1.1);
 }
 
@@ -408,7 +408,7 @@ button {
   transform: translateY(-8px);
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(59, 130, 246, 0.2);
+    0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 /* Icon bounce on hover */
