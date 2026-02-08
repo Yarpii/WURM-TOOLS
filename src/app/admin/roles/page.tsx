@@ -205,7 +205,7 @@ function RolesContent() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-bg-tertiary rounded w-1/4"></div>
           <div className="h-64 bg-bg-tertiary rounded"></div>
@@ -215,20 +215,11 @@ function RolesContent() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div>
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <Link
-              href="/admin"
-              className="text-text-secondary hover:text-white transition-colors"
-            >
-              Admin
-            </Link>
-            <span className="text-text-muted">/</span>
-            <h1 className="text-3xl font-bold text-text-primary">Roles & Permissions</h1>
-          </div>
+          <h1 className="text-3xl font-bold text-text-primary mb-2">Roles & Permissions</h1>
           <p className="text-text-secondary">
             Manage community roles and their permissions
           </p>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import AdminGuard from "@/components/AdminGuard";
-import Link from "next/link";
 
 interface SyncStats {
   filesDownloaded: number;
@@ -113,30 +112,27 @@ function AdminSyncContent() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-gray-400 py-12">Loading...</div>
+      <div>
+        <div className="text-center text-text-muted py-12">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <Link href="/admin" className="text-blue-500 hover:text-blue-400 mb-4 inline-block">
-          ← Back to Admin
-        </Link>
-        <h1 className="text-3xl font-bold text-white mb-2">Google Drive Sync</h1>
-        <p className="text-gray-400">
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-text-primary mb-2">Google Drive Sync</h1>
+        <p className="text-text-secondary">
           Manage automatic synchronization of community resources from Google Drive
         </p>
       </div>
 
       {message && (
         <div
-          className={`mb-6 p-4 rounded ${
+          className={`mb-6 p-4 rounded-lg ${
             message.type === "success"
-              ? "bg-green-500/10 border border-green-500 text-green-500"
-              : "bg-red-500/10 border border-red-500 text-red-500"
+              ? "bg-success/20 text-success border border-success/30"
+              : "bg-red-500/20 text-red-400 border border-red-500/30"
           }`}
         >
           {message.text}
@@ -144,12 +140,12 @@ function AdminSyncContent() {
       )}
 
       {/* Configuration Status */}
-      <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
+      <div className="bg-bg-secondary rounded-xl p-6 mb-6 border border-border">
         <h2 className="text-xl font-semibold text-white mb-4">Configuration Status</h2>
 
         {!syncInfo?.configured ? (
-          <div className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 p-4 rounded">
-            <p className="font-semibold mb-2">⚠️ Google Drive API Not Configured</p>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 p-4 rounded-lg">
+            <p className="font-semibold mb-2">Google Drive API Not Configured</p>
             <p className="text-sm mb-4">{syncInfo?.message || "Please set up Google Drive API credentials"}</p>
             <div className="text-sm space-y-2">
               <p>To enable sync:</p>
@@ -161,25 +157,25 @@ function AdminSyncContent() {
                 <li>Add credentials to .env.local</li>
               </ol>
               <p className="mt-2">
-                See <code className="bg-gray-900 px-2 py-1 rounded">.env.example</code> for details
+                See <code className="bg-bg-tertiary px-2 py-1 rounded">.env.example</code> for details
               </p>
             </div>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <p className="text-gray-400 text-sm">Status</p>
-              <p className="text-white font-semibold">✓ Configured</p>
+              <p className="text-text-secondary text-sm">Status</p>
+              <p className="text-white font-semibold">Configured</p>
             </div>
             <div>
-              <p className="text-gray-400 text-sm">Auto Sync</p>
+              <p className="text-text-secondary text-sm">Auto Sync</p>
               <p className="text-white font-semibold">
                 {syncInfo.autoSyncEnabled ? (
-                  <span className="text-green-500">
+                  <span className="text-success">
                     Enabled (every {syncInfo.syncIntervalHours}h)
                   </span>
                 ) : (
-                  <span className="text-gray-500">Disabled</span>
+                  <span className="text-text-muted">Disabled</span>
                 )}
               </p>
             </div>
@@ -190,41 +186,41 @@ function AdminSyncContent() {
       {/* Last Sync Info */}
       {syncInfo?.configured && (
         <>
-          <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
+          <div className="bg-bg-secondary rounded-xl p-6 mb-6 border border-border">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Last Sync</h2>
               <button
                 onClick={handleSync}
                 disabled={syncing}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+                className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 {syncing ? "Syncing..." : "Sync Now"}
               </button>
             </div>
 
             {!syncInfo.lastSyncAt ? (
-              <p className="text-gray-400">No sync has been performed yet</p>
+              <p className="text-text-muted">No sync has been performed yet</p>
             ) : (
               <>
                 <div className="grid md:grid-cols-4 gap-4 mb-4">
                   <div>
-                    <p className="text-gray-400 text-sm">Last Synced</p>
+                    <p className="text-text-secondary text-sm">Last Synced</p>
                     <p className="text-white font-semibold">{formatDate(syncInfo.lastSyncAt)}</p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-sm">Duration</p>
+                    <p className="text-text-secondary text-sm">Duration</p>
                     <p className="text-white font-semibold">
                       {syncInfo.stats ? formatDuration(syncInfo.stats.duration) : "—"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-sm">Total Size</p>
+                    <p className="text-text-secondary text-sm">Total Size</p>
                     <p className="text-white font-semibold">
                       {syncInfo.stats ? formatBytes(syncInfo.stats.totalSize) : "—"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-sm">Files</p>
+                    <p className="text-text-secondary text-sm">Files</p>
                     <p className="text-white font-semibold">
                       {syncInfo.stats
                         ? `${syncInfo.stats.filesDownloaded + syncInfo.stats.filesUpdated} synced`
@@ -235,39 +231,39 @@ function AdminSyncContent() {
 
                 {syncInfo.stats && (
                   <div className="grid md:grid-cols-4 gap-4">
-                    <div className="bg-gray-750 p-3 rounded">
-                      <p className="text-green-500 text-2xl font-bold">
+                    <div className="bg-white/5 p-3 rounded-lg">
+                      <p className="text-success text-2xl font-bold">
                         {syncInfo.stats.filesDownloaded}
                       </p>
-                      <p className="text-gray-400 text-sm">Downloaded</p>
+                      <p className="text-text-secondary text-sm">Downloaded</p>
                     </div>
-                    <div className="bg-gray-750 p-3 rounded">
-                      <p className="text-blue-500 text-2xl font-bold">
+                    <div className="bg-white/5 p-3 rounded-lg">
+                      <p className="text-accent text-2xl font-bold">
                         {syncInfo.stats.filesUpdated}
                       </p>
-                      <p className="text-gray-400 text-sm">Updated</p>
+                      <p className="text-text-secondary text-sm">Updated</p>
                     </div>
-                    <div className="bg-gray-750 p-3 rounded">
-                      <p className="text-gray-500 text-2xl font-bold">
+                    <div className="bg-white/5 p-3 rounded-lg">
+                      <p className="text-text-muted text-2xl font-bold">
                         {syncInfo.stats.filesSkipped}
                       </p>
-                      <p className="text-gray-400 text-sm">Skipped</p>
+                      <p className="text-text-secondary text-sm">Skipped</p>
                     </div>
-                    <div className="bg-gray-750 p-3 rounded">
-                      <p className="text-red-500 text-2xl font-bold">
+                    <div className="bg-white/5 p-3 rounded-lg">
+                      <p className="text-red-400 text-2xl font-bold">
                         {syncInfo.stats.filesDeleted}
                       </p>
-                      <p className="text-gray-400 text-sm">Deleted</p>
+                      <p className="text-text-secondary text-sm">Deleted</p>
                     </div>
                   </div>
                 )}
 
                 {syncInfo.stats?.errors && syncInfo.stats.errors.length > 0 && (
-                  <div className="mt-4 bg-red-500/10 border border-red-500 rounded p-4">
-                    <p className="text-red-500 font-semibold mb-2">Errors ({syncInfo.stats.errors.length})</p>
+                  <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+                    <p className="text-red-400 font-semibold mb-2">Errors ({syncInfo.stats.errors.length})</p>
                     <div className="text-sm text-red-400 space-y-1 max-h-40 overflow-y-auto">
                       {syncInfo.stats.errors.map((error, idx) => (
-                        <div key={idx}>• {error}</div>
+                        <div key={idx}>- {error}</div>
                       ))}
                     </div>
                   </div>
@@ -277,26 +273,26 @@ function AdminSyncContent() {
           </div>
 
           {/* Information */}
-          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <div className="bg-bg-secondary rounded-xl p-6 border border-border">
             <h2 className="text-xl font-semibold text-white mb-4">How It Works</h2>
-            <div className="text-gray-300 space-y-2 text-sm">
+            <div className="text-text-secondary space-y-2 text-sm">
               <p>
-                • The sync process downloads files from your Google Drive community folder to local storage
+                The sync process downloads files from your Google Drive community folder to local storage.
               </p>
               <p>
-                • Files are stored in <code className="bg-gray-900 px-2 py-1 rounded">/public/resources/community/</code>
+                Files are stored in <code className="bg-bg-tertiary px-2 py-1 rounded">/public/resources/community/</code>
               </p>
               <p>
-                • Users access files directly from your server (much faster than Google Drive)
+                Users access files directly from your server (much faster than Google Drive).
               </p>
               <p>
-                • Changes are detected automatically - only modified files are re-downloaded
+                Changes are detected automatically — only modified files are re-downloaded.
               </p>
               <p>
-                • Automatic sync runs every {syncInfo.syncIntervalHours} hours when enabled
+                Automatic sync runs every {syncInfo.syncIntervalHours} hours when enabled.
               </p>
               <p>
-                • Deleted files from Drive are automatically removed from local storage
+                Deleted files from Drive are automatically removed from local storage.
               </p>
             </div>
           </div>
