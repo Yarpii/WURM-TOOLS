@@ -16,6 +16,7 @@ import {
   predictSkillGain,
   predictCraftingQuality,
   calculateMaterialWaste,
+  calculateCraftingTime,
   generateSkillPath,
   calculateSweetSpotQL,
 } from "../wurm-formulas";
@@ -434,11 +435,12 @@ export async function calculateBatchEfficiency(
     };
   }
 
-  const baseTime = item.base_time || 10;
-  // Simplified time calculation based on skill
-  const skillMod = Math.max(0.5, 1 - (settings.playerSkill / 200));
-  const singleItemTime = baseTime * skillMod;
-  const batchTime = singleItemTime * batchSize * 0.95;
+  // Use decompiled crafting time formula (skill, tool QL, target QL modifiers + 3s base)
+  const singleTimeResult = calculateCraftingTime(
+    "default_create", 1, settings.playerSkill, settings.toolQL, 20
+  );
+  const singleItemTime = singleTimeResult.modifiedTimeSeconds;
+  const batchTime = singleItemTime * batchSize; // No batch discount in Wurm mechanics
 
   const materialsPerItem = await getMaterialsList(itemId, 1);
   const totalMaterials = await getMaterialsList(itemId, batchSize);

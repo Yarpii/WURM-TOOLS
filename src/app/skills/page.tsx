@@ -3,27 +3,40 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import type { UserSkill, WurmSkill } from "@/lib/types";
+import { predictSkillGain, calculateCraftingTime } from "@/lib/wurm-formulas";
 
-// Wurm skill gain formula approximation
-function calculateActionsNeeded(current: number, target: number): number {
-  if (current >= target) return 0;
+/**
+ * Estimate actions and time to reach target skill using decompiled Wurm formulas.
+ * Uses predictSkillGain (stat dividers 5.0/45.0 from checkAdvance) and
+ * calculateCraftingTime (+3s base from getStandardActionTime).
+ */
+function calculateTrainingEstimate(
+  current: number,
+  target: number
+): { actions: number; timeSeconds: number } {
+  if (current >= target) return { actions: 0, timeSeconds: 0 };
 
-  // Simplified Wurm skill gain formula
-  // Higher skills require exponentially more actions
   let actions = 0;
   let level = current;
+  const defaultActionTime = 10; // Default crafting action base time
 
   while (level < target) {
-    // Base difficulty increases with level
-    const difficulty = 1 + (level / 10);
-    // Gain per action decreases as you level
-    const gainPerAction = Math.max(0.001, (100 - level) / 1000 / difficulty);
-    const stepsNeeded = Math.ceil(0.1 / gainPerAction); // 0.1 skill increments
+    // Train at mid sweet-spot difficulty for optimal gain
+    const sweetSpotMid = Math.min(100, level * 0.77 + 28);
+    const prediction = predictSkillGain(level, sweetSpotMid, defaultActionTime, 1, false);
+    const gainPerAction = Math.max(0.0001, prediction.gainPerAction);
+
+    const increment = Math.min(0.1, target - level);
+    const stepsNeeded = Math.ceil(increment / gainPerAction);
     actions += stepsNeeded;
-    level += 0.1;
+    level += increment;
   }
 
-  return Math.round(actions);
+  // Calculate total time using decompiled formula (includes +3s base per action)
+  const avgSkill = (current + target) / 2;
+  const timeResult = calculateCraftingTime("default_create", actions, avgSkill, 50);
+
+  return { actions: Math.round(actions), timeSeconds: timeResult.totalTimeSeconds };
 }
 
 function formatTime(hours: number): string {
@@ -279,9 +292,9 @@ export default function SkillsPage() {
             <h2 className="text-xl font-semibold text-text-primary mb-4">Your Tracked Skills</h2>
             <div className="grid gap-4">
               {skills.map((skill) => {
-                const actions = calculateActionsNeeded(skill.current_level, skill.target_level || 100);
-                const hoursNormal = actions * 0.02; // ~50 actions per hour
-                const hoursSB = hoursNormal / 3; // Sleep bonus is 3x
+                const estimate = calculateTrainingEstimate(skill.current_level, skill.target_level || 100);
+                const hoursNormal = estimate.timeSeconds / 3600;
+                const hoursSB = hoursNormal / 2; // Sleep bonus doubles gain = halves time
                 const progress = getProgressPercentage(skill.current_level, skill.target_level || 100);
 
                 return (
@@ -337,7 +350,7 @@ export default function SkillsPage() {
 
                         <div className="flex flex-wrap gap-4 text-sm text-text-muted">
                           <span>Progress: {progress.toFixed(1)}%</span>
-                          <span>Est. actions: ~{actions.toLocaleString()}</span>
+                          <span>Est. actions: ~{estimate.actions.toLocaleString()}</span>
                           <span>Time: ~{formatTime(hoursNormal)}</span>
                           <span className="text-success">With SB: ~{formatTime(hoursSB)}</span>
                         </div>

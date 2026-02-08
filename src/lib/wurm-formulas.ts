@@ -536,6 +536,7 @@ export interface SkillPathStep {
   targetQL: number;
   skillRange: { from: number; to: number };
   actionsNeeded: number;
+  estimatedTimeSeconds: number;
   successRate: number;
   description: string;
 }
@@ -553,9 +554,6 @@ export function generateSkillPath(
   let skill = currentSkill;
 
   while (skill < targetSkill) {
-    // Calculate sweet spot QL for current skill
-    const sweetSpotQL = calculateSweetSpotQL(skill);
-
     // Optimal improving range: skill + 10 to skill + 20
     const optimalQLMin = Math.min(100, Math.max(1, skill + 10));
     const optimalQLMax = Math.min(100, Math.max(1, skill + 20));
@@ -569,20 +567,25 @@ export function generateSkillPath(
       materialQL: 50
     });
 
-    // Estimate actions to gain ~5 skill levels
+    // Estimate actions using decompiled predictSkillGain (stat dividers 5.0/45.0)
     const nextCheckpoint = Math.min(targetSkill, Math.floor(skill / 5) * 5 + 5);
     const skillToGain = nextCheckpoint - skill;
 
-    // Very rough estimate: 100 actions per skill point at skill 50
-    const actionsPerPoint = 50 + skill * 2;
-    const actionsNeeded = Math.round(actionsPerPoint * skillToGain);
+    const defaultActionTime = 10;
+    const prediction = predictSkillGain(skill, targetQL, defaultActionTime, 1, false);
+    const gainPerAction = Math.max(0.0001, prediction.gainPerAction);
+    const actionsNeeded = Math.ceil(skillToGain / gainPerAction);
+
+    // Time using decompiled formula (includes +3s base per action)
+    const timeResult = calculateCraftingTime("default_create", actionsNeeded, skill, toolQL, targetQL);
 
     steps.push({
       targetQL,
       skillRange: { from: Math.round(skill * 10) / 10, to: nextCheckpoint },
       actionsNeeded,
+      estimatedTimeSeconds: timeResult.totalTimeSeconds,
       successRate: Math.round(successChance),
-      description: `Improve items to QL ${targetQL} (${Math.round(successChance)}% success)`
+      description: `Improve items to QL ${targetQL} (${Math.round(successChance)}% success) - ~${timeResult.totalTimeFormatted}`
     });
 
     skill = nextCheckpoint;
