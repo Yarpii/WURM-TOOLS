@@ -11,6 +11,24 @@ interface StableCardProps {
 }
 
 export function StableCard({ stable, isSelected, onClick, onEdit, onDelete }: StableCardProps) {
+  const count = stable.animal_count || 0;
+  const capacity = stable.capacity || 1;
+  const pct = Math.min(100, (count / capacity) * 100);
+  const isFull = count >= capacity;
+  const isNearFull = pct >= 80 && !isFull;
+
+  const barColor = isFull
+    ? "bg-danger"
+    : isNearFull
+      ? "bg-warning"
+      : "bg-accent";
+
+  const countColor = isFull
+    ? "text-danger"
+    : isNearFull
+      ? "text-warning"
+      : "text-text-muted";
+
   return (
     <div
       onClick={onClick}
@@ -41,12 +59,28 @@ export function StableCard({ stable, isSelected, onClick, onEdit, onDelete }: St
           </button>
         </div>
       </div>
-      <div className="text-sm text-text-secondary">
-        {stable.server}
+      {stable.server && (
+        <div className="text-sm text-text-secondary">{stable.server}</div>
+      )}
+
+      {/* Capacity bar */}
+      <div className="mt-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className={`text-xs font-medium ${countColor}`}>
+            {count} / {capacity} animals
+          </span>
+          {isFull && (
+            <span className="text-[10px] font-medium text-danger">FULL</span>
+          )}
+        </div>
+        <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${barColor}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
       </div>
-      <div className="text-xs text-text-muted mt-1">
-        {stable.animal_count || 0} / {stable.capacity} animals
-      </div>
+
       {stable.notes && (
         <div className="text-xs text-text-muted mt-2 line-clamp-2">{stable.notes}</div>
       )}

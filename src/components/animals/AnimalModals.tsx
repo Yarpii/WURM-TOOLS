@@ -185,7 +185,7 @@ export function AnimalModal({ mode, animal, stables, allAnimals, saving, onSave,
                 className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-text-primary focus:border-accent focus:outline-none"
               >
                 {Object.entries(ANIMAL_TYPES).map(([key, val]) => (
-                  <option key={key} value={key}>{val.label}</option>
+                  <option key={key} value={key}>{val.emoji} {val.label}</option>
                 ))}
               </select>
             </div>
@@ -226,10 +226,26 @@ export function AnimalModal({ mode, animal, stables, allAnimals, saving, onSave,
               className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-text-primary focus:border-accent focus:outline-none"
             >
               <option value="">No stable</option>
-              {stables.map((s) => (
-                <option key={s.id} value={s.id}>{s.name} ({s.animal_count || 0}/{s.capacity})</option>
-              ))}
+              {stables.map((s) => {
+                const isFull = (s.animal_count || 0) >= s.capacity;
+                return (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.animal_count || 0}/{s.capacity}){isFull ? " - FULL" : ""}
+                  </option>
+                );
+              })}
             </select>
+            {stableId && (() => {
+              const selected = stables.find((s) => s.id === stableId);
+              if (selected && (selected.animal_count || 0) >= selected.capacity) {
+                return (
+                  <p className="text-xs text-warning mt-1">
+                    This stable is at capacity. The animal will still be assigned but exceeds the limit.
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

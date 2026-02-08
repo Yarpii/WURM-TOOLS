@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import type { Item } from "@/lib/types";
 import AdminGuard from "@/components/AdminGuard";
 import { ItemsTab, MembersTab, RecipesTab } from "@/components/admin";
@@ -39,10 +38,10 @@ function AdminContent() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div>
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-text-primary mb-2">Admin Panel</h1>
+        <h1 className="text-3xl font-bold text-text-primary mb-2">Admin Dashboard</h1>
         <p className="text-text-secondary">Manage items, recipes, and members</p>
       </div>
 
@@ -79,18 +78,6 @@ function AdminContent() {
         >
           Members
         </TabButton>
-        <Link
-          href="/admin/roles"
-          className="px-5 py-2.5 rounded-lg border-2 transition-all border-transparent bg-bg-tertiary border border-border text-text-secondary hover:text-white hover:border-accent"
-        >
-          Roles & Permissions
-        </Link>
-        <Link
-          href="/admin/branding"
-          className="px-5 py-2.5 rounded-lg border-2 transition-all border-transparent bg-bg-tertiary border border-border text-text-secondary hover:text-white hover:border-accent"
-        >
-          Branding & Style
-        </Link>
       </div>
 
       {/* Tab Content */}

@@ -44,6 +44,7 @@ export function AnimalCard({ animal, isSelected, onClick }: AnimalCardProps) {
       </div>
 
       <div className="text-sm text-text-secondary">
+        {typeInfo.emoji && <span className="mr-1">{typeInfo.emoji}</span>}
         {typeInfo.label}
         {animal.color && <span className="text-text-muted"> - {animal.color}</span>}
       </div>

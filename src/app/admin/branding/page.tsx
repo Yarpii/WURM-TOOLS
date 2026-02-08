@@ -203,7 +203,7 @@ function BrandingContent() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+      <div className="py-16 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto mb-3" />
         <p className="text-text-muted">Loading settings...</p>
       </div>
@@ -211,7 +211,7 @@ function BrandingContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div>
       {/* Page Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

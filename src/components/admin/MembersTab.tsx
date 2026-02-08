@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { AdminUser, UserStats } from "./types";
+
+type FilterType = "all" | "visible" | "banned" | "admins";
 
 interface MembersTabProps {
   showMessage: (type: "success" | "error", text: string) => void;
@@ -13,6 +15,8 @@ export default function MembersTab({ showMessage }: MembersTabProps) {
   const [userStats, setUserStats] = useState<UserStats>({ total: 0, visible: 0, banned: 0, admins: 0 });
   const [banReason, setBanReason] = useState("");
   const [banningUserId, setBanningUserId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<FilterType>("all");
 
   useEffect(() => {
     loadUsers();
@@ -28,6 +32,38 @@ export default function MembersTab({ showMessage }: MembersTabProps) {
       console.error("Failed to load users:", err);
     }
   };
+
+  const filteredUsers = useMemo(() => {
+    let result = users;
+
+    // Apply filter
+    switch (filter) {
+      case "visible":
+        result = result.filter((u) => u.show_in_members_list);
+        break;
+      case "banned":
+        result = result.filter((u) => u.is_banned);
+        break;
+      case "admins":
+        result = result.filter((u) => u.role === "admin");
+        break;
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (u) =>
+          u.username.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          (u.display_name && u.display_name.toLowerCase().includes(q)) ||
+          (u.location && u.location.toLowerCase().includes(q)) ||
+          (u.wurm_server && u.wurm_server.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [users, searchQuery, filter]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -112,39 +148,64 @@ export default function MembersTab({ showMessage }: MembersTabProps) {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-bg-secondary border border-border p-4 rounded-xl">
+        <button
+          onClick={() => setFilter(filter === "all" ? "all" : "all")}
+          className={`bg-bg-secondary border p-4 rounded-xl text-left transition-colors ${
+            filter === "all" ? "border-accent" : "border-border hover:border-accent/50"
+          }`}
+        >
           <div className="text-2xl font-bold text-white">{userStats.total}</div>
           <div className="text-text-secondary text-sm">Total Users</div>
-        </div>
-        <div className="bg-bg-secondary border border-border p-4 rounded-xl">
+        </button>
+        <button
+          onClick={() => setFilter(filter === "visible" ? "all" : "visible")}
+          className={`bg-bg-secondary border p-4 rounded-xl text-left transition-colors ${
+            filter === "visible" ? "border-success" : "border-border hover:border-success/50"
+          }`}
+        >
           <div className="text-2xl font-bold text-success">{userStats.visible}</div>
           <div className="text-text-secondary text-sm">Visible in List</div>
-        </div>
-        <div className="bg-bg-secondary border border-border p-4 rounded-xl">
+        </button>
+        <button
+          onClick={() => setFilter(filter === "banned" ? "all" : "banned")}
+          className={`bg-bg-secondary border p-4 rounded-xl text-left transition-colors ${
+            filter === "banned" ? "border-red-400" : "border-border hover:border-red-400/50"
+          }`}
+        >
           <div className="text-2xl font-bold text-red-400">{userStats.banned}</div>
           <div className="text-text-secondary text-sm">Banned</div>
-        </div>
-        <div className="bg-bg-secondary border border-border p-4 rounded-xl">
+        </button>
+        <button
+          onClick={() => setFilter(filter === "admins" ? "all" : "admins")}
+          className={`bg-bg-secondary border p-4 rounded-xl text-left transition-colors ${
+            filter === "admins" ? "border-accent" : "border-border hover:border-accent/50"
+          }`}
+        >
           <div className="text-2xl font-bold text-accent">{userStats.admins}</div>
           <div className="text-text-secondary text-sm">Admins</div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex gap-4">
-        <Link
-          href="/admin/roles"
-          className="px-4 py-2 bg-accent/20 text-accent hover:bg-accent/30 rounded-lg transition-colors"
-        >
-          Manage Roles & Permissions
-        </Link>
+        </button>
       </div>
 
       {/* Users List */}
       <div className="bg-bg-secondary border border-border p-6 rounded-xl">
-        <h2 className="text-accent text-xl font-semibold mb-4">All Users</h2>
+        {/* Search and Filter Bar */}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, email, location, or server..."
+              className="w-full px-4 py-2 bg-bg-tertiary border border-border rounded-lg text-white text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+            />
+          </div>
+          <span className="text-text-muted text-sm">
+            {filteredUsers.length} of {users.length} users
+          </span>
+        </div>
+
         <div className="space-y-3">
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <div
               key={user.id}
               className={`p-4 rounded-lg border ${
@@ -184,9 +245,9 @@ export default function MembersTab({ showMessage }: MembersTabProps) {
                     )}
                   </div>
                   <div className="text-text-muted text-sm mt-1">
-                    {user.email} • Joined {formatDate(user.created_at)}
-                    {user.location && ` • ${user.location}`}
-                    {user.wurm_server && ` • ${user.wurm_server}`}
+                    {user.email} &middot; Joined {formatDate(user.created_at)}
+                    {user.location && ` \u00b7 ${user.location}`}
+                    {user.wurm_server && ` \u00b7 ${user.wurm_server}`}
                   </div>
                   {user.is_banned && user.ban_reason && (
                     <div className="text-red-400 text-sm mt-1">
@@ -267,6 +328,21 @@ export default function MembersTab({ showMessage }: MembersTabProps) {
               </div>
             </div>
           ))}
+
+          {filteredUsers.length === 0 && users.length > 0 && (
+            <div className="text-center text-text-muted py-10">
+              No users match your search{filter !== "all" ? ` and filter` : ""}.
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setFilter("all");
+                }}
+                className="block mx-auto mt-2 text-accent hover:text-accent-hover text-sm"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
 
           {users.length === 0 && (
             <div className="text-center text-text-muted py-10">No users found.</div>
