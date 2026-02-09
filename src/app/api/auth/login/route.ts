@@ -60,11 +60,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
-      const response: { error: string; attemptsRemaining?: number } = { error: result.error };
-      if (result.attemptsRemaining !== undefined) {
-        response.attemptsRemaining = result.attemptsRemaining;
-      }
-      return NextResponse.json(response, { status: 401 });
+      return NextResponse.json({ error: result.error }, { status: 401 });
     }
 
     // Check if user has 2FA enabled
