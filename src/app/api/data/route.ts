@@ -61,13 +61,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, data, replace, csvContent, csvType, items, recipes } = body;
 
-    // SECURITY: Dangerous operations require admin authentication
-    const dangerousActions = ["import", "clear", "csv-import", "reload-extended"];
-    if (dangerousActions.includes(action)) {
-      const authError = await verifyAdminAuth(request);
-      if (authError) {
-        return NextResponse.json({ error: authError.error }, { status: authError.status });
-      }
+    // SECURITY: All POST actions require admin authentication
+    const authError = await verifyAdminAuth(request);
+    if (authError) {
+      return NextResponse.json({ error: authError.error }, { status: authError.status });
     }
 
     if (action === "import") {

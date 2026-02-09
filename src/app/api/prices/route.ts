@@ -146,10 +146,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY: Validate currency against whitelist
+    const VALID_CURRENCIES = ["silver", "gold", "copper", "iron", "euro"];
+    const safeCurrency = VALID_CURRENCIES.includes(currency) ? currency : "silver";
+
     await submitPrice(result.user.id, item_name.trim(), price, order_type, {
       quality: quality || undefined,
       server: server || undefined,
-      currency: currency || "silver",
+      currency: safeCurrency,
     });
 
     return NextResponse.json({ success: true });

@@ -105,7 +105,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-inline/eval
+      "script-src 'self' 'unsafe-inline'", // Next.js requires unsafe-inline for production builds
       "style-src 'self' 'unsafe-inline'", // Tailwind requires unsafe-inline
       "img-src 'self' data: https:",
       "font-src 'self' data:",

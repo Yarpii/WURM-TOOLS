@@ -51,6 +51,33 @@ function getExtension(filename: string): string {
   return ext || "";
 }
 
+// Magic byte signatures for file type verification
+const MAGIC_BYTES: Record<string, number[][]> = {
+  "image/jpeg": [[0xff, 0xd8, 0xff]],
+  "image/jpg": [[0xff, 0xd8, 0xff]],
+  "image/png": [[0x89, 0x50, 0x4e, 0x47]],
+  "image/gif": [[0x47, 0x49, 0x46, 0x38]],
+  "image/webp": [[0x52, 0x49, 0x46, 0x46]], // RIFF header
+  "application/pdf": [[0x25, 0x50, 0x44, 0x46]], // %PDF
+  "application/zip": [[0x50, 0x4b, 0x03, 0x04], [0x50, 0x4b, 0x05, 0x06]],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [[0x50, 0x4b, 0x03, 0x04]], // docx is zip
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [[0x50, 0x4b, 0x03, 0x04]], // xlsx is zip
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": [[0x50, 0x4b, 0x03, 0x04]], // pptx is zip
+  "application/x-rar-compressed": [[0x52, 0x61, 0x72, 0x21]], // Rar!
+  "application/x-7z-compressed": [[0x37, 0x7a, 0xbc, 0xaf]], // 7z signature
+};
+
+function verifyMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  const signatures = MAGIC_BYTES[mimeType];
+  if (!signatures) {
+    // For text-based formats (txt, csv, json, legacy doc/xls/ppt), skip magic byte check
+    return true;
+  }
+  return signatures.some((sig) =>
+    sig.every((byte, i) => i < buffer.length && buffer[i] === byte)
+  );
+}
+
 // Determine resource type from mime type
 function getResourceTypeFromMime(mimeType: string): "guide" | "tool" | "data" | "media" | "template" | "other" {
   if (mimeType.startsWith("image/")) return "media";
@@ -105,6 +132,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY: Verify file content matches declared MIME type via magic bytes
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    if (!verifyMagicBytes(fileBuffer, file.type)) {
+      return NextResponse.json(
+        { error: "File content does not match declared file type" },
+        { status: 400 }
+      );
+    }
+
     // Generate safe filename
     const timestamp = Date.now();
     const originalName = file.name;
@@ -115,10 +151,9 @@ export async function POST(request: NextRequest) {
     const categoryFolder = path.join(UPLOAD_DIR, sanitizeFilename(category));
     await fs.mkdir(categoryFolder, { recursive: true });
 
-    // Save file
+    // Save file (using buffer already read for magic byte verification)
     const filePath = path.join(categoryFolder, safeName);
-    const arrayBuffer = await file.arrayBuffer();
-    await fs.writeFile(filePath, Buffer.from(arrayBuffer));
+    await fs.writeFile(filePath, fileBuffer);
 
     // Get relative path for database (relative to /public/)
     const relativePath = path.relative(

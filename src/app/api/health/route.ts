@@ -45,8 +45,8 @@ export async function GET() {
     {
       status: health.status,
       timestamp: health.timestamp,
-      environment: health.environment,
-      version: health.version,
+      ...(!isProduction && { environment: health.environment }),
+      ...(!isProduction && { version: health.version }),
       database: {
         connected: health.database.connected,
         ...(!isProduction && { responseTime: health.database.responseTime }),

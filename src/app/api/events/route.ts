@@ -4,6 +4,39 @@ import { query } from "@/lib/database";
 import { sanitizeError } from "@/lib/security";
 import type { WurmEvent, CreateEventInput, UpdateEventInput, UpdateAttendanceInput } from "@/lib/types";
 
+const VALID_EVENT_TYPES = ["impalong", "slaying", "rift", "sermon", "hunt", "exploration", "social", "pvp", "market", "other"];
+
+function isSafeUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
+function validateEventInput(input: Record<string, unknown>): string | null {
+  if (input.title !== undefined && input.title !== null) {
+    if (typeof input.title !== "string" || input.title.trim().length === 0) return "Title is required";
+    if (input.title.length > 200) return "Title must be under 200 characters";
+  }
+  if (input.description !== undefined && input.description !== null) {
+    if (typeof input.description !== "string") return "Invalid description";
+    if (input.description.length > 5000) return "Description must be under 5000 characters";
+  }
+  if (input.event_type !== undefined && input.event_type !== null) {
+    if (!VALID_EVENT_TYPES.includes(input.event_type as string)) return "Invalid event type";
+  }
+  if (input.external_link !== undefined && input.external_link !== null && input.external_link !== "") {
+    if (typeof input.external_link !== "string" || !isSafeUrl(input.external_link)) return "External link must be a valid http(s) URL";
+  }
+  if (input.image_url !== undefined && input.image_url !== null && input.image_url !== "") {
+    if (typeof input.image_url !== "string" || !isSafeUrl(input.image_url)) return "Image URL must be a valid http(s) URL";
+  }
+  if (input.location !== undefined && input.location !== null) {
+    if (typeof input.location !== "string" || input.location.length > 200) return "Location must be under 200 characters";
+  }
+  if (input.contact_info !== undefined && input.contact_info !== null) {
+    if (typeof input.contact_info !== "string" || input.contact_info.length > 500) return "Contact info must be under 500 characters";
+  }
+  return null;
+}
+
 // GET /api/events - Get events
 export async function GET(request: NextRequest) {
   try {
@@ -81,6 +114,12 @@ export async function POST(request: NextRequest) {
       case "create": {
         const input: CreateEventInput = body;
 
+        // SECURITY: Validate input lengths and URL protocols
+        const validationError = validateEventInput(input as unknown as Record<string, unknown>);
+        if (validationError) {
+          return NextResponse.json({ error: validationError }, { status: 400 });
+        }
+
         await query(
           `INSERT INTO events (
             user_id, title, description, event_type, server, location, coordinates,
@@ -130,6 +169,12 @@ export async function POST(request: NextRequest) {
         const admin = await isAdmin();
         if (event.rows[0].user_id !== session.userId && !admin) {
           return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+        }
+
+        // SECURITY: Validate input lengths and URL protocols
+        const updateValidationError = validateEventInput(input as unknown as Record<string, unknown>);
+        if (updateValidationError) {
+          return NextResponse.json({ error: updateValidationError }, { status: 400 });
         }
 
         const updates: string[] = [];

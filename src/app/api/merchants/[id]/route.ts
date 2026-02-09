@@ -112,11 +112,20 @@ export async function PUT(
       );
     }
 
+    // SECURITY: Only allow known fields to prevent mass assignment
+    const ALLOWED_FIELDS = ["name", "description", "server", "location", "category", "coordinates", "is_active"];
+    const filteredBody: Record<string, unknown> = {};
+    for (const key of ALLOWED_FIELDS) {
+      if (body[key] !== undefined) {
+        filteredBody[key] = body[key];
+      }
+    }
+
     // Regular update
     const success = await updateMerchant(
       merchantId,
       result.user.id,
-      body,
+      filteredBody,
       result.user.role === "admin"
     );
 
