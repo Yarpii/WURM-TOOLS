@@ -68,6 +68,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(alerts);
 
       case "check-alerts":
+        // SECURITY: Require admin auth to trigger alert processing
+        const alertSessionId = request.cookies.get("session")?.value;
+        if (!alertSessionId) {
+          return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+        }
+        const alertSession = await getSession(alertSessionId);
+        if (!alertSession || alertSession.user.role !== "admin") {
+          return NextResponse.json({ error: "Admin privileges required" }, { status: 403 });
+        }
         const triggered = await checkPriceAlerts();
         return NextResponse.json({ triggered });
 

@@ -758,7 +758,13 @@ async function importScrapedItems(
 
 // ==================== API HANDLERS ====================
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // SECURITY: All scraper GET actions require admin authentication
+  const authError = await verifyAdminAuth(request);
+  if (authError) {
+    return NextResponse.json({ error: authError.error }, { status: authError.status });
+  }
+
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action");
 
@@ -950,6 +956,19 @@ export async function POST(request: NextRequest) {
       const { url } = body;
       if (!url) {
         return NextResponse.json({ error: "URL is required" }, { status: 400 });
+      }
+
+      // SECURITY: Restrict to wurmpedia.com to prevent SSRF
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname !== "www.wurmpedia.com" && parsedUrl.hostname !== "wurmpedia.com") {
+          return NextResponse.json({ error: "Only wurmpedia.com URLs are allowed" }, { status: 400 });
+        }
+        if (parsedUrl.protocol !== "https:") {
+          return NextResponse.json({ error: "Only HTTPS URLs are allowed" }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
       }
 
       existingItemsCache = await loadExistingItemsCache();

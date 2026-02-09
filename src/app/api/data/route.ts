@@ -33,9 +33,15 @@ async function verifyAdminAuth(request: NextRequest): Promise<{ error: string; s
   return null;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action");
+
+  // SECURITY: Export and stats require admin authentication
+  const authError = await verifyAdminAuth(request);
+  if (authError) {
+    return NextResponse.json({ error: authError.error }, { status: authError.status });
+  }
 
   if (action === "export") {
     const data = await exportToJson();

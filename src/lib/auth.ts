@@ -310,7 +310,8 @@ export async function createUser(
 
     return { success: true, user: dbRowToUser(user as unknown as UserDbRow) };
   } catch (e) {
-    return { success: false, error: "Failed to create user: " + String(e) };
+    console.error("[Auth] Failed to create user:", e);
+    return { success: false, error: "Failed to create user" };
   }
 }
 
@@ -543,7 +544,7 @@ export async function login(
 
   // Check if user is banned
   if (row.is_banned) {
-    return { success: false, error: `Account is banned: ${row.ban_reason || "No reason provided"}` };
+    return { success: false, error: "This account has been suspended. Contact support for details." };
   }
 
   // Check account lockout
