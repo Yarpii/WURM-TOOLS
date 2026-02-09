@@ -9,6 +9,11 @@ import type {
   CreateRatingInput,
 } from "../types";
 
+// Escape SQL LIKE wildcard characters to prevent pattern injection
+function escapeLike(str: string): string {
+  return str.replace(/[%_\\]/g, "\\$&");
+}
+
 // ========== TRADE MATCHING ==========
 
 export async function findMatches(userId: number): Promise<TradeMatch[]> {
@@ -30,7 +35,7 @@ export async function findMatches(userId: number): Promise<TradeMatch[]> {
          AND o.status = 'active'
          AND o.order_type = ?
          AND LOWER(o.item_name) LIKE LOWER(?)`,
-      [userId, oppositeType, `%${order.item_name}%`]
+      [userId, oppositeType, `%${escapeLike(order.item_name)}%`]
     );
 
     for (const match of matchingOrders.rows) {
@@ -150,7 +155,7 @@ export async function getBarterSuggestions(userId: number): Promise<BarterSugges
            OR LOWER(o.trade_for) LIKE LOWER(?)
          )
        LIMIT 10`,
-      [userId, `%${userOrder.trade_for || ""}%`, `%${userOrder.item_name}%`]
+      [userId, `%${escapeLike(userOrder.trade_for || "")}%`, `%${escapeLike(userOrder.item_name)}%`]
     );
 
     for (const match of matches.rows) {

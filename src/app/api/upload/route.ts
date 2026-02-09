@@ -110,6 +110,9 @@ export async function POST(request: NextRequest) {
 
     const filePath = join(uploadDir, filename);
 
+    // SECURITY FIX: Actually write the file to disk (was missing)
+    await writeFile(filePath, buffer);
+
     // Return the public URL (with CDN prefix if configured)
     const relativePath = `/uploads/${category}/${filename}`;
     const publicUrl = getStaticUrl(relativePath);

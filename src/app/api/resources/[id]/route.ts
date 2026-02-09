@@ -104,10 +104,15 @@ export async function POST(
       }
 
       case "rate": {
+        // SECURITY: Sanitize review text
+        const sanitizedReview = body.review
+          ? body.review.trim().replace(/<[^>]*>/g, "").substring(0, 2000)
+          : undefined;
+
         const input: CreateResourceRatingInput = {
           resource_id: resourceId,
           rating: body.rating,
-          review: body.review
+          review: sanitizedReview
         };
 
         if (!input.rating || input.rating < 1 || input.rating > 5) {
@@ -137,7 +142,16 @@ export async function POST(
           );
         }
 
-        const commentId = await addResourceComment(resourceId, session.userId, body.comment);
+        // SECURITY: Validate length and strip HTML tags to prevent stored XSS
+        const sanitizedComment = body.comment.trim().replace(/<[^>]*>/g, "");
+        if (sanitizedComment.length > 2000) {
+          return NextResponse.json(
+            { error: "Comment must be under 2000 characters" },
+            { status: 400 }
+          );
+        }
+
+        const commentId = await addResourceComment(resourceId, session.userId, sanitizedComment);
         return NextResponse.json({ id: commentId, success: true });
       }
 

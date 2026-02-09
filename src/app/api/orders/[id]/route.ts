@@ -101,8 +101,17 @@ export async function PUT(
       return NextResponse.json({ success: true });
     }
 
+    // SECURITY: Only allow known fields to prevent mass assignment
+    const ALLOWED_FIELDS = ["item_name", "quantity", "price", "quality", "server", "description", "order_type", "trade_for"];
+    const filteredBody: Record<string, unknown> = {};
+    for (const key of ALLOWED_FIELDS) {
+      if (body[key] !== undefined) {
+        filteredBody[key] = body[key];
+      }
+    }
+
     // Regular update
-    const success = await updateOrder(orderId, result.user.id, body);
+    const success = await updateOrder(orderId, result.user.id, filteredBody);
 
     if (!success) {
       return NextResponse.json(

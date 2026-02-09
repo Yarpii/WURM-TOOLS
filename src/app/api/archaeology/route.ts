@@ -235,10 +235,19 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const comment = data.comment?.trim();
-        if (!comment) {
+        const rawComment = data.comment?.trim();
+        if (!rawComment) {
           return NextResponse.json(
             { error: "Comment is required" },
+            { status: 400 }
+          );
+        }
+
+        // SECURITY: Validate length and strip HTML tags to prevent stored XSS
+        const comment = rawComment.replace(/<[^>]*>/g, "");
+        if (comment.length > 2000) {
+          return NextResponse.json(
+            { error: "Comment must be under 2000 characters" },
             { status: 400 }
           );
         }
