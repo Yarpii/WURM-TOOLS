@@ -26,15 +26,16 @@ export async function GET(request: NextRequest) {
     };
 
     const safeServer = sanitize(server);
-    const safeDate = date.replace(/\.\./g, ""); // Allow spaces and slashes for dates like "February 2025"
+    const safeDate = sanitize(date);
     const safeFilename = sanitize(filename);
 
     // Construct the file path
     const filePath = join(MAPS_DIR, safeServer, safeDate, safeFilename);
 
-    // Verify the file exists and is within the MAPS_DIR
-    const resolvedPath = join(MAPS_DIR, safeServer, safeDate, safeFilename);
-    if (!resolvedPath.startsWith(MAPS_DIR)) {
+    // Verify the resolved path is within MAPS_DIR (defense in depth)
+    const { resolve } = await import("path");
+    const resolvedPath = resolve(filePath);
+    if (!resolvedPath.startsWith(resolve(MAPS_DIR))) {
       return NextResponse.json(
         { error: "Invalid file path" },
         { status: 400 }

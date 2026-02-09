@@ -230,11 +230,13 @@ export async function setRolePermissions(
         [roleId]
       );
 
-      // Add new permissions
+      // Add new permissions (parameterized to prevent SQL injection)
       if (permissionIds.length > 0) {
-        const values = permissionIds.map((pid) => `(${roleId}, ${pid})`).join(", ");
+        const placeholders = permissionIds.map(() => "(?, ?)").join(", ");
+        const params = permissionIds.flatMap((pid) => [roleId, pid]);
         await client.query(
-          `INSERT INTO role_permissions (role_id, permission_id) VALUES ${values}`
+          `INSERT INTO role_permissions (role_id, permission_id) VALUES ${placeholders}`,
+          params
         );
       }
     });

@@ -244,7 +244,7 @@ export default function ResourcesPage() {
         </div>
 
         <div className="flex gap-2">
-          {resource.external_url ? (
+          {resource.external_url && /^https?:\/\//i.test(resource.external_url) ? (
             <a
               href={resource.external_url}
               target="_blank"
