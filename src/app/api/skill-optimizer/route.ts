@@ -11,6 +11,7 @@ import {
   calculateEffectiveSkill,
   calculateMaxCreationQL,
   calculateSweetSpotQL,
+  calculateCraftingTime,
   predictSkillGain,
   generateSkillPath,
   SKILL_TREE,
@@ -61,20 +62,13 @@ export async function GET(request: NextRequest) {
   // Generate skill path
   const skillPath = generateSkillPath(clampedSkill, targetSkill, toolQL);
 
-  // Calculate total resources needed for path
+  // Calculate total resources needed for path using decompiled time formulas
   let totalActions = 0;
   let totalTime = 0;
 
   for (const step of skillPath) {
     totalActions += step.actionsNeeded;
-    // Parse time estimate (format: "Xh Ym Zs")
-    const timeMatch = step.description.match(/(\d+)h\s*(\d+)m\s*(\d+)s|(\d+)m\s*(\d+)s|(\d+)s/);
-    if (timeMatch) {
-      const hours = parseInt(timeMatch[1] || "0");
-      const minutes = parseInt(timeMatch[2] || timeMatch[4] || "0");
-      const seconds = parseInt(timeMatch[3] || timeMatch[5] || timeMatch[6] || "0");
-      totalTime += hours * 3600 + minutes * 60 + seconds;
-    }
+    totalTime += step.estimatedTimeSeconds;
   }
 
   // Format total time
@@ -185,15 +179,15 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Calculate estimated time
+        // Calculate estimated time using decompiled formulas
         const skillPath = generateSkillPath(currentSkill, targetSkill, toolQL);
         let totalActions = 0;
+        let totalSeconds = 0;
         skillPath.forEach(step => {
           totalActions += step.actionsNeeded;
+          totalSeconds += step.estimatedTimeSeconds;
         });
 
-        // Assume average 8 seconds per action
-        const totalSeconds = totalActions * 8;
         const totalHours = totalSeconds / 3600;
         const daysNeeded = Math.ceil(totalHours / hoursPerDay);
 
@@ -239,6 +233,11 @@ export async function POST(request: NextRequest) {
         const baseSkillGain = predictSkillGain(currentSkill, currentSkill + 10, 10, 100, false);
         const baseActionsNeeded = Math.ceil((targetSkill - currentSkill) / baseSkillGain.totalGain * 100);
 
+        // Calculate time per action using decompiled formula (includes +3s base)
+        const timePerAction = calculateCraftingTime(
+          "default_create", 1, currentSkill, toolQL
+        ).modifiedTimeSeconds;
+
         return NextResponse.json({
           action: "compare-methods",
           currentSkill,
@@ -248,25 +247,27 @@ export async function POST(request: NextRequest) {
             method: method.name,
             multiplier: method.multiplier,
             estimatedActions: Math.ceil(baseActionsNeeded / method.multiplier),
-            estimatedHours: Math.round((baseActionsNeeded / method.multiplier * 8) / 3600 * 10) / 10,
+            estimatedHours: Math.round((baseActionsNeeded / method.multiplier * timePerAction) / 3600 * 10) / 10,
             recommendation: method.multiplier >= 2.0 ? "Recommended" : "Standard"
           }))
         });
       }
 
       case "time-to-target": {
-        // Calculate time to reach target skill
+        // Calculate time to reach target skill using decompiled formulas
         const path = generateSkillPath(currentSkill, targetSkill, toolQL);
 
         let totalActions = 0;
+        let totalTimeSeconds = 0;
         const breakdown: { skill: number; actions: number; cumulativeHours: number }[] = [];
 
         path.forEach(step => {
           totalActions += step.actionsNeeded;
+          totalTimeSeconds += step.estimatedTimeSeconds;
           breakdown.push({
             skill: step.skillRange.to,
             actions: step.actionsNeeded,
-            cumulativeHours: Math.round(totalActions * 8 / 3600 * 10) / 10
+            cumulativeHours: Math.round(totalTimeSeconds / 3600 * 10) / 10
           });
         });
 
@@ -277,7 +278,7 @@ export async function POST(request: NextRequest) {
 
           result: {
             totalActions,
-            totalHours: Math.round(totalActions * 8 / 3600 * 10) / 10,
+            totalHours: Math.round(totalTimeSeconds / 3600 * 10) / 10,
             breakdown
           }
         });

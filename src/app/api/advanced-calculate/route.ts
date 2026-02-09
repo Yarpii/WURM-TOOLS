@@ -7,6 +7,15 @@ import {
   getItem,
 } from "@/lib/database";
 import type { CraftingSettings } from "@/lib/types";
+import {
+  calculateSuccessChance,
+  getSuccessCategory,
+  predictCraftingQuality,
+  calculateCraftingTime,
+  calculateToolWear,
+  predictSkillGain,
+  calculateMaterialWaste,
+} from "@/lib/wurm-formulas";
 
 /**
  * Advanced Crafting Calculator API
@@ -71,81 +80,79 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Generate prediction summary for the frontend
+  // Generate prediction summary using proper Wurm formulas
   const difficulty = item.difficulty || 20;
   const playerSkill = settings.playerSkill || 50;
   const toolQL = settings.toolQL || 50;
   const materialQL = settings.materialQL || 50;
-
-  // Calculate success chance
-  const successChance = Math.min(100, Math.max(1, 50 + (playerSkill - difficulty)));
-
-  // Success label
-  const getSuccessLabel = (chance: number): string => {
-    if (chance >= 90) return "Very Easy";
-    if (chance >= 70) return "Easy";
-    if (chance >= 50) return "Moderate";
-    if (chance >= 30) return "Difficult";
-    return "Very Hard";
-  };
-
-  // Quality calculations
-  const averageQL = Math.min(100, playerSkill * 0.6 + toolQL * 0.2 + materialQL * 0.2);
-  const minQL = Math.max(1, averageQL * 0.5);
-  const maxQL = Math.min(100, averageQL * 1.3);
-
-  // Time calculations
   const baseTime = item.base_time || 10;
+
+  // Success chance using The Curve and proper tool/material bonuses
+  const successChance = calculateSuccessChance({
+    skill: playerSkill,
+    difficulty,
+    toolQL,
+    materialQL,
+    parentSkillBonus: settings.parentSkill || 0,
+  });
+  const successCategory = getSuccessCategory(successChance);
+
+  // Quality prediction using Gaussian skill check model
+  const quality = predictCraftingQuality(playerSkill, toolQL, materialQL, difficulty);
+
+  // Time calculation with skill, tool QL, and WoA modifiers
   const totalActions = result.totalCraftingSteps * quantity;
-  const woaModifier = settings.windOfAges ? 1 - (settings.windOfAges / 200) : 1;
-  const timePerItem = baseTime * woaModifier;
-  const totalTime = totalActions * timePerItem;
+  const timeResult = calculateCraftingTime(
+    "default_create",
+    totalActions,
+    playerSkill,
+    toolQL,
+    quality.averageQL,
+    settings.windOfAges || 0
+  );
 
-  // Format time
-  const formatTime = (seconds: number): string => {
-    if (seconds < 60) return `${Math.round(seconds)}s`;
-    if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-    return `${(seconds / 3600).toFixed(1)}h`;
-  };
-
-  // Waste and failure calculations
+  // Material waste based on actual success rate
+  const wasteResult = calculateMaterialWaste(quantity, 1, successChance);
   const failureRate = 100 - successChance;
-  const wasteMultiplier = 1 + (failureRate / 100) * 0.5;
+  const wasteMultiplier = wasteResult.expectedQuantity / Math.max(1, quantity);
 
-  // Tool repairs (rough estimate: 1 repair per 100 actions at avg skill)
-  const repairsNeeded = Math.ceil(totalActions / (100 + playerSkill));
+  // Tool wear using proper formula (accounts for difficulty, tool QL, CoC)
+  const toolWearResult = calculateToolWear(
+    totalActions,
+    toolQL,
+    difficulty,
+    settings.circleOfCunning || 0
+  );
 
-  // Skill gain calculations
-  const skillDiff = difficulty - playerSkill;
-  const gainPerAction = Math.max(0.001, 0.1 * Math.max(0, 1 + skillDiff / 50) * (settings.hasSleepBonus ? 3 : 1));
+  // Skill gain using proper formula (accounts for sweet spot, action time, skill decay)
+  const skillGainResult = predictSkillGain(
+    playerSkill,
+    difficulty,
+    timeResult.modifiedTimeSeconds,
+    totalActions,
+    settings.hasSleepBonus || false
+  );
+  // Apply Circle of Cunning bonus to skill gain
   const cocBonus = settings.circleOfCunning ? 1 + (settings.circleOfCunning / 100) : 1;
-  const totalSkillGain = gainPerAction * totalActions * cocBonus;
+  const totalSkillGain = skillGainResult.totalGain * cocBonus;
   const newSkillLevel = Math.min(100, playerSkill + totalSkillGain);
-
-  // Optimal difficulty check (skill - 20 to skill + 10 is optimal for training)
-  const isOptimalDifficulty = difficulty >= playerSkill - 20 && difficulty <= playerSkill + 10;
-
-  // Actions to next level
-  const nextLevel = Math.ceil(playerSkill);
-  const skillNeeded = nextLevel - playerSkill;
-  const actionsToNextLevel = gainPerAction > 0 ? Math.ceil(skillNeeded / gainPerAction) : 999;
 
   const prediction = {
     successChance,
-    successLabel: getSuccessLabel(successChance),
-    averageQL,
-    minQL,
-    maxQL,
-    totalTime,
-    totalTimeFormatted: formatTime(totalTime),
-    timePerItem,
+    successLabel: successCategory.label,
+    averageQL: quality.averageQL,
+    minQL: quality.minQL,
+    maxQL: quality.maxQL,
+    totalTime: timeResult.totalTimeSeconds,
+    totalTimeFormatted: timeResult.totalTimeFormatted,
+    timePerItem: timeResult.modifiedTimeSeconds,
     wasteMultiplier,
     failureRate,
-    repairsNeeded,
+    repairsNeeded: toolWearResult.repairsNeeded,
     totalSkillGain,
     newSkillLevel,
-    isOptimalDifficulty,
-    actionsToNextLevel,
+    isOptimalDifficulty: skillGainResult.isOptimalDifficulty,
+    actionsToNextLevel: skillGainResult.actionsToNextLevel,
   };
 
   // Optionally include skill grinding path

@@ -1,24 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Item, CraftingNode, MaterialResult } from "@/lib/types";
 import { SliderInput, StatBox } from "@/components/crafting";
 import InfoSection from "@/components/InfoSection";
-import type {
-  Tab,
-  CalcMode,
-  MaterialMode,
-  ViewMode,
-  AdvancedMaterialResult,
-  CraftingPrediction,
-  AdvancedResult,
-  SkillGrindStep,
-  SkillMetrics,
-  OptimalItem,
-  SkillPathStep,
-  OptimizerResult,
+import {
+  DROPDOWN_MAX_ITEMS,
+  type Tab,
+  type CalcMode,
+  type MaterialMode,
+  type ViewMode,
+  type AdvancedMaterialResult,
+  type CraftingPrediction,
+  type AdvancedResult,
+  type SkillGrindStep,
+  type SkillMetrics,
+  type OptimalItem,
+  type SkillPathStep,
+  type OptimizerResult,
 } from "@/components/crafting/types";
 
 // Lazy load heavy components to reduce initial bundle size
@@ -36,7 +37,7 @@ export default function CraftingPage() {
   const [activeTab, setActiveTab] = useState<Tab>("calculator");
   const [items, setItems] = useState<Item[]>([]);
 
-  // Load items for the Tree tab
+  // Load items once at page level (shared by all tabs)
   useEffect(() => {
     const loadItems = async () => {
       try {
@@ -51,6 +52,12 @@ export default function CraftingPage() {
     };
     loadItems();
   }, []);
+
+  // Derived: only craftable items (for Advanced tab)
+  const craftableItems = useMemo(
+    () => items.filter((i) => !i.is_base_material),
+    [items]
+  );
 
   return (
     <div className="min-h-screen py-8 px-4">
@@ -98,8 +105,8 @@ export default function CraftingPage() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === "calculator" && <BasicCalculator />}
-        {activeTab === "advanced" && <AdvancedCalculator />}
+        {activeTab === "calculator" && <BasicCalculator items={items} />}
+        {activeTab === "advanced" && <AdvancedCalculator items={craftableItems} />}
         {activeTab === "optimizer" && <SkillOptimizer />}
         {activeTab === "tree" && <CraftingTree items={items} />}
         {activeTab === "session" && <SessionPlanner items={items} />}
@@ -239,10 +246,9 @@ export default function CraftingPage() {
 // ============================================
 // BASIC CALCULATOR TAB
 // ============================================
-function BasicCalculator() {
+function BasicCalculator({ items }: { items: Item[] }) {
   const [mode, setMode] = useState<CalcMode>("calculate");
   const [materialMode, setMaterialMode] = useState<MaterialMode>("easy"); // easy = recipe, full = all base
-  const [items, setItems] = useState<Item[]>([]);
   const [query, setQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -253,14 +259,10 @@ function BasicCalculator() {
   const [craftable, setCraftable] = useState<{ id: number; name: string; category: string; formatted: string }[]>([]);
   const [includeIndirect, setIncludeIndirect] = useState(false);
   const [selectedTreeNodes, setSelectedTreeNodes] = useState<Map<string, { id: number; name: string; quantity: number; category: string; is_base: boolean }>>(new Map());
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [recipeSteps, setRecipeSteps] = useState<{ action: string; target: string; quantity?: number; unit?: string; submenu?: string; raw_text?: string }[]>([]);
   const [recipeTools, setRecipeTools] = useState<{ name: string; slug?: string; is_workstation: boolean }[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    fetch("/api/items?source=wurmpedia&visibleOnly=true").then((r) => r.json()).then((json) => setItems(json?.data || []));
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -285,13 +287,14 @@ function BasicCalculator() {
     doAction(item);
   };
 
-  const doAction = async (item: Item = selectedItem!, matMode: MaterialMode = materialMode) => {
+  const doAction = async (item: Item | null = selectedItem, matMode: MaterialMode = materialMode) => {
     if (!item) return;
-    setIsLoading(true);
+    setLoading(true);
     setSelectedTreeNodes(new Map());
     try {
       if (mode === "calculate") {
         const res = await fetch(`/api/calculate?item=${item.id}&qty=${quantity}&mode=${matMode}&source=wurmpedia`);
+        if (!res.ok) throw new Error("Calculate request failed");
         const data = await res.json();
         setMaterials(data.materials || []);
         setTree(data.tree || null);
@@ -299,24 +302,36 @@ function BasicCalculator() {
         setRecipeTools(data.tools || []);
       } else {
         const res = await fetch(`/api/reverse?item=${item.id}&all=${includeIndirect ? "1" : "0"}&source=wurmpedia`);
+        if (!res.ok) throw new Error("Reverse lookup failed");
         const data = await res.json();
         setCraftable(data);
       }
+    } catch (err) {
+      console.error("Crafting calculation failed:", err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (selectedItem && mode === "reverse") doAction();
+    if (selectedItem && mode === "reverse") {
+      const timer = setTimeout(() => doAction(), 300);
+      return () => clearTimeout(timer);
+    }
   }, [includeIndirect]);
 
   useEffect(() => {
-    if (selectedItem && mode === "calculate") doAction();
+    if (selectedItem && mode === "calculate") {
+      const timer = setTimeout(() => doAction(), 300);
+      return () => clearTimeout(timer);
+    }
   }, [quantity]);
 
   useEffect(() => {
-    if (selectedItem && mode === "calculate") doAction(selectedItem, materialMode);
+    if (selectedItem && mode === "calculate") {
+      const timer = setTimeout(() => doAction(selectedItem, materialMode), 300);
+      return () => clearTimeout(timer);
+    }
   }, [materialMode]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -384,7 +399,7 @@ function BasicCalculator() {
             x{node.quantity % 1 === 0 ? node.quantity : node.quantity.toFixed(2)}
           </span>
         </div>
-        {node.children.length > 0 && (
+        {node.children?.length > 0 && (
           <div className="pl-6 border-l border-border ml-3">
             {node.children.map(renderTree)}
           </div>
@@ -447,7 +462,7 @@ function BasicCalculator() {
             />
             {showDropdown && query && filteredItems.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-bg-secondary rounded-lg border border-border shadow-xl z-50 max-h-60 overflow-y-auto">
-                {filteredItems.slice(0, 10).map((item, index) => (
+                {filteredItems.slice(0, DROPDOWN_MAX_ITEMS).map((item, index) => (
                   <button
                     key={item.id}
                     onClick={() => handleSelect(item)}
@@ -649,13 +664,13 @@ function BasicCalculator() {
 
       {/* Right Column - Results */}
       <div className="lg:col-span-2 space-y-4">
-        {isLoading && (
+        {loading && (
           <div className="bg-bg-secondary rounded-xl border border-border p-12 flex items-center justify-center">
             <div className="animate-spin text-4xl">⚙</div>
           </div>
         )}
 
-        {!isLoading && !selectedItem && (
+        {!loading && !selectedItem && (
           <div className="bg-bg-secondary rounded-xl border border-border p-12 text-center">
             <div className="text-6xl mb-4 opacity-20">🔍</div>
             <h3 className="text-lg text-text-secondary mb-2">Select an Item</h3>
@@ -667,7 +682,7 @@ function BasicCalculator() {
           </div>
         )}
 
-        {!isLoading && mode === "calculate" && selectedItem && materials.length > 0 && (
+        {!loading && mode === "calculate" && selectedItem && materials.length > 0 && (
           <>
             <div className="bg-bg-secondary rounded-xl border border-border p-4">
               <div className="flex items-center justify-between mb-4">
@@ -777,7 +792,7 @@ function BasicCalculator() {
           </>
         )}
 
-        {!isLoading && mode === "reverse" && selectedItem && (
+        {!loading && mode === "reverse" && selectedItem && (
           <div className="bg-bg-secondary rounded-xl border border-border p-4">
             <h3 className="text-lg font-semibold text-text-primary mb-4">
               Items using {selectedItem.name}
@@ -810,8 +825,7 @@ function BasicCalculator() {
 // ============================================
 // ADVANCED CALCULATOR TAB
 // ============================================
-function AdvancedCalculator() {
-  const [items, setItems] = useState<Item[]>([]);
+function AdvancedCalculator({ items }: { items: Item[] }) {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -830,15 +844,6 @@ function AdvancedCalculator() {
   const [result, setResult] = useState<AdvancedResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("expected");
-
-  useEffect(() => {
-    fetch("/api/items?source=wurmpedia&visibleOnly=true")
-      .then((r) => r.json())
-      .then((json) => {
-        const craftable = (json?.data || []).filter((i: Item & { is_base_material: number }) => !i.is_base_material);
-        setItems(craftable);
-      });
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -872,8 +877,11 @@ function AdvancedCalculator() {
         source: "wurmpedia",
       });
       const response = await fetch(`/api/advanced-calculate?${params}`);
+      if (!response.ok) throw new Error("Advanced calculation failed");
       const data = await response.json();
       if (!data.error) setResult(data);
+    } catch (err) {
+      console.error("Advanced crafting calculation failed:", err);
     } finally {
       setLoading(false);
     }
@@ -918,7 +926,7 @@ function AdvancedCalculator() {
             />
             {showDropdown && filteredItems.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-bg-secondary border border-border rounded-lg max-h-60 overflow-auto">
-                {filteredItems.slice(0, 10).map((item) => (
+                {filteredItems.slice(0, DROPDOWN_MAX_ITEMS).map((item) => (
                   <button
                     key={item.id}
                     onClick={() => handleItemSelect(item)}
@@ -1118,7 +1126,8 @@ function SkillOptimizer() {
   useEffect(() => {
     fetch("/api/items?categories=true&source=wurmpedia")
       .then((r) => r.json())
-      .then((json) => { if (Array.isArray(json?.data)) setCategories(json.data); });
+      .then((json) => { if (Array.isArray(json?.data)) setCategories(json.data); })
+      .catch((err) => console.error("Failed to load categories:", err));
   }, []);
 
   const optimize = useCallback(async () => {
@@ -1132,8 +1141,11 @@ function SkillOptimizer() {
       });
       if (category) params.set("category", category);
       const response = await fetch(`/api/skill-optimizer?${params}`);
+      if (!response.ok) throw new Error("Skill optimization failed");
       const data = await response.json();
       if (!data.error) setResult(data);
+    } catch (err) {
+      console.error("Skill optimization failed:", err);
     } finally {
       setLoading(false);
     }
@@ -1161,6 +1173,7 @@ function SkillOptimizer() {
               <input
                 type="range" min="1" max="99" value={currentSkill}
                 onChange={(e) => setCurrentSkill(parseInt(e.target.value))}
+                aria-label="Current Skill"
                 className="w-full h-2 bg-bg-tertiary rounded-lg appearance-none cursor-pointer accent-accent"
               />
             </div>
@@ -1173,6 +1186,7 @@ function SkillOptimizer() {
               <input
                 type="range" min={currentSkill + 1} max="100" value={targetSkill}
                 onChange={(e) => setTargetSkill(parseInt(e.target.value))}
+                aria-label="Target Skill"
                 className="w-full h-2 bg-bg-tertiary rounded-lg appearance-none cursor-pointer accent-success"
               />
             </div>

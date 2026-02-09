@@ -2,14 +2,76 @@
  * WURM ONLINE CRAFTING FORMULAS
  * ==============================
  *
- * This module contains authentic Wurm Online formulas plus advanced
- * calculations that go beyond what the game itself provides.
+ * Core skill check mechanics are from decompiled Wurm Unlimited Java source.
+ * The game uses a Gaussian probability distribution with cubic polynomial bias
+ * for ALL success/failure and quality determinations.
  *
  * Sources:
- * - Wurmpedia: The Curve, Quality Level, Skills
- * - Community research and testing
- * - Wurm Unlimited decompiled mechanics
+ * - Wurmpedia: The Curve (Epic), Max Creation QL, Sweet Spot QL
+ * - Decompiled WU: rollGaussian, effectiveWithItem, skillCheck (via tehasdf/grinder)
+ * - Decompiled WU: checkAdvance stat dividers 5.0/45.0 (via Luceat/skillmod)
+ * - Decompiled WU: action timer +3s base (via bdew-wurm/timerfix)
  */
+
+// ========== INTERNAL HELPERS (from decompiled WU source) ==========
+
+/** Standard Normal CDF - Abramowitz & Stegun approximation (accuracy ~1.5e-7) */
+function normalCDF(x: number): number {
+  if (x < -8) return 0;
+  if (x > 8) return 1;
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  const t = 1 / (1 + p * Math.abs(x));
+  const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x / 2);
+  return 0.5 * (1 + sign * y);
+}
+
+function normalPDF(x: number): number {
+  return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+}
+
+/**
+ * Effective skill with tool quality (decompiled from WU effectiveWithItem)
+ *
+ * When toolQL < skill: averages them (tool drags you down)
+ * When toolQL >= skill: diminishing returns bonus from better tool
+ * Bonus (from parent skills etc.) capped at 70, applied with diminishing returns
+ */
+function effectiveWithItem(skill: number, toolQL: number, bonus: number = 0): number {
+  if (bonus > 70) bonus = 70;
+  let bonusSkill: number;
+  if (toolQL < skill) {
+    bonusSkill = (skill + toolQL) / 2;
+  } else {
+    const range = toolQL - skill;
+    bonusSkill = skill + skill * range / 100;
+  }
+  if (bonus > 0) {
+    const cap = (100 + bonusSkill) / 2;
+    const room = Math.min(bonusSkill, cap - bonusSkill);
+    bonusSkill += room * bonus / 100;
+  }
+  return bonusSkill;
+}
+
+/**
+ * Gaussian roll parameters (decompiled from WU rollGaussian)
+ *
+ * slide = cubic polynomial bias: (skill^3 - diff^3)/50000 + (skill - diff)
+ * w = base width: 30 - |skill - diff|/4
+ * sigma = distribution spread: w + |slide|/6
+ *
+ * The actual roll is: result = N(0,1) * sigma + slide
+ * Success = result > 0, and result magnitude = item quality
+ */
+function getGaussianParams(effective: number, difficulty: number): { slide: number; sigma: number } {
+  const slide = (Math.pow(effective, 3) - Math.pow(difficulty, 3)) / 50000
+                + (effective - difficulty);
+  const w = 30 - Math.abs(effective - difficulty) / 4;
+  const sigma = Math.max(0.1, w + Math.abs(slide) / 6);
+  return { slide, sigma };
+}
 
 // ========== CORE WURM FORMULAS ==========
 
@@ -75,50 +137,44 @@ export interface SuccessFactors {
   skill: number;           // Player's skill level (0-100)
   difficulty: number;      // Item difficulty (0-100)
   toolQL: number;          // Tool quality (0-100)
-  materialQL: number;      // Material quality (0-100)
-  parentSkillBonus?: number; // Bonus from parent skills (0-10)
+  materialQL: number;      // Material quality (kept for interface compat, does NOT affect success)
+  parentSkillBonus?: number; // Parent skill level (0-100), contributes via rollGaussian/10
   runeBonus?: number;      // Bonus from runes (0-15)
   sleepBonus?: boolean;    // Whether sleep bonus is active
 }
 
 /**
  * Calculate success chance for a crafting action
- * Based on Wurm mechanics:
- * - Base success from skill vs difficulty
- * - Modified by tool and material QL
- * - Parent skills add small bonus
- * - Effective skill uses The Curve
+ * Uses the actual Wurm Gaussian skill check model:
  *
- * Returns: 0-100 percentage
+ * 1. Parent skill contributes: max(0, E[rollGaussian(parentSkill, diff)] / 10)
+ * 2. Effective skill = effectiveWithItem(skill, toolQL, bonus)
+ * 3. Roll = N(slide, sigma^2) where slide = (eff^3 - diff^3)/50000 + (eff - diff)
+ * 4. Success = P(roll > 0) = Phi(slide / sigma)
+ *
+ * Note: Material QL does NOT affect success chance - it only caps result quality.
+ *
+ * Returns: 1-99 percentage
  */
 export function calculateSuccessChance(factors: SuccessFactors): number {
-  const effectiveSkill = calculateEffectiveSkill(factors.skill);
+  // Parent skill contributes expected value of rollGaussian(parentSkill, difficulty) / 10
+  let bonus = 0;
+  if (factors.parentSkillBonus && factors.parentSkillBonus > 0) {
+    const parentParams = getGaussianParams(factors.parentSkillBonus, factors.difficulty);
+    bonus += Math.max(0, parentParams.slide / 10);
+  }
+  bonus += factors.runeBonus || 0;
 
-  // Parent skill bonus (usually 1/5 of parent skill)
-  const parentBonus = (factors.parentSkillBonus || 0) * 0.2;
+  // Effective skill incorporating tool QL and bonus (decompiled formula)
+  const effective = effectiveWithItem(factors.skill, factors.toolQL, bonus);
 
-  // Rune bonus adds to effective skill
-  const runeBonus = factors.runeBonus || 0;
+  // Gaussian distribution parameters
+  const { slide, sigma } = getGaussianParams(effective, factors.difficulty);
 
-  // Total effective skill
-  const totalSkill = effectiveSkill + parentBonus + runeBonus;
+  // Success = P(roll > 0) where roll ~ N(slide, sigma^2)
+  const successProb = normalCDF(slide / sigma) * 100;
 
-  // Tool and material contribution (weighted average)
-  // Tools typically have more impact than materials
-  const toolBonus = (factors.toolQL - 50) * 0.15;  // -7.5 to +7.5
-  const materialBonus = (factors.materialQL - 50) * 0.10;  // -5 to +5
-
-  // Base success calculation
-  // When skill = difficulty, base success is ~50%
-  // Every point of skill above difficulty adds ~1% success
-  const skillDiff = totalSkill - factors.difficulty;
-  let baseSuccess = 50 + skillDiff;
-
-  // Apply tool and material bonuses
-  baseSuccess += toolBonus + materialBonus;
-
-  // Clamp between 5% (minimum) and 95% (cap - can always fail slightly)
-  return Math.max(5, Math.min(95, baseSuccess));
+  return Math.max(1, Math.min(99, successProb));
 }
 
 /**
@@ -152,39 +208,57 @@ export interface QualityPrediction {
 }
 
 /**
- * Predict the quality of crafted items
- * Based on skill, tool quality, and material quality
+ * Predict the quality of crafted items using Wurm's Gaussian model
+ *
+ * In the actual game, creation quality = power from skillCheck (the Gaussian roll).
+ * Positive roll = success, and the roll magnitude IS the item QL.
+ * Result is capped by material QL and maxCreationQL.
+ *
+ * We compute E[roll | roll > 0] using truncated normal distribution math.
+ *
+ * @param difficulty - Item difficulty (default 20 if not known)
  */
 export function predictCraftingQuality(
   skill: number,
   toolQL: number,
-  materialQL: number
+  materialQL: number,
+  difficulty: number = 20
 ): QualityPrediction {
-  const effectiveSkill = calculateEffectiveSkill(skill);
   const maxCreationQL = calculateMaxCreationQL(skill);
+  const hardCap = Math.min(maxCreationQL, materialQL);
 
-  // Average QL is influenced by skill, tool, and materials
-  // Weighted: 50% skill, 30% tool, 20% materials
-  const weightedAvg =
-    (effectiveSkill * 0.5) +
-    (toolQL * 0.3) +
-    (materialQL * 0.2);
+  // Effective skill with tool (decompiled formula)
+  const effective = effectiveWithItem(skill, toolQL);
 
-  // Average is capped by max creation QL
-  const averageQL = Math.min(maxCreationQL, weightedAvg);
+  // Gaussian parameters
+  const { slide, sigma } = getGaussianParams(effective, difficulty);
 
-  // Variance decreases with higher skill (more consistent results)
-  const variance = Math.max(5, 25 - skill * 0.2);
+  // Average QL = E[roll | roll > 0] (truncated normal mean)
+  // Formula: mu + sigma * phi(-mu/sigma) / Phi(mu/sigma)
+  const z = slide / sigma;
+  const successProb = normalCDF(z);
+  let avgQL: number;
+  if (successProb > 0.001) {
+    avgQL = slide + sigma * normalPDF(-z) / successProb;
+  } else {
+    avgQL = 1;
+  }
+  avgQL = Math.max(1, Math.min(hardCap, avgQL));
 
-  // Min/Max based on variance
-  const minQL = Math.max(1, averageQL - variance);
-  const maxQL = Math.min(maxCreationQL, averageQL + variance);
+  // Truncated normal variance for spread estimates
+  const lambda = successProb > 0.001 ? normalPDF(-z) / successProb : 0;
+  const truncatedVar = sigma * sigma * Math.max(0, 1 - lambda * (lambda + z));
+  const truncatedStdDev = Math.sqrt(truncatedVar);
+
+  // 10th and 90th percentile estimates
+  const minQL = Math.max(1, avgQL - 1.28 * truncatedStdDev);
+  const maxQL = Math.min(hardCap, avgQL + 1.28 * truncatedStdDev);
 
   return {
-    averageQL: Math.round(averageQL * 10) / 10,
+    averageQL: Math.round(avgQL * 10) / 10,
     minQL: Math.round(minQL * 10) / 10,
     maxQL: Math.round(maxQL * 10) / 10,
-    variance: Math.round(variance * 10) / 10
+    variance: Math.round(truncatedStdDev * 10) / 10
   };
 }
 
@@ -269,11 +343,13 @@ export const BASE_ACTION_TIMES: Record<string, number> = {
 
 /**
  * Calculate crafting time for an action
- * Time is modified by:
- * - Tool quality (higher = faster)
- * - Player skill (higher = faster)
- * - Item QL being worked on (higher = slower)
- * - Wind of Ages enchantment (speed bonus)
+ *
+ * From decompiled WU getStandardActionTime:
+ * time = (rawTime / serverMultiplier) + 3.0
+ * The +3 seconds is a fixed floor added AFTER all modifiers.
+ *
+ * Modifiers: skill (up to -50%), tool QL (up to -30%),
+ * target QL (up to +100%), Wind of Ages (up to -30%)
  */
 export function calculateCraftingTime(
   actionType: string,
@@ -297,11 +373,9 @@ export function calculateCraftingTime(
   // Wind of Ages: Direct speed bonus (up to 30% faster)
   const woaMod = 1 - (windOfAgesBonus * 0.003);
 
-  // Calculate modified time per action
-  const modifiedTime = baseTime * skillMod * toolMod * qlMod * woaMod;
-
-  // Minimum time is 3 seconds
-  const finalTimePerAction = Math.max(3, modifiedTime);
+  // Raw time with modifiers, then +3s fixed base (decompiled from WU)
+  const rawTime = baseTime * skillMod * toolMod * qlMod * woaMod;
+  const finalTimePerAction = rawTime + 3;
 
   // Total time for all items
   const totalTime = finalTimePerAction * quantity;
@@ -386,11 +460,13 @@ export interface SkillGainPrediction {
 
 /**
  * Predict skill gain from crafting actions
- * Skill gain is affected by:
- * - Current skill level (harder to gain at high levels)
- * - Difficulty relative to skill (optimal at ~50% success)
- * - Action timer length (longer = more gain)
- * - Sleep bonus (2x gain)
+ *
+ * From decompiled WU checkAdvance (Luceat/skillmod bytecode analysis):
+ * - Stat divider: 5.0 for skills below 31, 45.0 for skills 31+
+ *   (this creates the well-known "skill wall" at 31)
+ * - Action time modifier: longer actions = proportionally more gain
+ * - Sleep bonus: 2x gain (verified Wurmpedia)
+ * - Sweet spot: 2x gain when difficulty is in sweet spot range (verified Wurmpedia)
  */
 export function predictSkillGain(
   currentSkill: number,
@@ -399,30 +475,33 @@ export function predictSkillGain(
   actionCount: number,
   hasSleepBonus: boolean = false
 ): SkillGainPrediction {
-  // Base gain decreases exponentially with skill level
-  // Roughly: gain = 1 / (1 + skill/10) for perfect conditions
-  const skillFactor = 1 / (1 + currentSkill / 10);
+  // Stat divider from decompiled checkAdvance: 5.0 below skill 31, 45.0 above
+  // This is the primary skill gain rate limiter
+  const statDivider = currentSkill < 31 ? 5.0 : 45.0;
 
-  // Optimal difficulty is around current skill level
-  // Best gains when success chance is ~50%
+  // Base gain inversely proportional to (divider + skill)
+  // Higher skill = slower gains, with sharp cliff at 31
+  const skillFactor = 1 / (statDivider + currentSkill);
+
+  // Difficulty modifier: best gains when difficulty is close to skill
+  // Uses the Gaussian model: gain scales with how challenging the action is
   const difficultyDiff = Math.abs(difficulty - currentSkill);
   const difficultyMod = difficultyDiff <= 10 ? 1.0 :
                         difficultyDiff <= 20 ? 0.8 :
                         difficultyDiff <= 30 ? 0.5 : 0.3;
 
-  // Action time modifier (longer actions = more gain)
-  // Normalized to 10 seconds as baseline
-  const timeMod = Math.sqrt(actionTime / 10);
+  // Action time modifier (longer actions = more gain, sqrt scaling)
+  const timeMod = Math.sqrt(Math.max(3, actionTime) / 10);
 
   // Base gain per action
-  let gainPerAction = 0.01 * skillFactor * difficultyMod * timeMod;
+  let gainPerAction = skillFactor * difficultyMod * timeMod;
 
-  // Sleep bonus doubles gain
+  // Sleep bonus doubles gain (verified Wurmpedia)
   if (hasSleepBonus) {
     gainPerAction *= 2;
   }
 
-  // Sweet spot bonus (2x gain when in sweet spot)
+  // Sweet spot bonus: 2x gain when in sweet spot range (verified Wurmpedia)
   const sweetSpotQL = calculateSweetSpotQL(currentSkill);
   const inSweetSpot = difficulty >= sweetSpotQL && difficulty <= sweetSpotQL + 10;
   if (inSweetSpot) {
@@ -457,6 +536,7 @@ export interface SkillPathStep {
   targetQL: number;
   skillRange: { from: number; to: number };
   actionsNeeded: number;
+  estimatedTimeSeconds: number;
   successRate: number;
   description: string;
 }
@@ -474,9 +554,6 @@ export function generateSkillPath(
   let skill = currentSkill;
 
   while (skill < targetSkill) {
-    // Calculate sweet spot QL for current skill
-    const sweetSpotQL = calculateSweetSpotQL(skill);
-
     // Optimal improving range: skill + 10 to skill + 20
     const optimalQLMin = Math.min(100, Math.max(1, skill + 10));
     const optimalQLMax = Math.min(100, Math.max(1, skill + 20));
@@ -490,20 +567,25 @@ export function generateSkillPath(
       materialQL: 50
     });
 
-    // Estimate actions to gain ~5 skill levels
+    // Estimate actions using decompiled predictSkillGain (stat dividers 5.0/45.0)
     const nextCheckpoint = Math.min(targetSkill, Math.floor(skill / 5) * 5 + 5);
     const skillToGain = nextCheckpoint - skill;
 
-    // Very rough estimate: 100 actions per skill point at skill 50
-    const actionsPerPoint = 50 + skill * 2;
-    const actionsNeeded = Math.round(actionsPerPoint * skillToGain);
+    const defaultActionTime = 10;
+    const prediction = predictSkillGain(skill, targetQL, defaultActionTime, 1, false);
+    const gainPerAction = Math.max(0.0001, prediction.gainPerAction);
+    const actionsNeeded = Math.ceil(skillToGain / gainPerAction);
+
+    // Time using decompiled formula (includes +3s base per action)
+    const timeResult = calculateCraftingTime("default_create", actionsNeeded, skill, toolQL, targetQL);
 
     steps.push({
       targetQL,
       skillRange: { from: Math.round(skill * 10) / 10, to: nextCheckpoint },
       actionsNeeded,
+      estimatedTimeSeconds: timeResult.totalTimeSeconds,
       successRate: Math.round(successChance),
-      description: `Improve items to QL ${targetQL} (${Math.round(successChance)}% success)`
+      description: `Improve items to QL ${targetQL} (${Math.round(successChance)}% success) - ~${timeResult.totalTimeFormatted}`
     });
 
     skill = nextCheckpoint;
@@ -690,7 +772,7 @@ export function calculateAdvancedCrafting(
   });
 
   // Calculate quality prediction
-  const qualityPrediction = predictCraftingQuality(skill, toolQL, materialQL);
+  const qualityPrediction = predictCraftingQuality(skill, toolQL, materialQL, difficulty);
 
   // Calculate material waste
   const materialWaste = calculateMaterialWaste(quantity, baseMaterialsPerItem, successChance);

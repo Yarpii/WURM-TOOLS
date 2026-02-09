@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "status": "bash check-status.sh",
     "db:schema:mysql": "echo 'Run: mysql -u user -p database < scripts/schema-mysql.sql'"
   },
@@ -30,7 +32,8 @@
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.0.18"
   },
   "overrides": {
     "fast-xml-parser": "5.3.4"

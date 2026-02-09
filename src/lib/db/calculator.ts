@@ -14,6 +14,9 @@ import {
   calculateSuccessChance,
   getItemDifficulty,
   predictSkillGain,
+  predictCraftingQuality,
+  calculateMaterialWaste,
+  calculateCraftingTime,
   generateSkillPath,
   calculateSweetSpotQL,
 } from "../wurm-formulas";
@@ -206,14 +209,20 @@ export async function calculateAdvancedMaterials(
   const baseMaterials = await getMaterialsList(itemId, quantity);
   const advancedMaterials: AdvancedMaterialResult[] = [];
 
+  // Calculate success chance using proper Wurm formula
+  const difficulty = item.difficulty || 20;
+  const successChance = calculateSuccessChance({
+    skill: settings.playerSkill,
+    difficulty,
+    toolQL: settings.toolQL,
+    materialQL: settings.materialQL,
+  });
+
   for (const material of baseMaterials) {
-    // Calculate waste factor based on skill vs difficulty
-    const difficulty = item.difficulty || 20;
-    const skillDiff = settings.playerSkill - difficulty;
-    // Simplified waste calculation: higher skill = less waste
-    const wasteMultiplier = Math.max(0, Math.min(1, (50 - skillDiff) / 100));
-    const expectedQuantity = material.quantity * (1 + wasteMultiplier);
-    const worstCaseQuantity = material.quantity * (1 + wasteMultiplier * 1.5);
+    // Use proper waste calculation based on actual success rate
+    const waste = calculateMaterialWaste(quantity, material.quantity / quantity, successChance);
+    const expectedQuantity = waste.expectedQuantity;
+    const worstCaseQuantity = waste.worstCaseQuantity;
 
     advancedMaterials.push({
       ...material,
@@ -233,18 +242,28 @@ export async function calculateAdvancedMaterials(
       if (!node.is_base) {
         totalSteps++;
         const nodeItem = await getItem(node.id);
-        const difficulty = nodeItem?.difficulty || getItemDifficulty(node.name);
+        const nodeDifficulty = nodeItem?.difficulty || getItemDifficulty(node.name);
 
-        // Simplified success chance calculation
-        const successChance = Math.min(100, Math.max(1, 50 + (settings.playerSkill - difficulty)));
+        // Use proper Wurm formula for success chance
+        const nodeSuccessChance = calculateSuccessChance({
+          skill: settings.playerSkill,
+          difficulty: nodeDifficulty,
+          toolQL: settings.toolQL,
+          materialQL: settings.materialQL,
+        });
+
+        // Use proper quality prediction with item-specific difficulty
+        const nodeQuality = predictCraftingQuality(settings.playerSkill, settings.toolQL, settings.materialQL, nodeDifficulty);
+
+        const successRate = Math.max(0.01, nodeSuccessChance / 100);
 
         predictions.push({
           itemName: node.name,
           quantity: node.quantity,
-          successChance,
-          qualityPrediction: Math.min(100, settings.playerSkill * 0.8 + settings.toolQL * 0.2),
+          successChance: nodeSuccessChance,
+          qualityPrediction: nodeQuality.averageQL,
           estimatedTime: (nodeItem?.base_time || 10) * node.quantity,
-          expectedAttempts: node.quantity / (successChance / 100),
+          expectedAttempts: node.quantity / successRate,
         });
       }
 
@@ -416,11 +435,12 @@ export async function calculateBatchEfficiency(
     };
   }
 
-  const baseTime = item.base_time || 10;
-  // Simplified time calculation based on skill
-  const skillMod = Math.max(0.5, 1 - (settings.playerSkill / 200));
-  const singleItemTime = baseTime * skillMod;
-  const batchTime = singleItemTime * batchSize * 0.95;
+  // Use decompiled crafting time formula (skill, tool QL, target QL modifiers + 3s base)
+  const singleTimeResult = calculateCraftingTime(
+    "default_create", 1, settings.playerSkill, settings.toolQL, 20
+  );
+  const singleItemTime = singleTimeResult.modifiedTimeSeconds;
+  const batchTime = singleItemTime * batchSize; // No batch discount in Wurm mechanics
 
   const materialsPerItem = await getMaterialsList(itemId, 1);
   const totalMaterials = await getMaterialsList(itemId, batchSize);

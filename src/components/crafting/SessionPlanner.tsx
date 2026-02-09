@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Item, MaterialResult } from "@/lib/types";
+import { DROPDOWN_MAX_ITEMS } from "./types";
 
 interface SessionItem {
   item: Item;
@@ -28,6 +29,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
   const [craftOrder, setCraftOrder] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [sessionName, setSessionName] = useState("My Crafting Session");
+  const [copyNotice, setCopyNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Filter items for search
   const filteredItems = items.filter(
@@ -143,7 +145,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
   }, [calculateSession]);
 
   // Export session as text
-  const exportSession = () => {
+  const exportSession = async () => {
     let text = `=== ${sessionName} ===\n\n`;
     text += "Items to Craft:\n";
     sessionItems.forEach((si) => {
@@ -166,12 +168,28 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
         text += `  - ${m.name}: ${m.totalQuantity.toFixed(m.totalQuantity % 1 === 0 ? 0 : 2)}\n`;
       });
 
-    navigator.clipboard.writeText(text);
-    alert("Session copied to clipboard!");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyNotice({ type: "success", message: "Session copied to clipboard!" });
+    } catch {
+      setCopyNotice({ type: "error", message: "Failed to copy - clipboard access denied" });
+    }
+    setTimeout(() => setCopyNotice(null), 3000);
   };
 
   return (
     <div className="space-y-4">
+      {/* Copy notification toast */}
+      {copyNotice && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border shadow-lg transition-all ${
+          copyNotice.type === "success"
+            ? "bg-success/10 border-success/30 text-success"
+            : "bg-red-500/10 border-red-500/30 text-red-400"
+        }`}>
+          {copyNotice.message}
+        </div>
+      )}
+
       {/* Session Header */}
       <div className="bg-bg-secondary border border-border rounded-xl p-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -228,7 +246,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
               />
               {searchOpen && searchTerm && filteredItems.length > 0 && (
                 <div className="absolute z-20 w-full mt-1 max-h-60 overflow-auto bg-bg-secondary border border-border rounded-lg shadow-xl">
-                  {filteredItems.slice(0, 15).map((item) => (
+                  {filteredItems.slice(0, DROPDOWN_MAX_ITEMS).map((item) => (
                     <button
                       key={item.id}
                       onClick={() => addItem(item)}
@@ -253,7 +271,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
             </h3>
             {sessionItems.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-4xl mb-2 opacity-20">&#128221;</div>
+                <div className="text-4xl mb-2 opacity-20" aria-hidden="true">&#128221;</div>
                 <p className="text-text-muted text-sm">
                   Add items above to start planning your crafting session
                 </p>
@@ -316,7 +334,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
 
           {combinedMaterials.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-4xl mb-2 opacity-20">&#128230;</div>
+              <div className="text-4xl mb-2 opacity-20" aria-hidden="true">&#128230;</div>
               <p className="text-text-muted text-sm">
                 Materials will appear here when you add items
               </p>
@@ -401,7 +419,7 @@ export default function SessionPlanner({ items }: SessionPlannerProps) {
             <h3 className="font-semibold mb-3">Suggested Order</h3>
             {craftOrder.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-4xl mb-2 opacity-20">&#128203;</div>
+                <div className="text-4xl mb-2 opacity-20" aria-hidden="true">&#128203;</div>
                 <p className="text-text-muted text-sm">
                   Optimal craft order will appear here
                 </p>

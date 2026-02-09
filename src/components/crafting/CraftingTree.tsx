@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Item, CraftingNode } from "@/lib/types";
+import { DROPDOWN_MAX_ITEMS } from "./types";
 
 interface CraftingTreeProps {
   items: Item[];
@@ -255,7 +256,7 @@ export default function CraftingTree({ items }: CraftingTreeProps) {
               />
               {searchTerm && filteredItems.length > 0 && (
                 <div className="absolute z-20 w-full mt-1 max-h-60 overflow-auto bg-bg-secondary border border-border rounded-lg shadow-xl">
-                  {filteredItems.slice(0, 20).map((item) => (
+                  {filteredItems.slice(0, DROPDOWN_MAX_ITEMS).map((item) => (
                     <button
                       key={item.id}
                       onClick={() => {
@@ -355,7 +356,7 @@ export default function CraftingTree({ items }: CraftingTreeProps) {
             {!selectedItem && !loading && (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="text-5xl mb-4 opacity-20">&#127795;</div>
+                  <div className="text-5xl mb-4 opacity-20" aria-hidden="true">&#127795;</div>
                   <h3 className="text-lg text-text-secondary mb-2">Select an Item</h3>
                   <p className="text-text-muted text-sm">
                     Search for a craftable item above to visualize its material tree
