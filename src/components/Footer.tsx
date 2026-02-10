@@ -3,6 +3,76 @@
 import Link from "next/link";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
+// 1. Fixed header text
+const SECTION_TITLES = {
+  tools: "Tools",
+  playerHub: "Player Hub", 
+  links: "Links & External", // Changed from just "Links"
+};
+
+// 2. Reusable external link icon component
+const ExternalLinkIcon = () => (
+  <svg 
+    className="w-3 h-3" 
+    fill="none" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      strokeWidth={2} 
+      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" 
+    />
+  </svg>
+);
+
+// 3. Extracted link data to constants
+const TOOL_LINKS = [
+  { href: "/crafting", label: "Crafting Calculator" },
+  { href: "/map", label: "World Map" },
+  { href: "/merchants", label: "Merchants" },
+  { href: "/market", label: "Marketplace" },
+];
+
+const PLAYER_HUB_LINKS = [
+  { href: "/skills", label: "Skill Calculator" },
+  { href: "/timers", label: "Timer Dashboard" },
+  { href: "/events", label: "Event Calendar" },
+  { href: "/alliances", label: "Alliances" },
+  { href: "/achievements", label: "Achievements" },
+];
+
+const EXTERNAL_LINKS = [
+  { 
+    href: "https://www.wurmonline.com/", 
+    label: "Wurm Online",
+    ariaLabel: "Wurm Online (opens in new tab)"
+  },
+  { 
+    href: "https://forum.wurmonline.com/", 
+    label: "Wurm Forums",
+    ariaLabel: "Wurm Forums (opens in new tab)"
+  },
+  { 
+    href: "https://www.wurmpedia.com/", 
+    label: "Wurmpedia",
+    ariaLabel: "Wurmpedia (opens in new tab)"
+  },
+  { 
+    href: "https://github.com/Yarpii/WURM-TOOLS", 
+    label: "GitHub",
+    ariaLabel: "GitHub repository (opens in new tab)"
+  },
+];
+
+const BOTTOM_LINKS = [
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+  { href: "/disclaimer", label: "Disclaimer" },
+];
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const { settings, footerIcon } = useSiteSettings();
@@ -18,11 +88,21 @@ export default function Footer() {
               {footerIcon ? (
                 <div className="w-8 h-8 rounded overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={footerIcon} alt={settings.site_name} className="w-full h-full object-contain" />
+                  <img 
+                    src={footerIcon} 
+                    alt={settings.site_name} 
+                    className="w-full h-full object-contain" 
+                  />
                 </div>
               ) : (
                 <div className="w-8 h-8 rounded bg-accent flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg 
+                    className="w-5 h-5 text-white" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2"
+                  >
                     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                   </svg>
                 </div>
@@ -36,119 +116,69 @@ export default function Footer() {
 
           {/* Tools */}
           <div>
-            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Tools</h3>
+            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">
+              {SECTION_TITLES.tools}
+            </h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/crafting" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Crafting Calculator
-                </Link>
-              </li>
-              <li>
-                <Link href="/map" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  World Map
-                </Link>
-              </li>
-              <li>
-                <Link href="/merchants" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Merchants
-                </Link>
-              </li>
-              <li>
-                <Link href="/market" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Marketplace
-                </Link>
-              </li>
+              {TOOL_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link 
+                    href={link.href} 
+                    className="text-sm text-text-muted hover:text-text-primary transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Player Hub */}
           <div>
-            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Player Hub</h3>
+            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">
+              {SECTION_TITLES.playerHub}
+            </h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/skills" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Skill Calculator
-                </Link>
-              </li>
-              <li>
-                <Link href="/timers" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Timer Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link href="/events" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Event Calendar
-                </Link>
-              </li>
-              <li>
-                <Link href="/alliances" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Alliances
-                </Link>
-              </li>
-              <li>
-                <Link href="/achievements" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-                  Achievements
-                </Link>
-              </li>
+              {PLAYER_HUB_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link 
+                    href={link.href} 
+                    className="text-sm text-text-muted hover:text-text-primary transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* External & Legal */}
           <div>
-            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Links</h3>
+            <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">
+              {SECTION_TITLES.links}
+            </h3>
             <ul className="space-y-2">
-              <li>
-                <a
-                  href="https://www.wurmonline.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
-                >
-                  Wurm Online
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://forum.wurmonline.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
-                >
-                  Wurm Forums
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www.wurmpedia.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
-                >
-                  Wurmpedia
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </li>
-              <li>
-                <a
-                  href={settings.social_github || "https://github.com/Yarpii/WURM-TOOLS"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
-                >
-                  GitHub
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </li>
+              {EXTERNAL_LINKS.map((link, index) => {
+                // Use settings.social_github for GitHub link if available
+                const href = link.label === "GitHub" && settings.social_github 
+                  ? settings.social_github 
+                  : link.href;
+                
+                return (
+                  <li key={link.href}>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={link.ariaLabel}
+                      className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
+                    >
+                      {link.label}
+                      <ExternalLinkIcon />
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
@@ -160,15 +190,15 @@ export default function Footer() {
               &copy; {currentYear} {settings.site_name}. Made with care for the Wurm community.
             </p>
             <div className="flex items-center gap-4 text-sm">
-              <Link href="/about" className="text-text-muted hover:text-text-primary transition-colors">
-                About
-              </Link>
-              <Link href="/contact" className="text-text-muted hover:text-text-primary transition-colors">
-                Contact
-              </Link>
-              <Link href="/disclaimer" className="text-text-muted hover:text-text-primary transition-colors">
-                Disclaimer
-              </Link>
+              {BOTTOM_LINKS.map((link) => (
+                <Link 
+                  key={link.href}
+                  href={link.href} 
+                  className="text-text-muted hover:text-text-primary transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
               <span className="text-xs text-text-muted">
                 Not affiliated with Code Club AB
               </span>
