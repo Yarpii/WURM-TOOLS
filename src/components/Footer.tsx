@@ -31,9 +31,11 @@ const ExternalLinkIcon = () => (
 // 3. Extracted link data to constants
 const TOOL_LINKS = [
   { href: "/crafting", label: "Crafting Calculator" },
+  { href: "/grinder", label: "Skill Grinder" },
+  { href: "/cooking", label: "Cooking & Affinity" },
   { href: "/map", label: "World Map" },
-  { href: "/merchants", label: "Merchants" },
   { href: "/market", label: "Marketplace" },
+  { href: "/docs", label: "Documentation" },
 ];
 
 const PLAYER_HUB_LINKS = [
