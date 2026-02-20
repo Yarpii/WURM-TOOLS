@@ -7,7 +7,8 @@ import { useTheme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
-// Navigation item type
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface NavItem {
   href: string;
   label: string;
@@ -21,7 +22,8 @@ interface NavCategory {
   items: NavItem[];
 }
 
-// Navigation structure with categories and icons
+// ─── Nav Data ─────────────────────────────────────────────────────────────────
+
 const navCategories: NavCategory[] = [
   {
     label: "Market",
@@ -68,247 +70,280 @@ const navCategories: NavCategory[] = [
   },
 ];
 
-// Icon components
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
 const icons: Record<string, React.ReactNode> = {
   hammer: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
     </svg>
   ),
   store: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   ),
   map: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
     </svg>
   ),
   database: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
     </svg>
   ),
   users: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
     </svg>
   ),
   shield: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   ),
   chart: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     </svg>
   ),
   exchange: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
     </svg>
   ),
   folder: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
     </svg>
   ),
   trophy: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3h14M5 3v4a7 7 0 007 7m-7-7H2m17 0h3M19 3v4a7 7 0 01-7 7m0 0v4m0 4h-4m4 0h4m-4-4h.01" />
     </svg>
   ),
   skill: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
     </svg>
   ),
   timer: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
   calendar: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   ),
   character: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   ),
   treasure: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
     </svg>
   ),
   tag: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
     </svg>
   ),
   merchant: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
     </svg>
   ),
   cooking: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
     </svg>
   ),
   archaeology: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
     </svg>
   ),
   animal: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 19c-4 0-7-2-7-5 0-2 1.5-3.5 3-4l1-3c.5-1.5 2-2 3-2s2.5.5 3 2l1 3c1.5.5 3 2 3 4 0 3-3 5-7 5zm-3-5h.01M15 14h.01" />
     </svg>
   ),
   chat: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
     </svg>
   ),
   book: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
     </svg>
   ),
 };
 
-function NavDropdown({ category, isOpen, onOpen, onClose, isAdmin }: {
-  category: NavCategory;
+// ─── Mega Menu ────────────────────────────────────────────────────────────────
+
+function MegaMenu({
+  isOpen,
+  onEnter,
+  onLeave,
+  onClose,
+  isAdmin,
+}: {
   isOpen: boolean;
-  onOpen: () => void;
+  onEnter: () => void;
+  onLeave: () => void;
   onClose: () => void;
   isAdmin: boolean;
 }) {
   const pathname = usePathname();
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Filter items based on admin status
-  const visibleItems = category.items.filter(item => !item.adminOnly || isAdmin);
-
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    onOpen();
-  };
-
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      onClose();
-    }, 150);
-  };
-
-  const isActiveCategory = visibleItems.some(
-    item => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
-  );
-
-  // Don't render if no visible items
-  if (visibleItems.length === 0) return null;
 
   return (
-    <div
-      ref={dropdownRef}
-      className="relative"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <button
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-          isActiveCategory
-            ? "text-accent"
-            : "text-text-secondary hover:text-text-primary"
-        }`}
-      >
-        {category.label}
-        <svg
-          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Dropdown Panel */}
+    <>
+      {/* Backdrop */}
       <div
-        className={`absolute top-full left-0 pt-2 transition-all duration-200 ${
-          isOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
+        className={`fixed inset-0 top-16 bg-black/30 backdrop-blur-sm z-30 transition-opacity duration-200 ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Panel */}
+      <div
+        className={`absolute left-0 right-0 top-full z-40 transition-all duration-200 ${
+          isOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-1"
+        }`}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
       >
-        <div className="bg-bg-secondary/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl shadow-black/20 p-2 min-w-[240px]">
-          {visibleItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group ${
-                  isActive
-                    ? "bg-accent/10 text-accent"
-                    : "hover:bg-bg-hover text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <span className={`mt-0.5 transition-colors ${isActive ? "text-accent" : "text-text-muted group-hover:text-accent"}`}>
-                  {icons[item.icon]}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className={`font-medium text-sm ${isActive ? "text-accent" : "text-text-primary"}`}>
-                    {item.label}
+        <div className="bg-bg-secondary/98 backdrop-blur-xl border-b border-border shadow-2xl shadow-black/25">
+          <div className="max-w-6xl mx-auto px-4 py-6">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6">
+              {navCategories.map((category) => {
+                const visibleItems = category.items.filter(
+                  (item) => !item.adminOnly || isAdmin
+                );
+                if (visibleItems.length === 0) return null;
+
+                return (
+                  <div key={category.label}>
+                    {/* Category heading */}
+                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border">
+                      <span className="text-xs font-semibold text-text-muted uppercase tracking-widest">
+                        {category.label}
+                      </span>
+                    </div>
+
+                    {/* Items */}
+                    <div className="space-y-0.5">
+                      {visibleItems.map((item) => {
+                        const isActive =
+                          pathname === item.href ||
+                          (item.href !== "/" && pathname.startsWith(item.href));
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={onClose}
+                            className={`flex items-center gap-2.5 px-2 py-2 rounded-lg transition-all duration-150 group ${
+                              isActive
+                                ? "bg-accent/10 text-accent"
+                                : "hover:bg-bg-hover text-text-secondary hover:text-text-primary"
+                            }`}
+                          >
+                            <span
+                              className={`flex-shrink-0 transition-colors ${
+                                isActive
+                                  ? "text-accent"
+                                  : "text-text-muted group-hover:text-accent"
+                              }`}
+                            >
+                              {icons[item.icon]}
+                            </span>
+                            <div className="min-w-0">
+                              <div
+                                className={`text-sm font-medium leading-tight ${
+                                  isActive ? "text-accent" : "text-text-primary"
+                                }`}
+                              >
+                                {item.label}
+                              </div>
+                              <div className="text-xs text-text-muted truncate mt-0.5">
+                                {item.description}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="text-xs text-text-muted mt-0.5 truncate">
-                    {item.description}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
+// ─── Header ───────────────────────────────────────────────────────────────────
+
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { user, loading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { settings, headerLogo } = useSiteSettings();
   const pathname = usePathname();
 
-  // Handle scroll for header styling
+  const openMegaMenu = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setMegaMenuOpen(true);
+  };
+
+  const scheduleMegaMenuClose = () => {
+    closeTimerRef.current = setTimeout(() => setMegaMenuOpen(false), 200);
+  };
+
+  const closeMegaMenu = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setMegaMenuOpen(false);
+  };
+
+  // Scroll styling
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change
+  // Close on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    closeMegaMenu();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  const isActiveCategory = (category: NavCategory) =>
+    category.items.some(
+      (item) =>
+        pathname === item.href ||
+        (item.href !== "/" && pathname.startsWith(item.href))
+    );
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      className={`sticky top-0 z-50 relative transition-all duration-300 ${
         isScrolled
           ? "bg-bg-secondary/80 backdrop-blur-xl border-b border-border shadow-lg shadow-black/5"
           : "bg-bg-secondary border-b border-border"
@@ -317,7 +352,7 @@ export default function Header() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center gap-2.5 group" onClick={closeMegaMenu}>
             <div className="relative">
               {headerLogo ? (
                 <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
@@ -346,9 +381,11 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
-            {/* Home link */}
+            {/* Home */}
             <Link
               href="/"
+              onClick={closeMegaMenu}
+              onMouseEnter={scheduleMegaMenuClose}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === "/"
                   ? "text-accent"
@@ -358,22 +395,48 @@ export default function Header() {
               Home
             </Link>
 
-            {/* Category dropdowns */}
-            {navCategories.map((category) => (
-              <NavDropdown
-                key={category.label}
-                category={category}
-                isOpen={openDropdown === category.label}
-                onOpen={() => setOpenDropdown(category.label)}
-                onClose={() => setOpenDropdown(null)}
-                isAdmin={user?.role === "admin"}
-              />
-            ))}
+            {/* Category triggers */}
+            {navCategories.map((category) => {
+              const visibleItems = category.items.filter(
+                (item) => !item.adminOnly || user?.role === "admin"
+              );
+              if (visibleItems.length === 0) return null;
+              const active = isActiveCategory(category);
 
-            {/* Dashboard link - for logged in users */}
+              return (
+                <button
+                  key={category.label}
+                  onMouseEnter={openMegaMenu}
+                  onMouseLeave={scheduleMegaMenuClose}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    active
+                      ? "text-accent"
+                      : megaMenuOpen
+                      ? "text-text-primary"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  {category.label}
+                  <svg
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      megaMenuOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              );
+            })}
+
+            {/* Dashboard */}
             {user && (
               <Link
                 href="/dashboard"
+                onClick={closeMegaMenu}
+                onMouseEnter={scheduleMegaMenuClose}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname === "/dashboard"
                     ? "text-accent"
@@ -384,10 +447,12 @@ export default function Header() {
               </Link>
             )}
 
-            {/* Admin link - only for admins */}
+            {/* Admin */}
             {user?.role === "admin" && (
               <Link
                 href="/admin"
+                onClick={closeMegaMenu}
+                onMouseEnter={scheduleMegaMenuClose}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname === "/admin" || pathname.startsWith("/admin")
                     ? "text-accent"
@@ -404,6 +469,7 @@ export default function Header() {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
+              onMouseEnter={scheduleMegaMenuClose}
               className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-all"
               aria-label="Toggle theme"
             >
@@ -426,6 +492,7 @@ export default function Header() {
                 <div className="flex items-center gap-3">
                   <Link
                     href="/settings"
+                    onMouseEnter={scheduleMegaMenuClose}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-all"
                   >
                     <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center">
@@ -437,6 +504,7 @@ export default function Header() {
                   </Link>
                   <button
                     onClick={() => logout()}
+                    onMouseEnter={scheduleMegaMenuClose}
                     className="px-3 py-1.5 text-sm text-text-muted hover:text-text-primary transition-colors"
                   >
                     Logout
@@ -446,12 +514,14 @@ export default function Header() {
                 <>
                   <Link
                     href="/login"
+                    onMouseEnter={scheduleMegaMenuClose}
                     className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
                   >
                     Login
                   </Link>
                   <Link
                     href="/register"
+                    onMouseEnter={scheduleMegaMenuClose}
                     className="px-4 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover transition-all shadow-lg shadow-accent/20 hover:shadow-accent/30"
                   >
                     Sign Up
@@ -488,7 +558,16 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* ── Mega Menu (desktop) ── */}
+      <MegaMenu
+        isOpen={megaMenuOpen}
+        onEnter={openMegaMenu}
+        onLeave={scheduleMegaMenuClose}
+        onClose={closeMegaMenu}
+        isAdmin={user?.role === "admin"}
+      />
+
+      {/* ── Mobile Navigation ── */}
       <div
         className={`lg:hidden overflow-hidden transition-all duration-300 ${
           mobileMenuOpen ? "max-h-[80vh] border-t border-border" : "max-h-0"
@@ -513,9 +592,11 @@ export default function Header() {
           {navCategories.map((category) => (
             <div key={category.label} className="mb-2">
               <button
-                onClick={() => setExpandedMobileCategory(
-                  expandedMobileCategory === category.label ? null : category.label
-                )}
+                onClick={() =>
+                  setExpandedMobileCategory(
+                    expandedMobileCategory === category.label ? null : category.label
+                  )
+                }
                 className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-text-secondary hover:bg-bg-hover"
               >
                 <span className="font-medium">{category.label}</span>
@@ -531,7 +612,6 @@ export default function Header() {
                 </svg>
               </button>
 
-              {/* Expandable items */}
               <div
                 className={`overflow-hidden transition-all duration-200 ${
                   expandedMobileCategory === category.label ? "max-h-96 mt-1" : "max-h-0"
@@ -539,30 +619,32 @@ export default function Header() {
               >
                 <div className="pl-4 space-y-1">
                   {category.items
-                    .filter(item => !item.adminOnly || user?.role === "admin")
+                    .filter((item) => !item.adminOnly || user?.role === "admin")
                     .map((item) => {
-                    const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
-                          isActive
-                            ? "bg-accent/10 text-accent"
-                            : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
-                        }`}
-                      >
-                        <span className={isActive ? "text-accent" : "text-text-muted"}>
-                          {icons[item.icon]}
-                        </span>
-                        <div>
-                          <div className="font-medium text-sm">{item.label}</div>
-                          <div className="text-xs text-text-muted">{item.description}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                      const isActive =
+                        pathname === item.href ||
+                        (item.href !== "/" && pathname.startsWith(item.href));
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
+                            isActive
+                              ? "bg-accent/10 text-accent"
+                              : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                          }`}
+                        >
+                          <span className={isActive ? "text-accent" : "text-text-muted"}>
+                            {icons[item.icon]}
+                          </span>
+                          <div>
+                            <div className="font-medium text-sm">{item.label}</div>
+                            <div className="text-xs text-text-muted">{item.description}</div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                 </div>
               </div>
             </div>
