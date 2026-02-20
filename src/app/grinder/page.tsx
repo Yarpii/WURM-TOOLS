@@ -95,7 +95,7 @@ function slideColor(slide: number): string {
 
 // ─── Per-Action Simulator ─────────────────────────────────────────────────────
 
-function Simulator() {
+function Simulator({ skillName }: { skillName: string }) {
   const [skill, setSkill] = useState(30);
   const [difficulty, setDifficulty] = useState(30);
   const [toolQL, setToolQL] = useState(50);
@@ -157,19 +157,6 @@ function Simulator() {
       {/* ── Inputs ── */}
       <div className="bg-bg-secondary rounded-xl border border-border p-6 space-y-5">
         <h2 className="text-base font-semibold text-text-primary">Parameters</h2>
-
-        {/* Skill dropdown */}
-        <div>
-          <label className="block text-sm text-text-secondary mb-2">Skill</label>
-          <select
-            className="w-full bg-bg-tertiary border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
-            defaultValue="Blacksmithing"
-          >
-            {SKILL_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
 
         <SliderInput label="Current Skill" value={skill} onChange={setSkill} min={1} max={99} />
         <SliderInput label="Item Difficulty / Target QL" value={difficulty} onChange={setDifficulty} min={1} max={100} />
@@ -281,7 +268,7 @@ function Simulator() {
         {/* Session summary */}
         <div className="bg-bg-secondary rounded-xl border border-border p-5 space-y-3">
           <h3 className="text-sm font-semibold text-text-primary">
-            Session Summary — {numActions.toLocaleString()} actions
+            {skillName} — {numActions.toLocaleString()} actions
           </h3>
           <div className="grid grid-cols-3 gap-3">
             <StatBox
@@ -321,7 +308,7 @@ function Simulator() {
 
 // ─── Skill Path Planner ───────────────────────────────────────────────────────
 
-function SkillPathPlanner() {
+function SkillPathPlanner({ skillName }: { skillName: string }) {
   const [fromSkill, setFromSkill] = useState(1);
   const [toSkill, setToSkill] = useState(70);
   const [toolQL, setToolQL] = useState(50);
@@ -412,7 +399,7 @@ function SkillPathPlanner() {
             <StatBox
               label="Skill Gain"
               value={`+${toSkill - fromSkill}`}
-              sub={`${fromSkill} → ${toSkill}`}
+              sub={skillName}
               color="success"
             />
           </div>
@@ -516,16 +503,32 @@ function SkillPathPlanner() {
 
 export default function GrinderPage() {
   const [activeTab, setActiveTab] = useState<Tab>("simulator");
+  const [skillName, setSkillName] = useState("Blacksmithing");
 
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">Skill Grinder</h1>
-          <p className="text-text-secondary">
-            Simulate skill gain, find your optimal difficulty, and plan the full path to your target skill.
-          </p>
+        <div className="mb-6 flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-bold text-text-primary mb-1">Skill Grinder</h1>
+            <p className="text-text-secondary text-sm">
+              Simulate skill gain, find your optimal difficulty, and plan the full path to your target skill.
+            </p>
+          </div>
+          {/* Shared skill selector — persists across both tabs */}
+          <div className="flex items-center gap-2 shrink-0">
+            <label className="text-sm text-text-muted whitespace-nowrap">Skill:</label>
+            <select
+              value={skillName}
+              onChange={(e) => setSkillName(e.target.value)}
+              className="bg-bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
+            >
+              {SKILL_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -549,7 +552,7 @@ export default function GrinderPage() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === "simulator" ? <Simulator /> : <SkillPathPlanner />}
+        {activeTab === "simulator" ? <Simulator skillName={skillName} /> : <SkillPathPlanner skillName={skillName} />}
 
         {/* Mechanics info */}
         <div className="mt-10 grid sm:grid-cols-3 gap-4 text-sm">

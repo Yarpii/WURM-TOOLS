@@ -59,6 +59,7 @@ const navCategories: NavCategory[] = [
     label: "Tools",
     items: [
       { href: "/crafting", label: "Crafting", icon: "hammer", description: "Recipe calculator & planning" },
+      { href: "/grinder", label: "Skill Grinder", icon: "chart", description: "Skill gain simulator & path planner" },
       { href: "/cooking", label: "Cooking", icon: "cooking", description: "Affinity & CCFP calculator" },
       { href: "/projects", label: "Projects", icon: "folder", description: "Crafting project planning" },
       { href: "/docs", label: "Docs", icon: "book", description: "Calculator guides & formula reference" },
