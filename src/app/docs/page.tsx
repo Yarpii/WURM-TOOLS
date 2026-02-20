@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 // ─── Table of contents structure ─────────────────────────────────────────────
@@ -97,13 +97,41 @@ function Code({ children }: { children: React.ReactNode }) {
 }
 
 function CodeBlock({ children, label }: { children: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(children).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
     <div className="my-4 rounded-lg overflow-hidden border border-border">
-      {label && (
-        <div className="bg-bg-tertiary px-4 py-1.5 text-xs text-text-muted border-b border-border font-mono">
-          {label}
-        </div>
-      )}
+      <div className="flex items-center justify-between bg-bg-tertiary border-b border-border px-4 py-1.5">
+        <span className="text-xs text-text-muted font-mono">{label ?? ""}</span>
+        <button
+          onClick={handleCopy}
+          className="text-xs text-text-muted hover:text-text-primary transition-colors flex items-center gap-1"
+          aria-label="Copy code"
+        >
+          {copied ? (
+            <>
+              <svg className="w-3.5 h-3.5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-success">Copied</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
       <pre className="bg-bg-secondary px-4 py-3 text-sm font-mono text-text-secondary overflow-x-auto whitespace-pre-wrap leading-relaxed">
         {children}
       </pre>
@@ -144,9 +172,18 @@ function SectionHeading({ id, children }: { id: string; children: React.ReactNod
   return (
     <h2
       id={id}
-      className="text-2xl font-bold text-text-primary mt-12 mb-4 pb-2 border-b border-border scroll-mt-24"
+      className="group flex items-center gap-2 text-2xl font-bold text-text-primary mt-12 mb-4 pb-2 border-b border-border scroll-mt-24"
     >
       {children}
+      <a
+        href={`#${id}`}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-text-muted hover:text-accent"
+        aria-label={`Link to ${String(children)}`}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+      </a>
     </h2>
   );
 }
@@ -155,9 +192,18 @@ function SubHeading({ id, children }: { id: string; children: React.ReactNode })
   return (
     <h3
       id={id}
-      className="text-lg font-semibold text-text-primary mt-8 mb-3 scroll-mt-24"
+      className="group flex items-center gap-2 text-lg font-semibold text-text-primary mt-8 mb-3 scroll-mt-24"
     >
       {children}
+      <a
+        href={`#${id}`}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-text-muted hover:text-accent"
+        aria-label={`Link to ${String(children)}`}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+      </a>
     </h3>
   );
 }
@@ -168,13 +214,14 @@ function P({ children }: { children: React.ReactNode }) {
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 
-function Sidebar({ activeId }: { activeId: string }) {
+function Sidebar({ activeId, onLinkClick }: { activeId: string; onLinkClick?: () => void }) {
   return (
     <nav className="space-y-1">
       {TOC.map((section) => (
         <div key={section.id}>
           <a
             href={`#${section.id}`}
+            onClick={onLinkClick}
             className={`block px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeId === section.id
                 ? "bg-accent/10 text-accent"
@@ -187,6 +234,7 @@ function Sidebar({ activeId }: { activeId: string }) {
             <a
               key={child.id}
               href={`#${child.id}`}
+              onClick={onLinkClick}
               className={`block pl-6 pr-3 py-1 rounded-md text-xs transition-colors ${
                 activeId === child.id
                   ? "text-accent"
@@ -207,12 +255,6 @@ function Sidebar({ activeId }: { activeId: string }) {
 export default function DocsPage() {
   const [activeId, setActiveId] = useState("overview");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const headingsRef = useRef<string[]>([]);
-
-  // Collect all heading IDs on mount
-  useEffect(() => {
-    headingsRef.current = TOC.flatMap((s) => [s.id, ...s.children.map((c) => c.id)]);
-  }, []);
 
   // Highlight the active section as the user scrolls
   useEffect(() => {
@@ -258,11 +300,8 @@ export default function DocsPage() {
             <span className="text-text-muted">{mobileOpen ? "▲" : "▼"}</span>
           </button>
           {mobileOpen && (
-            <div
-              className="mt-2 bg-bg-secondary border border-border rounded-lg p-3"
-              onClick={() => setMobileOpen(false)}
-            >
-              <Sidebar activeId={activeId} />
+            <div className="mt-2 bg-bg-secondary border border-border rounded-lg p-3">
+              <Sidebar activeId={activeId} onLinkClick={() => setMobileOpen(false)} />
             </div>
           )}
         </div>
