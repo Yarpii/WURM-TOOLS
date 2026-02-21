@@ -23,7 +23,6 @@ export interface SiteSettings {
   color_info: string;
   // Social
   social_twitter: string;
-  social_github: string;
   social_discord: string;
   // SEO
   seo_description: string;
@@ -47,7 +46,6 @@ const DEFAULT_SETTINGS: SiteSettings = {
   color_danger: "#ef4444",
   color_info: "#06b6d4",
   social_twitter: "@wurmtools",
-  social_github: "https://github.com/Yarpii/WURM-TOOLS",
   social_discord: "",
   seo_description: "",
   seo_keywords: "",

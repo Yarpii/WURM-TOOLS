@@ -78,7 +78,6 @@ const SECTIONS: Section[] = [
     category: "social",
     fields: [
       { key: "social_twitter", label: "Twitter/X Handle", type: "text", placeholder: "@wurmtools" },
-      { key: "social_github", label: "GitHub URL", type: "url", placeholder: "https://github.com/..." },
       { key: "social_discord", label: "Discord Invite URL", type: "url", placeholder: "https://discord.gg/..." },
     ],
   },

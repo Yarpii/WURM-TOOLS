@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
       "header_logo_dark", "header_logo_light", "footer_icon_dark", "footer_icon_light",
       "favicon_dark", "favicon_light", "og_image_url",
       "color_accent", "color_accent_hover", "color_success", "color_warning", "color_danger", "color_info",
-      "social_twitter", "social_github", "social_discord",
+      "social_twitter", "social_discord",
       "seo_description", "seo_keywords",
     ];
 

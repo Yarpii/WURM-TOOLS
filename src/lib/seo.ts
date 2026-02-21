@@ -145,9 +145,7 @@ export function generateOrganizationSchema() {
     url: BASE_URL,
     logo: `${BASE_URL}/icon.svg`,
     description: DEFAULT_SEO.description,
-    sameAs: [
-      "https://github.com/Yarpii/WURM-TOOLS",
-    ],
+    sameAs: [],
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
