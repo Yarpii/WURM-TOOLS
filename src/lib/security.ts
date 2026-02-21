@@ -147,21 +147,6 @@ export function sanitizeError(error: unknown, context: string = "Operation"): st
 }
 
 /**
- * Creates a standardized error response for API routes.
- * Ensures consistent error format and prevents information leakage.
- */
-export function createErrorResponse(
-  error: unknown,
-  context: string,
-  statusCode: number = 500
-): { error: string; status: number } {
-  return {
-    error: sanitizeError(error, context),
-    status: statusCode,
-  };
-}
-
-/**
  * Validates and sanitizes numeric input within bounds.
  * Prevents DoS via extremely large numbers.
  */
@@ -203,41 +188,3 @@ export function validatePagination(
   };
 }
 
-/**
- * Rate limiting configuration for production.
- * NOTE: The in-memory rate limiter in middleware.ts is NOT suitable for production
- * with multiple server instances. For production, use Redis or a similar distributed store.
- *
- * Example Redis implementation:
- * ```
- * import Redis from 'ioredis';
- * const redis = new Redis(process.env.REDIS_URL);
- *
- * async function checkRateLimit(key: string, maxRequests: number, windowMs: number) {
- *   const current = await redis.incr(key);
- *   if (current === 1) {
- *     await redis.expire(key, Math.ceil(windowMs / 1000));
- *   }
- *   return current <= maxRequests;
- * }
- * ```
- */
-export const RATE_LIMIT_CONFIG = {
-  // General API rate limit
-  general: {
-    maxRequests: 100,
-    windowMs: 60 * 1000, // 1 minute
-  },
-  // Stricter limit for auth endpoints (prevent brute force)
-  auth: {
-    maxRequests: 10,
-    windowMs: 60 * 1000, // 1 minute
-  },
-  // Very strict limit for expensive operations
-  expensive: {
-    maxRequests: 20,
-    windowMs: 60 * 1000, // 1 minute
-  },
-  // Note: In production, implement with Redis for distributed rate limiting
-  _productionWarning: "In-memory rate limiting does not work across multiple server instances. Use Redis in production.",
-};

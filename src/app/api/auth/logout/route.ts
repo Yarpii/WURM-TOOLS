@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     // Clear session cookie
     response.cookies.set("session", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" || process.env.FORCE_SECURE_COOKIES === "true",
       sameSite: "strict", // SECURITY: Changed from 'lax' to 'strict' for CSRF protection
       maxAge: 0,
       path: "/",

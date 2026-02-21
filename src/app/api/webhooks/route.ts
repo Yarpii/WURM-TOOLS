@@ -95,8 +95,10 @@ export async function POST(request: NextRequest) {
         // Validate webhook URL format (SSRF-safe validation)
         try {
           const parsedUrl = new URL(webhook_url);
-          const validHosts = ['discord.com', 'discordapp.com'];
-          if (!validHosts.includes(parsedUrl.hostname.toLowerCase())) {
+          const hostname = parsedUrl.hostname.toLowerCase();
+          const isValidHost = hostname === 'discord.com' || hostname === 'discordapp.com' ||
+                              hostname.endsWith('.discord.com') || hostname.endsWith('.discordapp.com');
+          if (!isValidHost) {
             throw new Error('Invalid host');
           }
           if (parsedUrl.protocol !== 'https:') {
@@ -143,8 +145,10 @@ export async function POST(request: NextRequest) {
           // Validate webhook URL on update (SSRF-safe)
           try {
             const parsedUrl = new URL(data.webhook_url);
-            const validHosts = ['discord.com', 'discordapp.com'];
-            if (!validHosts.includes(parsedUrl.hostname.toLowerCase()) ||
+            const hostname = parsedUrl.hostname.toLowerCase();
+            const isValidHost = hostname === 'discord.com' || hostname === 'discordapp.com' ||
+                                hostname.endsWith('.discord.com') || hostname.endsWith('.discordapp.com');
+            if (!isValidHost ||
                 parsedUrl.protocol !== 'https:' ||
                 !parsedUrl.pathname.startsWith('/api/webhooks/') ||
                 parsedUrl.username || parsedUrl.password) {

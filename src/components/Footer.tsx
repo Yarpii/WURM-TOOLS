@@ -47,25 +47,20 @@ const PLAYER_HUB_LINKS = [
 ];
 
 const EXTERNAL_LINKS = [
-  { 
-    href: "https://www.wurmonline.com/", 
+  {
+    href: "https://www.wurmonline.com/",
     label: "Wurm Online",
     ariaLabel: "Wurm Online (opens in new tab)"
   },
-  { 
-    href: "https://forum.wurmonline.com/", 
+  {
+    href: "https://forum.wurmonline.com/",
     label: "Wurm Forums",
     ariaLabel: "Wurm Forums (opens in new tab)"
   },
-  { 
-    href: "https://www.wurmpedia.com/", 
+  {
+    href: "https://www.wurmpedia.com/",
     label: "Wurmpedia",
     ariaLabel: "Wurmpedia (opens in new tab)"
-  },
-  { 
-    href: "https://github.com/Yarpii/WURM-TOOLS", 
-    label: "GitHub",
-    ariaLabel: "GitHub repository (opens in new tab)"
   },
 ];
 
@@ -160,27 +155,20 @@ export default function Footer() {
               {SECTION_TITLES.links}
             </h3>
             <ul className="space-y-2">
-              {EXTERNAL_LINKS.map((link, index) => {
-                // Use settings.social_github for GitHub link if available
-                const href = link.label === "GitHub" && settings.social_github 
-                  ? settings.social_github 
-                  : link.href;
-                
-                return (
-                  <li key={link.href}>
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={link.ariaLabel}
-                      className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
-                    >
-                      {link.label}
-                      <ExternalLinkIcon />
-                    </a>
-                  </li>
-                );
-              })}
+              {EXTERNAL_LINKS.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={link.ariaLabel}
+                    className="text-sm text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
+                  >
+                    {link.label}
+                    <ExternalLinkIcon />
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

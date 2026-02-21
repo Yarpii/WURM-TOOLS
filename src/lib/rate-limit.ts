@@ -204,12 +204,12 @@ async function checkRateLimitRedis(
       retryAfter: allowed ? undefined : Math.ceil((resetAt - Date.now()) / 1000),
     };
   } catch (error) {
-    console.error("[RateLimit] Redis error, falling back to allow:", error);
-    // On Redis error, allow the request but log it
+    console.error("[RateLimit] Redis error, denying request (fail-secure):", error);
     return {
-      allowed: true,
-      remaining: config.maxRequests,
+      allowed: false,
+      remaining: 0,
       resetAt: Date.now() + config.windowMs,
+      retryAfter: Math.ceil(config.windowMs / 1000),
     };
   }
 }
