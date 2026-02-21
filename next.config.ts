@@ -28,6 +28,11 @@ const securityHeaders = [
     value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
   },
   {
+    // Force HTTPS and prevent protocol downgrade attacks
+    key: "Strict-Transport-Security",
+    value: "max-age=31536000; includeSubDomains; preload",
+  },
+  {
     // Content Security Policy - restrict sources of content
     // Note: 'unsafe-inline' and 'unsafe-eval' needed for Next.js, but we restrict other sources
     key: "Content-Security-Policy",

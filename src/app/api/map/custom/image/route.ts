@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, stat } from "fs/promises";
-import { join } from "path";
+import { join, resolve, sep } from "path";
 
 // Path to custom maps folder
 const MAPS_DIR = join(process.cwd(), "scripts", "Maps");
@@ -20,22 +20,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Sanitize inputs to prevent path traversal
-    const sanitize = (input: string) => {
-      return input.replace(/\.\./g, "").replace(/[\/\\]/g, "");
-    };
-
-    const safeServer = sanitize(server);
-    const safeDate = sanitize(date);
-    const safeFilename = sanitize(filename);
-
     // Construct the file path
-    const filePath = join(MAPS_DIR, safeServer, safeDate, safeFilename);
+    const filePath = join(MAPS_DIR, server, date, filename);
 
-    // Verify the resolved path is within MAPS_DIR (defense in depth)
-    const { resolve } = await import("path");
+    // Verify the resolved path is strictly within MAPS_DIR (prevents path traversal)
     const resolvedPath = resolve(filePath);
-    if (!resolvedPath.startsWith(resolve(MAPS_DIR))) {
+    if (!resolvedPath.startsWith(resolve(MAPS_DIR) + sep)) {
       return NextResponse.json(
         { error: "Invalid file path" },
         { status: 400 }
@@ -62,7 +52,7 @@ export async function GET(request: NextRequest) {
     const fileBuffer = await readFile(filePath);
 
     // Determine content type
-    const ext = safeFilename.toLowerCase().split(".").pop();
+    const ext = filename.toLowerCase().split(".").pop();
     const contentType = ext === "png" ? "image/png" :
                         ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
                         "application/octet-stream";
