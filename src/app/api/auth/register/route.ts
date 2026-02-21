@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     const { username, email, password } = body;
 
     // Validate email
-    if (!email || !email.includes("@")) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set("session", loginResult.sessionId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" || process.env.FORCE_SECURE_COOKIES === "true",
       sameSite: "strict", // SECURITY: Changed from 'lax' to 'strict' to prevent CSRF
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: "/",
