@@ -362,6 +362,7 @@ export default function AnimalsPage() {
         setModalMode(null);
         const animalRes = await fetch(`/api/animals?animal_id=${selectedAnimal.id}`);
         if (animalRes.ok) setSelectedAnimal(await animalRes.json());
+        fetchAnimals();
         if (familyTree && familyTree.animal.id === selectedAnimal.id) {
           fetchFamilyTree(selectedAnimal.id);
         }
@@ -386,6 +387,7 @@ export default function AnimalsPage() {
       if (res.ok) {
         const animalRes = await fetch(`/api/animals?animal_id=${selectedAnimal.id}`);
         if (animalRes.ok) setSelectedAnimal(await animalRes.json());
+        fetchAnimals();
       }
     } catch (err) {
       setError(String(err));

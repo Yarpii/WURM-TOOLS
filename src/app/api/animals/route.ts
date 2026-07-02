@@ -14,6 +14,7 @@ import {
   addAnimalTrait,
   removeAnimalTrait,
   getAnimalFamilyTree,
+  DuplicateTraitError,
 } from "@/lib/database";
 import { sanitizeError, validateStringLength, INPUT_LIMITS } from "@/lib/security";
 
@@ -187,14 +188,21 @@ export async function POST(request: NextRequest) {
       if (!body.trait_name) return NextResponse.json({ error: "Trait name is required" }, { status: 400 });
       if (!body.trait_category) return NextResponse.json({ error: "Trait category is required" }, { status: 400 });
 
-      const id = await addAnimalTrait(userId, {
-        animal_id: animalId,
-        trait_name: body.trait_name,
-        trait_category: body.trait_category,
-        is_inherited: body.is_inherited || false,
-      });
-      if (!id) return NextResponse.json({ error: "Failed to add trait or access denied" }, { status: 400 });
-      return NextResponse.json({ success: true, id });
+      try {
+        const id = await addAnimalTrait(userId, {
+          animal_id: animalId,
+          trait_name: body.trait_name,
+          trait_category: body.trait_category,
+          is_inherited: body.is_inherited || false,
+        });
+        if (!id) return NextResponse.json({ error: "Failed to add trait or access denied" }, { status: 400 });
+        return NextResponse.json({ success: true, id });
+      } catch (traitError) {
+        if (traitError instanceof DuplicateTraitError) {
+          return NextResponse.json({ error: traitError.message }, { status: 409 });
+        }
+        throw traitError;
+      }
     }
 
     if (action === "remove_trait") {
