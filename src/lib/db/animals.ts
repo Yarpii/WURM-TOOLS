@@ -211,14 +211,31 @@ export async function getAnimalTraits(animalId: number): Promise<AnimalTrait[]> 
   return result.rows;
 }
 
+export class DuplicateTraitError extends Error {
+  constructor() {
+    super("This trait has already been added to this animal.");
+    this.name = "DuplicateTraitError";
+  }
+}
+
 export async function addAnimalTrait(userId: number, input: AddAnimalTraitInput): Promise<number> {
   const animal = await getAnimalById(input.animal_id);
   if (!animal || animal.user_id !== userId) return 0;
 
-  await query(
-    `INSERT INTO animal_traits (animal_id, trait_name, trait_category, is_inherited) VALUES (?, ?, ?, ?)`,
-    [input.animal_id, input.trait_name, input.trait_category, input.is_inherited ? 1 : 0]
-  );
+  const traitName = input.trait_name.trim();
+
+  try {
+    await query(
+      `INSERT INTO animal_traits (animal_id, trait_name, trait_category, is_inherited) VALUES (?, ?, ?, ?)`,
+      [input.animal_id, traitName, input.trait_category, input.is_inherited ? 1 : 0]
+    );
+  } catch (error) {
+    const err = error as { code?: string };
+    if (err.code === "ER_DUP_ENTRY") {
+      throw new DuplicateTraitError();
+    }
+    throw error;
+  }
   const idResult = await query<{ id: number }>("SELECT LAST_INSERT_ID() as id");
   return idResult.rows[0]?.id || 0;
 }

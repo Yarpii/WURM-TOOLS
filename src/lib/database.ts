@@ -371,6 +371,7 @@ export {
   addAnimalTrait,
   removeAnimalTrait,
   getAnimalFamilyTree,
+  DuplicateTraitError,
 } from "./db/animals";
 
 // Site Settings

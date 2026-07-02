@@ -498,24 +498,28 @@ export default function DocsPage() {
 
             <SubHeading id="cooking-affinity">Affinity Calculator</SubHeading>
             <P>
-              Affinity is determined by a hash of: your player number (visible in the game
-              character window), the cooker type, the container, and the combination of
+              Affinity is determined by a hash of: your player number (a hidden per-character
+              value — it is <strong className="text-text-primary">not</strong> shown anywhere in
+              the game client), the cooker type, the container, and the combination of
               ingredients including their preparation methods. Changing any single ingredient or
               preparation shifts the result to a completely different skill.
             </P>
+            <Callout type="tip">
+              Don&apos;t know your player number? Cook one simple, single-ingredient meal in-game,
+              note which skill affinity it grants, then use the <strong>Discover Player #</strong> tab
+              on the <Link href="/cooking" className="text-accent hover:underline">/cooking</Link> page
+              to enter that ingredient/preparation/skill combo — it will back-calculate your player
+              number (0–137) for you. Save it to your account once found so you don&apos;t have to
+              redo this each visit.
+            </Callout>
             <ParamTable
               rows={[
-                { name: "Player Number", type: "integer", desc: "Your unique in-game character ID. Found in the game client character window. Every player has a different number so the same recipe gives different affinities to different players." },
+                { name: "Player Number", type: "integer", desc: "A hidden, unique per-character value (0-137) that is not displayed in the game. Discover it once using the Discover Player # tab, then reuse it for all future affinity calculations. Every player has a different number so the same recipe gives different affinities to different players." },
                 { name: "Cooker", type: "select", desc: "The cooking device used (campfire, forge, oven, etc.). Affects the affinity hash." },
                 { name: "Container", type: "select", desc: "The cooking container (pottery bowl, frying pan, etc.). Also affects the hash." },
                 { name: "Ingredients", type: "list", desc: "Each ingredient, its preparation (raw, chopped, diced…), and quantity. Order does not matter — the hash is commutative." },
               ]}
             />
-            <Callout type="tip">
-              Use the <strong>Discover</strong> tab to reverse-lookup: given an ingredient and preparation,
-              find which player numbers it would produce an affinity for. Useful when you want a specific
-              skill and are working backwards.
-            </Callout>
 
             <SubHeading id="cooking-ccfp">CCFP Calculator</SubHeading>
             <P>

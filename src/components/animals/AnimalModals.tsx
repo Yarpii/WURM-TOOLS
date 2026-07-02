@@ -372,7 +372,11 @@ export function TraitModal({ animal, saving, onSave, onClose }: TraitModalProps)
     if (preset) setCategory(preset.category);
   };
 
-  const traitName = useCustom ? customTrait : selectedTrait;
+  const traitName = useCustom ? customTrait.trim() : selectedTrait;
+  const isDuplicateCustomTrait =
+    useCustom &&
+    customTrait.trim().length > 0 &&
+    existingTraitNames.some((n) => n.toLowerCase() === customTrait.trim().toLowerCase());
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -463,6 +467,11 @@ export function TraitModal({ animal, saving, onSave, onClose }: TraitModalProps)
                   className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-text-primary focus:border-accent focus:outline-none"
                   placeholder="e.g. It has a rare glow"
                 />
+                {isDuplicateCustomTrait && (
+                  <p className="text-xs text-danger mt-1">
+                    This animal already has a trait with this name.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-text-secondary mb-1">Category *</label>
@@ -500,7 +509,7 @@ export function TraitModal({ animal, saving, onSave, onClose }: TraitModalProps)
           </button>
           <button
             onClick={() => onSave({ trait_name: traitName, trait_category: category, is_inherited: isInherited })}
-            disabled={saving || !traitName}
+            disabled={saving || !traitName || isDuplicateCustomTrait}
             className="flex-1 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50"
           >
             {saving ? "Adding..." : "Add Trait"}
